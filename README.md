@@ -1,21 +1,36 @@
-# WorldEdit MCPE — `worldedit_mcpe_v0.1.mcaddon`
+# WorldEdit MCPE — `worldedit_mcpe_v0.2.mcaddon`
 
 Un addon de **WorldEdit** para **Minecraft Bedrock / Pocket Edition** (PE), hecho con la
-Script API (`@minecraft/server` + `@minecraft/server-ui`). Incluye una **varita**, muchos
-**comandos de chat** y **formularios (menús)** para construir rápido.
+Script API (`@minecraft/server` + `@minecraft/server-ui`). Sin comandos de chat: todo se
+maneja con un **item de menú**, la **varita**, **formularios** y `/scriptevent`.
 
-> Archivo listo para importar: **`worldedit_mcpe_v0.1.mcaddon`** (en la raíz del repo).
+> Archivo listo para importar: **`worldedit_mcpe_v0.2.mcaddon`** (en la raíz del repo).
+
+---
+
+## Novedades v0.2
+
+- 🧭 **Item especial de menú (brújula):** al **usarla** abre el menú (ejecuta
+  internamente `we:menu`). También: **agáchate + usa la varita**.
+- 🟩 **Caja de partículas 3D** con patrón punteado `- - - -` que marca la selección.
+  Esquina **POS1 verde**, esquina **POS2 naranja**. Se puede mostrar/ocultar.
+- 📊 **Barra de acción (actionbar)** con el progreso **0% → 100%** al rellenar
+  (operaciones grandes se procesan por partes para no trabar el juego).
+- 🧱 **Nuevas herramientas:** **Stack** (multiplica una copia N veces), **Rotate**
+  (90/180/270°), **Move** (mover la selección) y **Expand/Contract** (ampliar/reducir
+  la selección).
+- ❌ **Quitados los comandos de chat `;`** (no funcionan en el juego). Ahora se usa el
+  menú o `/scriptevent`.
 
 ---
 
 ## Instalación
 
-1. Descarga **`worldedit_mcpe_v0.1.mcaddon`**.
+1. Descarga **`worldedit_mcpe_v0.2.mcaddon`**.
 2. Ábrelo con Minecraft (o impórtalo desde *Configuración → Almacenamiento → Importar*).
 3. Crea/edita un mundo y activa el paquete de comportamiento **WorldEdit MCPE**.
-4. Recomendado: activa los **Experimentos** del mundo. Para que funcionen los
-   comandos de chat con `;` puede que necesites el experimento **"Beta APIs"**
-   (depende de tu versión). Si no, usa el **menú** o `/scriptevent` (ver abajo).
+4. Activa los **Experimentos** del mundo (la **API de Beta/GameTest**), porque el addon
+   usa scripts.
 
 ---
 
@@ -29,89 +44,99 @@ Dentro del mundo, ejecuta en el chat:
 
 Esto:
 - Muestra en consola: `[WorldEdit] addon activado correctamente para <jugador>`.
-- Te entrega el **kit de construcción** automáticamente.
-- Habilita la **varita** y todos los **comandos**.
+- Te entrega el **kit** (incluye la **varita** = hacha, y el **item de menú** = brújula).
+- Habilita todas las herramientas.
 
 Para desactivar: `/tag @p remove worldedit`.
 
 ---
 
-## Cómo dar comandos (3 formas)
+## Cómo usarlo (sin comandos de chat)
 
-Hay tres maneras de usar el addon; elige la que funcione en tu versión:
-
-1. **Chat con `;`** — escribe `;set stone`, `;kit`, etc. (necesita que tu versión
-   permita leer el chat por script; si no funciona, usa las otras dos formas).
-2. **Menú con formularios** — escribe `;menu`, **o agáchate y usa la varita**
-   (hacha) en el aire. Funciona siempre.
-3. **`/scriptevent`** — escribe `/scriptevent we:<comando> <args>`. Es estable en
-   todas las versiones. Ejemplos:
+1. **Item de menú (brújula):** tenla en la mano y **úsala** (click derecho / mantener
+   pulsado en móvil) para abrir el menú.
+2. **Varita (hacha de madera):**
+   | Acción | Resultado |
+   |--------|-----------|
+   | Tocar / click derecho un bloque (o quitar corteza a un tronco) | **POS1** (verde) |
+   | Romper / intentar romper un bloque | **POS2** (naranja) |
+   | **Agacharse + usar** la varita | Abre el **menú** |
+   La varita **no** modifica el mundo: solo selecciona.
+3. **`/scriptevent`** (estable en todas las versiones):
    ```
-   /scriptevent we:kit
+   /scriptevent we:menu
    /scriptevent we:set stone
-   /scriptevent we:sphere glowstone 6
-   /scriptevent we:replace dirt grass_block
+   /scriptevent we:stack 3
    ```
 
 ---
 
-## La varita (hacha de madera)
+## Menú (formularios)
 
-La varita es el **hacha de madera** (`minecraft:wooden_axe`). Funciona igual en PC y en celular:
-
-| Acción | Resultado |
-|--------|-----------|
-| Click derecho / **tocar** un bloque (o quitar la corteza a un tronco) | **POS1** |
-| Romper / **intentar romper** un bloque | **POS2** |
-
-La varita **no** modifica el mundo (no quita corteza ni rompe): solo marca posiciones.
+El menú incluye: Kit · Item de menú · Varita · Set · Replace · Walls · Outline ·
+Sphere · Cylinder · Pyramid · Clear · Copy · Paste · **Stack** · **Rotate** · **Move** ·
+**Expand** · **Contract** · Undo · Mostrar/Ocultar caja · Info · Ayuda.
 
 ---
 
-## Comandos (prefijo `;`)
+## Comandos `/scriptevent we:<cmd> <args>`
 
 | Comando | Descripción |
 |---------|-------------|
-| `;menu` | Abre el **menú** con formularios |
-| `;help` | Lista de comandos |
-| `;kit` | Entrega el kit de construcción |
-| `;wand` | Entrega la varita (hacha) |
-| `;pos1` / `;pos2` | Marca POS1 / POS2 en tu posición |
-| `;set <bloque>` | Rellena la selección |
-| `;walls <bloque>` | Construye las paredes |
-| `;outline <bloque>` | Contorno (las 6 caras) |
-| `;replace <de> <a>` | Reemplaza un bloque por otro |
-| `;clear` | Vacía la selección (aire) |
-| `;sphere <bloque> <radio> [hollow]` | Esfera (centrada en ti) |
-| `;cyl <bloque> <radio> [altura] [hollow]` | Cilindro |
-| `;pyramid <bloque> <tamaño>` | Pirámide |
-| `;copy` / `;paste` | Copiar / pegar la selección |
-| `;undo` | Deshacer la última operación |
-| `;up <n>` | Súbete `n` bloques (pone vidrio bajo tus pies) |
-| `;size` | Información de la selección |
+| `we:menu` | Abre el menú |
+| `we:help` | Ayuda |
+| `we:kit` | Entrega el kit |
+| `we:item` | Entrega el item de menú (brújula) |
+| `we:wand` | Entrega la varita (hacha) |
+| `we:pos1` / `we:pos2` | Marca POS1 / POS2 en tu posición |
+| `we:set <bloque>` | Rellena la selección |
+| `we:walls <bloque>` | Paredes |
+| `we:outline <bloque>` | Contorno (6 caras) |
+| `we:replace <de> <a>` | Reemplaza |
+| `we:clear` | Vacía (aire) |
+| `we:sphere <bloque> <radio> [h]` | Esfera (centrada en ti) |
+| `we:cyl <bloque> <radio> [altura] [h]` | Cilindro |
+| `we:pyramid <bloque> <tamaño>` | Pirámide |
+| `we:copy` / `we:paste` | Copiar / pegar |
+| `we:stack <n> [dir]` | Multiplica la copia N veces en una dirección |
+| `we:rotate <90\|180\|270>` | Rota la copia (eje Y) |
+| `we:move <n> [dir]` | Mueve la selección |
+| `we:expand <n> [dir]` | Expande la selección |
+| `we:contract <n> [dir]` | Contrae la selección |
+| `we:undo` | Deshacer |
+| `we:up <n>` | Súbete n bloques |
+| `we:box` | Mostrar/ocultar la caja de partículas |
+| `we:size` | Info de la selección |
+
+`dir` = `north` / `south` / `east` / `west` / `up` / `down` (si lo omites, usa **hacia
+dónde miras**). Los bloques aceptan con o sin `minecraft:` (ej: `stone`).
 
 **Ejemplos:**
 
 ```
-;set stone
-;walls glass
-;replace dirt grass_block
-;sphere glowstone 6
-;cyl quartz_block 5 10 hollow
-;pyramid sandstone 8
+/scriptevent we:set glass
+/scriptevent we:replace dirt grass_block
+/scriptevent we:sphere glowstone 6
+/scriptevent we:stack 4 up
+/scriptevent we:rotate 90
+/scriptevent we:move 5
+/scriptevent we:expand 10 up
 ```
 
-Los nombres de bloque aceptan con o sin `minecraft:` (ej: `stone` o `minecraft:stone`).
+### Stack (ejemplo pedido)
+Haces **Copy** de una construcción y luego **Stack 2**: se coloca la misma construcción
+**2 veces más** en línea (en la dirección elegida o hacia donde miras), continuando la obra.
 
 ---
 
 ## Límites y notas
 
-- Máximo **32 768** bloques por operación (para evitar lag/crasheos).
-- `;undo` guarda las últimas **8** operaciones por jugador.
+- Máximo **64 000** bloques por operación.
+- Las operaciones grandes se procesan **por partes** (≈1024 bloques/tick) mostrando el
+  progreso en la actionbar; por eso no se traba el juego.
+- `we:undo` guarda las últimas **8** operaciones por jugador.
 - Esfera/cilindro/pirámide se construyen **centradas en tu posición**.
-- Copiar/pegar usan la **esquina mínima** de la selección como origen; al pegar, esa
-  esquina queda en tu posición.
+- La caja de partículas se oculta automáticamente si estás a más de ~110 bloques.
 
 ---
 
@@ -119,14 +144,14 @@ Los nombres de bloque aceptan con o sin `minecraft:` (ej: `stone` o `minecraft:s
 
 ```
 WorldEditBP/
-├── manifest.json          # Manifiesto del paquete de comportamiento
+├── manifest.json          # Manifiesto (v0.2)
 ├── pack_icon.png          # Ícono del paquete
 └── scripts/
     └── main.js            # Toda la lógica del addon
 build_tools/
 ├── make_icon.py           # Genera el pack_icon.png
 └── build_mcaddon.py       # Empaqueta el .mcaddon
-worldedit_mcpe_v0.1.mcaddon # Addon listo para importar
+worldedit_mcpe_v0.2.mcaddon # Addon listo para importar
 ```
 
 ### Reconstruir el `.mcaddon`
@@ -145,11 +170,12 @@ python3 build_tools/build_mcaddon.py
   `@minecraft/server` y `@minecraft/server-ui` por las de tu juego
   (ver la [tabla de versiones de módulos](https://learn.microsoft.com/en-us/minecraft/creator/documents/scriptversioning)),
   luego vuelve a empaquetar con `python3 build_tools/build_mcaddon.py`.
-- **Los comandos con `;` no hacen nada.** Tu versión no permite leer el chat por
-  script. Usa el **menú** (`;menu` o agáchate + varita) o `/scriptevent we:<cmd>`.
-- **La varita no marca posiciones.** Asegúrate de tener el tag: `/tag @p worldedit`,
-  y de estar usando el **hacha de madera**.
-- **"Selección demasiado grande".** El límite es 32 768 bloques por operación.
+- **El item de menú no abre nada.** Asegúrate de tener el tag (`/tag @p worldedit`) y de
+  estar **usando** la brújula (no soltándola). Alternativa: `/scriptevent we:menu`.
+- **La varita no marca posiciones.** Debes tener el tag y usar el **hacha de madera**.
+- **No veo la caja de partículas.** Acércate a la selección, sube las partículas en
+  Configuración de video, o usa `we:box` para alternarla.
+- **"Selección demasiado grande".** El límite es 64 000 bloques por operación.
 
 ---
 
