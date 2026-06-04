@@ -1,6 +1,12 @@
 /*
- * WorldEdit MCPE v0.2
+ * WorldEdit MCPE v0.3
  * Addon de WorldEdit para Minecraft Bedrock / Pocket Edition.
+ *
+ * Novedades v0.3:
+ *   - we:hsphere    -> esfera HUECA centrada en ti.
+ *   - we:naturalize -> "naturaliza" la selección (1 capa grass, 3 dirt, resto stone).
+ *   - we:smooth     -> suaviza el terreno de la selección (mapa de alturas).
+ *   - we:drain      -> drena agua/lava en un radio alrededor tuyo.
  *
  * Interacción (SIN comandos de chat ";"):
  *   - Item especial de menú: BRÚJULA (minecraft:compass) -> al usarla abre el menú.
@@ -468,12 +474,271 @@ function opPyramid(player, blockName, size) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Helpers para líquidos / terreno (v0.3)                             */
+/* ------------------------------------------------------------------ */
+function isLiquidId(id) {
+  return (
+    id === "minecraft:water" ||
+    id === "minecraft:flowing_water" ||
+    id === "minecraft:lava" ||
+    id === "minecraft:flowing_lava"
+  );
+}
+
+function isAirId(id) {
+  return id === "minecraft:air";
+}
+
+function isAirOrLiquidBlock(block) {
+  const id = block.typeId;
+  return isAirId(id) || isLiquidId(id);
+}
+
+/* ------------------------------------------------------------------ */
+/*  v0.3 · HSphere (esfera hueca)                                      */
+/* ------------------------------------------------------------------ */
+function opHSphere(player, blockName, radius) {
+  // Atajo: una esfera hueca reutilizando opSphere con hollow = true.
+  opSphere(player, blockName, radius, true);
+}
+
+/* ------------------------------------------------------------------ */
+/*  v0.3 · Drain (drenar agua/lava en un radio)                        */
+/* ------------------------------------------------------------------ */
+function opDrain(player, radius) {
+  const r = Math.max(1, Math.min(40, Math.floor(radius) || 5));
+  const c = toBlockLoc(player.location);
+  const b = {
+    minX: c.x - r,
+    maxX: c.x + r,
+    minY: c.y - r,
+    maxY: c.y + r,
+    minZ: c.z - r,
+    maxZ: c.z + r,
+  };
+  const air = BlockPermutation.resolve("minecraft:air");
+  const outer = r + 0.5;
+  fillRegion(
+    player,
+    b,
+    (x, y, z, block) => {
+      const d = Math.sqrt((x - c.x) ** 2 + (y - c.y) ** 2 + (z - c.z) ** 2);
+      if (d > outer) return null;
+      return isLiquidId(block.typeId) ? air : null;
+    },
+    "Drenando"
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  v0.3 · Naturalize (1 capa grass, 3 dirt, resto stone)              */
+/* ------------------------------------------------------------------ */
+function opNaturalize(player) {
+  if (!bothPos(player)) return needSel(player);
+  if (isBusy(player)) return;
+  const s = getSel(player);
+  const b = minMax(s.pos1, s.pos2);
+  const volume = boxVolume(b);
+  if (volume > MAX_BLOCKS) {
+    return msg(
+      player,
+      `§cSelección demasiado grande: §f${volume}§c (máx §f${MAX_BLOCKS}§c).`
+    );
+  }
+  const dim = player.dimension;
+  const GRASS = "minecraft:grass_block";
+  const DIRT = "minecraft:dirt";
+  const STONE = "minecraft:stone";
+  const grass = BlockPermutation.resolve(GRASS);
+  const dirt = BlockPermutation.resolve(DIRT);
+  const stone = BlockPermutation.resolve(STONE);
+  const changes = [];
+  let processed = 0;
+  let placed = 0;
+
+  const gen = (function* () {
+    for (let x = b.minX; x <= b.maxX; x++) {
+      for (let z = b.minZ; z <= b.maxZ; z++) {
+        // depth = nº de bloques sólidos contados desde la superficie (de arriba a abajo)
+        let depth = 0;
+        for (let y = b.maxY; y >= b.minY; y--) {
+          try {
+            const block = dim.getBlock({ x, y, z });
+            if (block) {
+              if (isAirOrLiquidBlock(block)) {
+                depth = 0; // se rompe la columna: la próxima capa sólida vuelve a ser superficie
+              } else {
+                depth++;
+                const targetId =
+                  depth === 1 ? GRASS : depth <= 4 ? DIRT : STONE;
+                if (block.typeId !== targetId) {
+                  changes.push({ x, y, z, perm: block.permutation, dim });
+                  block.setPermutation(
+                    depth === 1 ? grass : depth <= 4 ? dirt : stone
+                  );
+                  placed++;
+                }
+              }
+            }
+          } catch (e) {}
+          processed++;
+          if (processed % CHUNK === 0) {
+            setProgress(player, "Naturalizando", processed / volume);
+            yield;
+          }
+        }
+      }
+    }
+    pushUndo(player, changes);
+    setProgress(player, "Naturalizando", 1);
+    msg(player, `§a[WE] Naturalize: §f${placed}§a bloques.`);
+    clearActionBarLater(player);
+  })();
+
+  startBlockJob(player, gen);
+}
+
+/* ------------------------------------------------------------------ */
+/*  v0.3 · Smooth (suaviza el terreno con un mapa de alturas)          */
+/* ------------------------------------------------------------------ */
+function opSmooth(player, iterations) {
+  if (!bothPos(player)) return needSel(player);
+  if (isBusy(player)) return;
+  const iters = Math.max(1, Math.min(10, Math.floor(iterations) || 1));
+  const s = getSel(player);
+  const b = minMax(s.pos1, s.pos2);
+  const volume = boxVolume(b);
+  if (volume > MAX_BLOCKS) {
+    return msg(
+      player,
+      `§cSelección demasiado grande: §f${volume}§c (máx §f${MAX_BLOCKS}§c).`
+    );
+  }
+  const dim = player.dimension;
+  const sizeX = b.maxX - b.minX + 1;
+  const sizeZ = b.maxZ - b.minZ + 1;
+  const grass = BlockPermutation.resolve("minecraft:grass_block");
+  const dirt = BlockPermutation.resolve("minecraft:dirt");
+  const air = BlockPermutation.resolve("minecraft:air");
+  const idx = (x, z) => (x - b.minX) * sizeZ + (z - b.minZ);
+  let height = new Float64Array(sizeX * sizeZ);
+  const surf = new Array(sizeX * sizeZ); // permutación de la superficie
+  const sub = new Array(sizeX * sizeZ); // permutación justo debajo
+  const changes = [];
+  let processed = 0;
+  let placed = 0;
+  const total = volume * 2; // fase lectura + fase escritura (aprox.)
+
+  const gen = (function* () {
+    // Fase 1: construir el mapa de alturas (y material) de cada columna
+    for (let x = b.minX; x <= b.maxX; x++) {
+      for (let z = b.minZ; z <= b.maxZ; z++) {
+        let top = b.minY - 1;
+        let surfPerm = grass;
+        let subPerm = dirt;
+        for (let y = b.maxY; y >= b.minY; y--) {
+          try {
+            const block = dim.getBlock({ x, y, z });
+            if (block && !isAirOrLiquidBlock(block)) {
+              top = y;
+              surfPerm = block.permutation;
+              const below = dim.getBlock({ x, y - 1, z });
+              subPerm =
+                below && !isAirOrLiquidBlock(below) ? below.permutation : dirt;
+              break;
+            }
+          } catch (e) {}
+          processed++;
+          if (processed % CHUNK === 0) {
+            setProgress(player, "Suavizando", processed / total);
+            yield;
+          }
+        }
+        const i = idx(x, z);
+        height[i] = top;
+        surf[i] = surfPerm;
+        sub[i] = subPerm;
+      }
+    }
+
+    // Fase 2: desenfoque (box blur 3x3) del mapa de alturas, N iteraciones
+    for (let it = 0; it < iters; it++) {
+      const nh = new Float64Array(sizeX * sizeZ);
+      for (let xi = 0; xi < sizeX; xi++) {
+        for (let zi = 0; zi < sizeZ; zi++) {
+          let sum = 0;
+          let cnt = 0;
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              const nx = xi + dx;
+              const nz = zi + dz;
+              if (nx < 0 || nx >= sizeX || nz < 0 || nz >= sizeZ) continue;
+              sum += height[nx * sizeZ + nz];
+              cnt++;
+            }
+          }
+          nh[xi * sizeZ + zi] = sum / cnt;
+        }
+      }
+      height = nh;
+      yield;
+    }
+
+    // Fase 3: reconstruir las columnas con las nuevas alturas
+    for (let x = b.minX; x <= b.maxX; x++) {
+      for (let z = b.minZ; z <= b.maxZ; z++) {
+        const i = idx(x, z);
+        let newTop = Math.round(height[i]);
+        if (newTop > b.maxY) newTop = b.maxY;
+        if (newTop < b.minY - 1) newTop = b.minY - 1;
+        const surfPerm = surf[i] || grass;
+        const subPerm = sub[i] || dirt;
+        for (let y = b.minY; y <= b.maxY; y++) {
+          try {
+            const block = dim.getBlock({ x, y, z });
+            if (block) {
+              let want = null;
+              if (y > newTop) {
+                // por encima de la superficie: quitar sólido sobrante
+                if (!isAirOrLiquidBlock(block)) want = air;
+              } else if (y === newTop) {
+                // superficie: rellenar si está vacío
+                if (isAirOrLiquidBlock(block)) want = surfPerm;
+              } else {
+                // bajo la superficie: rellenar huecos
+                if (isAirOrLiquidBlock(block)) want = subPerm;
+              }
+              if (want) {
+                changes.push({ x, y, z, perm: block.permutation, dim });
+                block.setPermutation(want);
+                placed++;
+              }
+            }
+          } catch (e) {}
+          processed++;
+          if (processed % CHUNK === 0) {
+            setProgress(player, "Suavizando", processed / total);
+            yield;
+          }
+        }
+      }
+    }
+    pushUndo(player, changes);
+    setProgress(player, "Suavizando", 1);
+    msg(player, `§a[WE] Smooth x§f${iters}§a: §f${placed}§a bloques.`);
+    clearActionBarLater(player);
+  })();
+
+  startBlockJob(player, gen);
+}
+
 function opUp(player, n) {
   const steps = Math.max(1, Math.min(256, Math.floor(n) || 1));
-  const c = toBlockLoc(player.location);
-  const targetY = c.y + steps;
   try {
     const dim = player.dimension;
+    const c = toBlockLoc(player.location);
+    const targetY = c.y + steps;
     const under = dim.getBlock({ x: c.x, y: targetY - 1, z: c.z });
     if (under) {
       const glass = BlockPermutation.resolve("minecraft:glass");
@@ -1075,7 +1340,7 @@ async function openMenu(player) {
     return msg(player, "§cActiva WorldEdit con §e/tag @p worldedit§c.");
   }
   const form = new ActionFormData()
-    .title("§b§lWorldEdit MCPE v0.2")
+    .title("§b§lWorldEdit MCPE v0.3")
     .body("§7Elige una herramienta:")
     .button("§2Obtener Kit", "textures/items/diamond_pickaxe")
     .button("§2Item de Menú (Brújula)", "textures/items/compass_item")
@@ -1085,8 +1350,12 @@ async function openMenu(player) {
     .button("Walls / Paredes", "textures/blocks/brick")
     .button("Outline / Contorno", "textures/blocks/glass")
     .button("Sphere / Esfera", "textures/items/snowball")
+    .button("§9HSphere / Esfera hueca", "textures/items/snowball")
     .button("Cylinder / Cilindro", "textures/blocks/log_oak")
     .button("Pyramid / Pirámide", "textures/blocks/sandstone_carved")
+    .button("§6Naturalize / Naturalizar", "textures/blocks/grass_side_carried")
+    .button("§6Smooth / Suavizar", "textures/blocks/dirt")
+    .button("§3Drain / Drenar", "textures/blocks/water_placeholder")
     .button("§cClear / Vaciar", "textures/blocks/barrier")
     .button("Copy / Copiar", "textures/ui/copy")
     .button("Paste / Pegar", "textures/ui/paste")
@@ -1111,20 +1380,24 @@ async function openMenu(player) {
     case 5: await pickBlockThen(player, "Walls / Paredes", (blk) => opWalls(player, blk)); break;
     case 6: await pickBlockThen(player, "Outline / Contorno", (blk) => opFaces(player, blk)); break;
     case 7: await sphereForm(player); break;
-    case 8: await cylinderForm(player); break;
-    case 9: await pyramidForm(player); break;
-    case 10: opClear(player); break;
-    case 11: opCopy(player); break;
-    case 12: opPaste(player); break;
-    case 13: await stackForm(player); break;
-    case 14: await rotateForm(player); break;
-    case 15: await moveForm(player); break;
-    case 16: await expandForm(player); break;
-    case 17: await contractForm(player); break;
-    case 18: doUndo(player); break;
-    case 19: toggleBox(player); break;
-    case 20: opSize(player); break;
-    case 21: await helpForm(player); break;
+    case 8: await hsphereForm(player); break;
+    case 9: await cylinderForm(player); break;
+    case 10: await pyramidForm(player); break;
+    case 11: opNaturalize(player); break;
+    case 12: await smoothForm(player); break;
+    case 13: await drainForm(player); break;
+    case 14: opClear(player); break;
+    case 15: opCopy(player); break;
+    case 16: opPaste(player); break;
+    case 17: await stackForm(player); break;
+    case 18: await rotateForm(player); break;
+    case 19: await moveForm(player); break;
+    case 20: await expandForm(player); break;
+    case 21: await contractForm(player); break;
+    case 22: doUndo(player); break;
+    case 23: toggleBox(player); break;
+    case 24: opSize(player); break;
+    case 25: await helpForm(player); break;
   }
 }
 
@@ -1167,6 +1440,39 @@ async function sphereForm(player) {
   const [idx, custom, radius, hollow] = res.formValues;
   const blk = custom && custom.trim() ? custom.trim() : COMMON_BLOCKS[idx];
   opSphere(player, blk, radius, hollow);
+}
+
+async function hsphereForm(player) {
+  const form = new ModalFormData()
+    .title("§lHSphere / Esfera hueca")
+    .dropdown("Bloque", COMMON_BLOCKS, 0)
+    .textField("…o bloque personalizado", "ej: glass")
+    .slider("Radio", 1, 40, 1, 6);
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [idx, custom, radius] = res.formValues;
+  const blk = custom && custom.trim() ? custom.trim() : COMMON_BLOCKS[idx];
+  opHSphere(player, blk, radius);
+}
+
+async function smoothForm(player) {
+  const form = new ModalFormData()
+    .title("§lSmooth / Suavizar")
+    .slider("Iteraciones (intensidad)", 1, 10, 1, 2);
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [iters] = res.formValues;
+  opSmooth(player, iters);
+}
+
+async function drainForm(player) {
+  const form = new ModalFormData()
+    .title("§lDrain / Drenar")
+    .slider("Radio", 1, 40, 1, 6);
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [radius] = res.formValues;
+  opDrain(player, radius);
 }
 
 async function cylinderForm(player) {
@@ -1274,6 +1580,10 @@ const HELP_TEXT = [
   "§b/scriptevent we:walls <bloque>",
   "§b/scriptevent we:replace <de> <a>",
   "§b/scriptevent we:sphere <bloque> <radio> [h]",
+  "§b/scriptevent we:hsphere <bloque> <radio>",
+  "§a/scriptevent we:naturalize",
+  "§a/scriptevent we:smooth [iteraciones]",
+  "§a/scriptevent we:drain [radio]",
   "§b/scriptevent we:copy §7· §bwe:paste",
   "§b/scriptevent we:stack <n> [dir]",
   "§b/scriptevent we:rotate <90|180|270>",
@@ -1350,6 +1660,12 @@ function executeCommand(player, raw) {
         opSphere(player, args[0], radius, hollow);
         break;
       }
+      case "hsphere": {
+        if (!args[0]) return msg(player, "§cUso: we:hsphere <bloque> <radio>");
+        const radius = parseInt(args[1]) || 4;
+        opHSphere(player, args[0], radius);
+        break;
+      }
       case "cyl":
       case "cylinder": {
         if (!args[0]) return msg(player, "§cUso: we:cyl <bloque> <radio> [altura] [h]");
@@ -1362,6 +1678,20 @@ function executeCommand(player, raw) {
       case "pyramid": {
         if (!args[0]) return msg(player, "§cUso: we:pyramid <bloque> <tamaño>");
         opPyramid(player, args[0], parseInt(args[1]) || 5);
+        break;
+      }
+      case "naturalize":
+      case "nat":
+        opNaturalize(player);
+        break;
+      case "smooth": {
+        const iters = parseInt(args[0]) || 1;
+        opSmooth(player, iters);
+        break;
+      }
+      case "drain": {
+        const radius = parseInt(args[0]) || 5;
+        opDrain(player, radius);
         break;
       }
       case "copy":
@@ -1564,14 +1894,14 @@ system.runInterval(() => {
 
 /* Mensaje de carga */
 system.run(() => {
-  console.warn("[WorldEdit] MCPE v0.2 cargado. Activa con: /tag @p worldedit");
+  console.warn("[WorldEdit] MCPE v0.3 cargado. Activa con: /tag @p worldedit");
 });
 
 world.afterEvents.playerSpawn.subscribe((ev) => {
   if (!ev.initialSpawn) return;
   const player = ev.player;
   system.runTimeout(() => {
-    msg(player, "§b§l== WorldEdit MCPE v0.2 ==");
+    msg(player, "§b§l== WorldEdit MCPE v0.3 ==");
     if (player.hasTag(TAG)) {
       msg(player, "§aActivado. Usa la §ebrújula§a o §e/scriptevent we:menu§a.");
     } else {
