@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PACK_DIR = os.path.join(ROOT, "WorldEditBP")
-OUTPUT = os.path.join(ROOT, "worldedit_mcpe_v0.2.mcaddon")
+OUTPUT = os.path.join(ROOT, "worldedit_mcpe_v0.3.mcaddon")
 
 
 def validate_manifest():

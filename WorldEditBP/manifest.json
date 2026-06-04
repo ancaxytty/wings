@@ -1,10 +1,10 @@
 {
   "format_version": 2,
   "header": {
-    "name": "§b§lWorldEdit MCPE§r §7v0.2",
-    "description": "§aWorldEdit para Minecraft Bedrock/PE.§r\n§7Item de menú (brújula), varita (hacha), caja de partículas 3D,\n§7barra de progreso, stack/rotate/move/expand y formularios.\n§7Actívalo con: /tag @p worldedit",
+    "name": "§b§lWorldEdit MCPE§r §7v0.3",
+    "description": "§aWorldEdit para Minecraft Bedrock/PE.§r\n§7Item de menú (brújula), varita (hacha), caja de partículas 3D,\n§7barra de progreso, stack/rotate/move/expand y formularios.\n§7Nuevo v0.3: hsphere, naturalize, smooth y drain.\n§7Actívalo con: /tag @p worldedit",
     "uuid": "bcb2a58e-ee8a-44e8-b2c7-86c907deda0c",
-    "version": [0, 2, 0],
+    "version": [0, 3, 0],
     "min_engine_version": [1, 21, 0]
   },
   "modules": [
@@ -12,7 +12,7 @@
       "type": "script",
       "language": "javascript",
       "uuid": "e9ca6ef3-a0c0-4737-8498-af02c75f6017",
-      "version": [0, 2, 0],
+      "version": [0, 3, 0],
       "entry": "scripts/main.js"
     }
   ],
