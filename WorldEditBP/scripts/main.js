@@ -1,8 +1,11 @@
 /*
- * WorldEdit MCPE v0.3
+ * WorldEdit MCPE — FIFA World Cup 2026 Edition (v0.4)
  * Addon de WorldEdit para Minecraft Bedrock / Pocket Edition.
  *
- * Novedades v0.3:
+ * Edición especial FIFA World Cup 2026:
+ *   - we:fifa            -> menú con 25 países para construir su bandera.
+ *   - we:flag <país> [n] -> construye la bandera (muro de concreto) frente a ti.
+ *   - we:flags           -> lista de países disponibles.
  *   - we:hsphere    -> esfera HUECA centrada en ti.
  *   - we:naturalize -> "naturaliza" la selección (1 capa grass, 3 dirt, resto stone).
  *   - we:smooth     -> suaviza el terreno de la selección (mapa de alturas).
@@ -733,6 +736,364 @@ function opSmooth(player, iterations) {
   startBlockJob(player, gen);
 }
 
+/* ================================================================== */
+/*  FIFA WORLD CUP 2026 EDITION · Banderas de países (bloques)         */
+/*  Cada bandera se construye como un MURO vertical de concreto frente */
+/*  al jugador (mirando hacia donde quieres que aparezca).             */
+/* ================================================================== */
+const FLAG_W = 24; // ancho base (relación ~3:2)
+const FLAG_H = 16; // alto base
+
+// char -> bloque (concreto de colores, se ve igual en cualquier modo)
+const FLAG_PALETTE = {
+  W: "minecraft:white_concrete",
+  R: "minecraft:red_concrete",
+  B: "minecraft:blue_concrete",
+  L: "minecraft:light_blue_concrete",
+  G: "minecraft:green_concrete",
+  Y: "minecraft:yellow_concrete",
+  K: "minecraft:black_concrete",
+  O: "minecraft:orange_concrete",
+  N: "minecraft:brown_concrete",
+  A: "minecraft:gray_concrete",
+  E: "minecraft:light_gray_concrete",
+};
+
+function makeGrid(W, H, fill) {
+  const g = [];
+  for (let y = 0; y < H; y++) g.push(new Array(W).fill(fill));
+  return g;
+}
+// Franjas horizontales (de arriba a abajo)
+function bandsH(colors, W, H) {
+  const g = makeGrid(W, H, colors[0]);
+  for (let y = 0; y < H; y++) {
+    const i = Math.min(colors.length - 1, Math.floor((y * colors.length) / H));
+    for (let x = 0; x < W; x++) g[y][x] = colors[i];
+  }
+  return g;
+}
+// Franjas verticales (de izquierda a derecha)
+function bandsV(colors, W, H) {
+  const g = makeGrid(W, H, colors[0]);
+  for (let x = 0; x < W; x++) {
+    const i = Math.min(colors.length - 1, Math.floor((x * colors.length) / W));
+    for (let y = 0; y < H; y++) g[y][x] = colors[i];
+  }
+  return g;
+}
+// Franjas verticales con proporciones: segs = [["R",0.25],["W",0.5],["R",0.25]]
+function bandsVProp(segs, W, H) {
+  const last = segs[segs.length - 1][0];
+  const g = makeGrid(W, H, last);
+  for (let x = 0; x < W; x++) {
+    let acc = 0;
+    let ch = last;
+    const f = (x + 0.5) / W;
+    for (const seg of segs) {
+      acc += seg[1];
+      if (f <= acc) { ch = seg[0]; break; }
+    }
+    for (let y = 0; y < H; y++) g[y][x] = ch;
+  }
+  return g;
+}
+// Franjas horizontales con proporciones
+function bandsHProp(segs, W, H) {
+  const last = segs[segs.length - 1][0];
+  const g = makeGrid(W, H, last);
+  for (let y = 0; y < H; y++) {
+    let acc = 0;
+    let ch = last;
+    const f = (y + 0.5) / H;
+    for (const seg of segs) {
+      acc += seg[1];
+      if (f <= acc) { ch = seg[0]; break; }
+    }
+    for (let x = 0; x < W; x++) g[y][x] = ch;
+  }
+  return g;
+}
+function overlayDisc(g, color, cxF, cyF, rF) {
+  const H = g.length;
+  const W = g[0].length;
+  const cx = W * cxF;
+  const cy = H * cyF;
+  const r = Math.min(W, H) * rF;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r) g[y][x] = color;
+  return g;
+}
+// Cruz centrada que llega a los bordes (St. George / Inglaterra)
+function fullCross(field, cross, W, H, t) {
+  const g = makeGrid(W, H, field);
+  const cy = (H - t) / 2;
+  const cx = (W - t) / 2;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if ((y >= cy && y < cy + t) || (x >= cx && x < cx + t)) g[y][x] = cross;
+  return g;
+}
+// Cruz que NO llega a los bordes (Suiza)
+function plusCross(field, cross, W, H, t, armF) {
+  const g = makeGrid(W, H, field);
+  const cxA = (W - t) / 2;
+  const cyA = (H - t) / 2;
+  const ccx = W / 2;
+  const ccy = H / 2;
+  const halfV = H * armF;
+  const halfH = W * armF;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const onV = x >= cxA && x < cxA + t && Math.abs(y + 0.5 - ccy) <= halfV;
+      const onH = y >= cyA && y < cyA + t && Math.abs(x + 0.5 - ccx) <= halfH;
+      if (onV || onH) g[y][x] = cross;
+    }
+  return g;
+}
+// Cruz nórdica (Dinamarca)
+function nordic(field, cross, W, H, t) {
+  const g = makeGrid(W, H, field);
+  const vx = Math.floor(W * 0.34);
+  const cyA = Math.floor((H - t) / 2);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if ((x >= vx && x < vx + t) || (y >= cyA && y < cyA + t)) g[y][x] = cross;
+  return g;
+}
+// Estrella de 5 puntas (point-in-polygon)
+function starPoly(cx, cy, rO, rI, pts, rot) {
+  const v = [];
+  for (let i = 0; i < pts * 2; i++) {
+    const r = i % 2 === 0 ? rO : rI;
+    const a = rot + (i * Math.PI) / pts;
+    v.push([cx + r * Math.sin(a), cy - r * Math.cos(a)]);
+  }
+  return v;
+}
+function inPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0];
+    const yi = poly[i][1];
+    const xj = poly[j][0];
+    const yj = poly[j][1];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+function overlayStar(g, color, cxF, cyF, rF, rot) {
+  const H = g.length;
+  const W = g[0].length;
+  const cx = W * cxF;
+  const cy = H * cyF;
+  const rO = Math.min(W, H) * rF;
+  const poly = starPoly(cx, cy, rO, rO * 0.42, 5, rot || 0);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (inPoly(x + 0.5, y + 0.5, poly)) g[y][x] = color;
+  return g;
+}
+
+/* --- Banderas con diseño propio --- */
+function flagUSA(W, H) {
+  const g = makeGrid(W, H, "R");
+  for (let y = 0; y < H; y++) {
+    const stripe = Math.floor((y * 13) / H) % 2 === 0 ? "R" : "W";
+    for (let x = 0; x < W; x++) g[y][x] = stripe;
+  }
+  const cw = Math.floor(W * 0.42);
+  const chh = Math.floor(H * 0.54);
+  for (let y = 0; y < chh; y++)
+    for (let x = 0; x < cw; x++)
+      g[y][x] = x % 2 === 0 && y % 2 === 0 ? "W" : "B"; // estrellas punteadas
+  return g;
+}
+function flagBrazil(W, H) {
+  const g = makeGrid(W, H, "G");
+  const cx = (W - 1) / 2;
+  const cy = (H - 1) / 2;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const d = Math.abs(x - cx) / (W * 0.46) + Math.abs(y - cy) / (H * 0.46);
+      if (d <= 1) g[y][x] = "Y"; // rombo amarillo
+    }
+  overlayDisc(g, "B", 0.5, 0.5, 0.17); // círculo azul
+  return g;
+}
+function flagKorea(W, H) {
+  const g = makeGrid(W, H, "W");
+  const cx = W * 0.5;
+  const cy = H * 0.5;
+  const r = Math.min(W, H) * 0.22;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r)
+        g[y][x] = y + 0.5 < cy ? "R" : "B"; // taegeuk simplificado
+  const m = Math.max(1, Math.floor(Math.min(W, H) * 0.08));
+  const pad = Math.floor(Math.min(W, H) * 0.12);
+  const corners = [
+    [pad, pad],
+    [W - pad - m, pad],
+    [pad, H - pad - m],
+    [W - pad - m, H - pad - m],
+  ];
+  for (const c of corners)
+    for (let y = c[1]; y < c[1] + m; y++)
+      for (let x = c[0]; x < c[0] + m; x++)
+        if (y >= 0 && y < H && x >= 0 && x < W) g[y][x] = "K"; // trigramas
+  return g;
+}
+function flagCroatia(W, H) {
+  const g = bandsH(["R", "W", "B"], W, H);
+  const cw = Math.floor(W * 0.18);
+  const ch = Math.floor(H * 0.34);
+  const sx = Math.floor((W - cw) / 2);
+  const sy = Math.floor(H * 0.16);
+  for (let y = 0; y < ch; y++)
+    for (let x = 0; x < cw; x++) {
+      const gx = sx + x;
+      const gy = sy + y;
+      if (gy >= 0 && gy < H && gx >= 0 && gx < W)
+        g[gy][gx] = (x + y) % 2 === 0 ? "R" : "W"; // tablero
+    }
+  return g;
+}
+function flagUruguay(W, H) {
+  const g = makeGrid(W, H, "W");
+  for (let y = 0; y < H; y++) {
+    const stripe = Math.floor((y * 9) / H) % 2 === 0 ? "W" : "L";
+    for (let x = 0; x < W; x++) g[y][x] = stripe;
+  }
+  const cw = Math.floor(W * 0.4);
+  const chh = Math.floor(H * 0.55);
+  for (let y = 0; y < chh; y++) for (let x = 0; x < cw; x++) g[y][x] = "W"; // cantón
+  overlayDisc(g, "Y", 0.2, 0.28, 0.12); // sol
+  return g;
+}
+
+/* --- Registro de países (FIFA World Cup 2026) --- */
+const FIFA_FLAGS = {
+  usa: { name: "Estados Unidos", aliases: ["eeuu", "estadosunidos", "usa"], render: flagUSA },
+  canada: { name: "Canadá", aliases: ["canada"], render: (W, H) => { const g = bandsVProp([["R", 0.27], ["W", 0.46], ["R", 0.27]], W, H); overlayStar(g, "R", 0.5, 0.5, 0.2, 0); return g; } },
+  mexico: { name: "México", aliases: ["mexico"], render: (W, H) => { const g = bandsV(["G", "W", "R"], W, H); overlayDisc(g, "N", 0.5, 0.5, 0.1); return g; } },
+  brazil: { name: "Brasil", aliases: ["brasil", "brazil"], render: flagBrazil },
+  argentina: { name: "Argentina", aliases: ["argentina"], render: (W, H) => { const g = bandsH(["L", "W", "L"], W, H); overlayDisc(g, "Y", 0.5, 0.5, 0.11); return g; } },
+  france: { name: "Francia", aliases: ["francia", "france"], render: (W, H) => bandsV(["B", "W", "R"], W, H) },
+  germany: { name: "Alemania", aliases: ["alemania", "germany"], render: (W, H) => bandsH(["K", "R", "Y"], W, H) },
+  spain: { name: "España", aliases: ["espana", "spain"], render: (W, H) => bandsHProp([["R", 0.25], ["Y", 0.5], ["R", 0.25]], W, H) },
+  england: { name: "Inglaterra", aliases: ["inglaterra", "england"], render: (W, H) => fullCross("W", "R", W, H, Math.max(2, Math.floor(H * 0.16))) },
+  portugal: { name: "Portugal", aliases: ["portugal"], render: (W, H) => { const g = bandsVProp([["G", 0.4], ["R", 0.6]], W, H); overlayDisc(g, "Y", 0.4, 0.5, 0.1); return g; } },
+  netherlands: { name: "Países Bajos", aliases: ["paisesbajos", "holanda", "netherlands"], render: (W, H) => bandsH(["R", "W", "B"], W, H) },
+  italy: { name: "Italia", aliases: ["italia", "italy"], render: (W, H) => bandsV(["G", "W", "R"], W, H) },
+  belgium: { name: "Bélgica", aliases: ["belgica", "belgium"], render: (W, H) => bandsV(["K", "Y", "R"], W, H) },
+  croatia: { name: "Croacia", aliases: ["croacia", "croatia"], render: flagCroatia },
+  uruguay: { name: "Uruguay", aliases: ["uruguay"], render: flagUruguay },
+  japan: { name: "Japón", aliases: ["japon", "japan"], render: (W, H) => { const g = makeGrid(W, H, "W"); overlayDisc(g, "R", 0.5, 0.5, 0.18); return g; } },
+  korea: { name: "Corea del Sur", aliases: ["corea", "coreadelsur", "korea"], render: flagKorea },
+  morocco: { name: "Marruecos", aliases: ["marruecos", "morocco"], render: (W, H) => { const g = makeGrid(W, H, "R"); overlayStar(g, "G", 0.5, 0.5, 0.2, 0); return g; } },
+  senegal: { name: "Senegal", aliases: ["senegal"], render: (W, H) => { const g = bandsV(["G", "Y", "R"], W, H); overlayStar(g, "G", 0.5, 0.5, 0.16, 0); return g; } },
+  nigeria: { name: "Nigeria", aliases: ["nigeria"], render: (W, H) => bandsV(["G", "W", "G"], W, H) },
+  colombia: { name: "Colombia", aliases: ["colombia"], render: (W, H) => bandsHProp([["Y", 0.5], ["B", 0.25], ["R", 0.25]], W, H) },
+  switzerland: { name: "Suiza", aliases: ["suiza", "switzerland"], render: (W, H) => plusCross("R", "W", W, H, Math.max(2, Math.floor(H * 0.16)), 0.22) },
+  denmark: { name: "Dinamarca", aliases: ["dinamarca", "denmark"], render: (W, H) => nordic("R", "W", W, H, Math.max(2, Math.floor(H * 0.16))) },
+  poland: { name: "Polonia", aliases: ["polonia", "poland"], render: (W, H) => bandsH(["W", "R"], W, H) },
+  ghana: { name: "Ghana", aliases: ["ghana"], render: (W, H) => { const g = bandsH(["R", "Y", "G"], W, H); overlayStar(g, "K", 0.5, 0.5, 0.14, 0); return g; } },
+};
+
+function resolveCountry(input) {
+  const q = String(input || "").trim().toLowerCase().replace(/[\s_]/g, "");
+  if (!q) return null;
+  if (FIFA_FLAGS[q]) return q;
+  for (const key in FIFA_FLAGS) {
+    if (FIFA_FLAGS[key].aliases.indexOf(q) !== -1) return key;
+  }
+  return null;
+}
+
+function listFlags(player) {
+  const keys = Object.keys(FIFA_FLAGS);
+  const names = keys.map((k) => "§e" + FIFA_FLAGS[k].name);
+  msg(player, "§6§l[FIFA 2026] §r§7Países disponibles (§f" + names.length + "§7):");
+  msg(player, names.join("§7, "));
+  msg(player, "§7Construye con: §e/scriptevent we:flag <país> [escala 1-3]");
+}
+
+// Construye la bandera como un muro frente al jugador.
+function opFlag(player, countryInput, scale) {
+  if (isBusy(player)) return;
+  const key = resolveCountry(countryInput);
+  if (!key) {
+    msg(player, `§cPaís no reconocido: §f${countryInput}§c. Usa §ewe:flags§c para la lista.`);
+    return;
+  }
+  const s = Math.max(1, Math.min(3, Math.floor(scale) || 1));
+  const W = FLAG_W * s;
+  const H = FLAG_H * s;
+  const country = FIFA_FLAGS[key];
+  let grid;
+  try {
+    grid = country.render(W, H);
+  } catch (e) {
+    return msg(player, "§cError generando la bandera: §f" + e);
+  }
+  const facing = facingCardinal(player);
+  const right = { x: -facing.z, y: 0, z: facing.x };
+  const base = toBlockLoc(player.location);
+  const front = { x: base.x + facing.x * 2, y: base.y, z: base.z + facing.z * 2 };
+  const halfW = Math.floor(W / 2);
+  const dim = player.dimension;
+  const permCache = {};
+  const changes = [];
+  let processed = 0;
+  let placed = 0;
+  const total = W * H;
+  const label = "Bandera " + country.name;
+
+  const gen = (function* () {
+    for (let row = 0; row < H; row++) {
+      for (let col = 0; col < W; col++) {
+        const ch = grid[row][col];
+        const id = FLAG_PALETTE[ch];
+        processed++;
+        if (id) {
+          const x = front.x + right.x * (col - halfW);
+          const y = front.y + (H - 1 - row);
+          const z = front.z + right.z * (col - halfW);
+          try {
+            const block = dim.getBlock({ x: x, y: y, z: z });
+            if (block) {
+              let perm = permCache[id];
+              if (!perm) {
+                perm = BlockPermutation.resolve(id);
+                permCache[id] = perm;
+              }
+              changes.push({ x: x, y: y, z: z, perm: block.permutation, dim: dim });
+              block.setPermutation(perm);
+              placed++;
+            }
+          } catch (e) {}
+        }
+        if (processed % CHUNK === 0) {
+          setProgress(player, label, processed / total);
+          yield;
+        }
+      }
+    }
+    pushUndo(player, changes);
+    setProgress(player, label, 1);
+    msg(
+      player,
+      `§6[FIFA 2026] §aBandera de §e${country.name}§a construida §7(§f${placed}§7 bloques, ${W}x${H}). §7Usa §ewe:undo§7 para deshacer.`
+    );
+    clearActionBarLater(player);
+  })();
+
+  startBlockJob(player, gen);
+}
+
 function opUp(player, n) {
   const steps = Math.max(1, Math.min(256, Math.floor(n) || 1));
   try {
@@ -1340,7 +1701,7 @@ async function openMenu(player) {
     return msg(player, "§cActiva WorldEdit con §e/tag @p worldedit§c.");
   }
   const form = new ActionFormData()
-    .title("§b§lWorldEdit MCPE v0.3")
+    .title("§b§lWorldEdit §r§6\u26bd WC 2026")
     .body("§7Elige una herramienta:")
     .button("§2Obtener Kit", "textures/items/diamond_pickaxe")
     .button("§2Item de Menú (Brújula)", "textures/items/compass_item")
@@ -1367,6 +1728,7 @@ async function openMenu(player) {
     .button("§eUndo / Deshacer", "textures/ui/undo")
     .button("Mostrar/Ocultar caja", "textures/ui/magnifyingGlass")
     .button("Info / Selección", "textures/ui/infobulb")
+    .button("§6§l\u26bd FIFA World Cup 2026", "textures/ui/icon_best3")
     .button("Ayuda", "textures/ui/help");
 
   const res = await showForm(player, form);
@@ -1397,7 +1759,8 @@ async function openMenu(player) {
     case 22: doUndo(player); break;
     case 23: toggleBox(player); break;
     case 24: opSize(player); break;
-    case 25: await helpForm(player); break;
+    case 25: await fifaMenu(player); break;
+    case 26: await helpForm(player); break;
   }
 }
 
@@ -1411,6 +1774,27 @@ async function pickBlockThen(player, title, callback) {
   const [idx, custom] = res.formValues;
   const blk = custom && custom.trim() ? custom.trim() : COMMON_BLOCKS[idx];
   callback(blk);
+}
+
+async function fifaMenu(player) {
+  if (!player.hasTag(TAG)) {
+    return msg(player, "§cActiva WorldEdit con §e/tag @p worldedit§c.");
+  }
+  const keys = Object.keys(FIFA_FLAGS);
+  const form = new ActionFormData()
+    .title("§6§l\u26bd FIFA World Cup 2026")
+    .body(
+      "§7Elige un país y se construirá su bandera §fmirando hacia donde apuntas§7.\n§8" +
+        keys.length +
+        " países · usa §7§oUndo§8 para deshacer."
+    );
+  for (const k of keys) {
+    form.button("§f" + FIFA_FLAGS[k].name, "textures/ui/icon_multiplayer");
+  }
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const key = keys[res.selection];
+  if (key) opFlag(player, key, 1);
 }
 
 async function replaceForm(player) {
@@ -1584,6 +1968,9 @@ const HELP_TEXT = [
   "§a/scriptevent we:naturalize",
   "§a/scriptevent we:smooth [iteraciones]",
   "§a/scriptevent we:drain [radio]",
+  "§6/scriptevent we:fifa §7- menú FIFA World Cup 2026",
+  "§6/scriptevent we:flag <país> [escala] §7- bandera",
+  "§6/scriptevent we:flags §7- lista de países",
   "§b/scriptevent we:copy §7· §bwe:paste",
   "§b/scriptevent we:stack <n> [dir]",
   "§b/scriptevent we:rotate <90|180|270>",
@@ -1694,6 +2081,28 @@ function executeCommand(player, raw) {
         opDrain(player, radius);
         break;
       }
+      case "flag":
+      case "bandera": {
+        if (!args[0])
+          return msg(player, "§cUso: we:flag <país> [escala 1-3]. Lista: §ewe:flags");
+        let scale = 1;
+        const parts = args.slice();
+        if (parts.length > 1 && /^[1-3]$/.test(parts[parts.length - 1])) {
+          scale = parseInt(parts.pop());
+        }
+        opFlag(player, parts.join(""), scale);
+        break;
+      }
+      case "flags":
+      case "banderas":
+      case "paises":
+        listFlags(player);
+        break;
+      case "fifa":
+      case "wc2026":
+      case "worldcup":
+        launch(fifaMenu(player));
+        break;
       case "copy":
         opCopy(player);
         break;
@@ -1894,14 +2303,14 @@ system.runInterval(() => {
 
 /* Mensaje de carga */
 system.run(() => {
-  console.warn("[WorldEdit] MCPE v0.3 cargado. Activa con: /tag @p worldedit");
+  console.warn("[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.4) cargado. Activa con: /tag @p worldedit");
 });
 
 world.afterEvents.playerSpawn.subscribe((ev) => {
   if (!ev.initialSpawn) return;
   const player = ev.player;
   system.runTimeout(() => {
-    msg(player, "§b§l== WorldEdit MCPE v0.3 ==");
+    msg(player, "§b§l== WorldEdit §6\u26bd FIFA World Cup 2026 Edition §b==");
     if (player.hasTag(TAG)) {
       msg(player, "§aActivado. Usa la §ebrújula§a o §e/scriptevent we:menu§a.");
     } else {

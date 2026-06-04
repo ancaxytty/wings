@@ -1,10 +1,45 @@
-# WorldEdit MCPE — `worldedit_mcpe_v0.3.mcaddon`
+# WorldEdit MCPE — FIFA World Cup 2026 Edition
 
 Un addon de **WorldEdit** para **Minecraft Bedrock / Pocket Edition** (PE), hecho con la
 Script API (`@minecraft/server` + `@minecraft/server-ui`). Sin comandos de chat: todo se
 maneja con un **item de menú**, la **varita**, **formularios** y `/scriptevent`.
 
-> Archivo listo para importar: **`worldedit_mcpe_v0.3.mcaddon`** (en la raíz del repo).
+> Archivos listos para importar (en la raíz del repo):
+> - **`worldedit_mcpe_fifa_wc2026.mcaddon`** — ⚽ **Edición FIFA World Cup 2026** (recomendada, incluye TODO + banderas).
+> - `worldedit_mcpe_v0.3.mcaddon` — edición estándar (sin banderas).
+
+---
+
+## ⚽ Edición especial: FIFA World Cup 2026
+
+Construye la **bandera de tu país** como un gran muro de bloques de **concreto**, mirando
+hacia donde apuntes. Incluye **25 países**:
+
+> 🇺🇸 Estados Unidos · 🇨🇦 Canadá · 🇲🇽 México · 🇧🇷 Brasil · 🇦🇷 Argentina · 🇫🇷 Francia ·
+> 🇩🇪 Alemania · 🇪🇸 España · 🏴 Inglaterra · 🇵🇹 Portugal · 🇳🇱 Países Bajos · 🇮🇹 Italia ·
+> 🇧🇪 Bélgica · 🇭🇷 Croacia · 🇺🇾 Uruguay · 🇯🇵 Japón · 🇰🇷 Corea del Sur · 🇲🇦 Marruecos ·
+> 🇸🇳 Senegal · 🇳🇬 Nigeria · 🇨🇴 Colombia · 🇨🇭 Suiza · 🇩🇰 Dinamarca · 🇵🇱 Polonia · 🇬🇭 Ghana
+
+**Cómo usarlo:**
+
+1. Ponte de pie mirando hacia donde quieres que aparezca la bandera (se construye 2 bloques
+   al frente, desde tus pies hacia arriba).
+2. Abre el menú (brújula) → botón **⚽ FIFA World Cup 2026** → elige el país.
+   - O por comando: `/scriptevent we:flag <país> [escala 1-3]`
+   - Lista de países: `/scriptevent we:flags` · Menú directo: `/scriptevent we:fifa`
+
+```
+/scriptevent we:flag brasil
+/scriptevent we:flag argentina 2
+/scriptevent we:flag estadosunidos 3
+/scriptevent we:fifa
+```
+
+- El **país** acepta nombre en español o inglés y sin tildes/espacios
+  (`mexico`, `espana`, `paisesbajos`, `corea`, `eeuu`…).
+- La **escala** (1–3) multiplica el tamaño: 1 ≈ 24×16, 3 ≈ 72×48 bloques.
+- Tras construir, `we:undo` deshace la bandera. Las banderas con emblemas (Canadá, México,
+  Corea, Marruecos…) son **versiones estilizadas** para bloques.
 
 ---
 
@@ -41,7 +76,7 @@ maneja con un **item de menú**, la **varita**, **formularios** y `/scriptevent`
 
 ## Instalación
 
-1. Descarga **`worldedit_mcpe_v0.3.mcaddon`**.
+1. Descarga **`worldedit_mcpe_fifa_wc2026.mcaddon`** (edición FIFA, recomendada).
 2. Ábrelo con Minecraft (o impórtalo desde *Configuración → Almacenamiento → Importar*).
 3. Crea/edita un mundo y activa el paquete de comportamiento **WorldEdit MCPE**.
 4. Activa los **Experimentos** del mundo (la **API de Beta/GameTest**), porque el addon
@@ -92,9 +127,9 @@ Para desactivar: `/tag @p remove worldedit`.
 ## Menú (formularios)
 
 El menú incluye: Kit · Item de menú · Varita · Set · Replace · Walls · Outline ·
-Sphere · **HSphere** · Cylinder · Pyramid · **Naturalize** · **Smooth** · **Drain** ·
+Sphere · HSphere · Cylinder · Pyramid · Naturalize · Smooth · Drain ·
 Clear · Copy · Paste · Stack · Rotate · Move · Expand · Contract · Undo ·
-Mostrar/Ocultar caja · Info · Ayuda.
+Mostrar/Ocultar caja · Info · **⚽ FIFA World Cup 2026** · Ayuda.
 
 ---
 
@@ -120,6 +155,9 @@ Mostrar/Ocultar caja · Info · Ayuda.
 | **`we:naturalize`** | **1 capa césped, 3 tierra, resto piedra** · *v0.3* |
 | **`we:smooth [iteraciones]`** | **Suaviza el terreno (mapa de alturas)** · *v0.3* |
 | **`we:drain [radio]`** | **Drena agua/lava en un radio** · *v0.3* |
+| **`we:fifa`** | **Abre el menú FIFA World Cup 2026** · *⚽ edición* |
+| **`we:flag <país> [escala]`** | **Construye la bandera del país** · *⚽ edición* |
+| **`we:flags`** | **Lista los 25 países disponibles** · *⚽ edición* |
 | `we:copy` / `we:paste` | Copiar / pegar |
 | `we:stack <n> [dir]` | Multiplica la copia N veces en una dirección |
 | `we:rotate <90\|180\|270>` | Rota la copia (eje Y) |
@@ -169,14 +207,15 @@ dónde miras**). Los bloques aceptan con o sin `minecraft:` (ej: `stone`).
 
 ```
 WorldEditBP/
-├── manifest.json              # Manifiesto (v0.3)
+├── manifest.json              # Manifiesto (FIFA WC 2026 Edition, v0.4)
 ├── pack_icon.png              # Ícono del paquete
 └── scripts/
     └── main.js                # Toda la lógica del addon
 build_tools/
 ├── make_icon.py               # Genera el pack_icon.png
 └── build_mcaddon.py           # Empaqueta el .mcaddon
-worldedit_mcpe_v0.3.mcaddon    # Addon listo para importar
+worldedit_mcpe_fifa_wc2026.mcaddon  # ⚽ Edición FIFA WC 2026 (recomendada)
+worldedit_mcpe_v0.3.mcaddon         # Edición estándar (sin banderas)
 ```
 
 ### Reconstruir el `.mcaddon`
