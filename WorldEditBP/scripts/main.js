@@ -643,7 +643,7 @@ function opSmooth(player, iterations) {
             if (block && !isAirOrLiquidBlock(block)) {
               top = y;
               surfPerm = block.permutation;
-              const below = dim.getBlock({ x, y - 1, z });
+              const below = dim.getBlock({ x, y: y - 1, z });
               subPerm =
                 below && !isAirOrLiquidBlock(below) ? below.permutation : dirt;
               break;
