@@ -1,10 +1,10 @@
 {
   "format_version": 2,
   "header": {
-    "name": "§b§lWorldEdit MCPE§r §7v0.3",
-    "description": "§aWorldEdit para Minecraft Bedrock/PE.§r\n§7Item de menú (brújula), varita (hacha), caja de partículas 3D,\n§7barra de progreso, stack/rotate/move/expand y formularios.\n§7Nuevo v0.3: hsphere, naturalize, smooth y drain.\n§7Actívalo con: /tag @p worldedit",
+    "name": "§b§lWorldEdit§r §6\u26bd FIFA World Cup 2026 Edition",
+    "description": "§aWorldEdit para Minecraft Bedrock/PE §6· Edición FIFA World Cup 2026§r\n§7Banderas de §f25 países§7 construibles con bloques (we:fifa / we:flag).\n§7Incluye todo: set/replace/walls, sphere/hsphere/cyl/pyramid,\n§7naturalize/smooth/drain, copy/paste/stack/rotate/move y más.\n§7Actívalo con: /tag @p worldedit",
     "uuid": "bcb2a58e-ee8a-44e8-b2c7-86c907deda0c",
-    "version": [0, 3, 0],
+    "version": [0, 4, 0],
     "min_engine_version": [1, 21, 0]
   },
   "modules": [
@@ -12,7 +12,7 @@
       "type": "script",
       "language": "javascript",
       "uuid": "e9ca6ef3-a0c0-4737-8498-af02c75f6017",
-      "version": [0, 3, 0],
+      "version": [0, 4, 0],
       "entry": "scripts/main.js"
     }
   ],
