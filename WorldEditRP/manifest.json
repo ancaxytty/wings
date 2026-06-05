@@ -4,14 +4,14 @@
     "name": "§b§lWorldEdit§r §6\u26bd UI · FIFA World Cup 2026 Edition",
     "description": "§aPaquete de recursos del addon WorldEdit MCPE.§r\n§7Le da un menú §fpersonalizado y profesional§7 al menú principal y al menú FIFA\n§7(formularios cuyo título contiene §f2026§7). El resto de la interfaz queda intacta.\n§8Es 100% cosmético: si lo desactivas, el addon sigue funcionando igual.",
     "uuid": "0ecf3d49-6da5-43f7-8a08-d8fdb18fa4fa",
-    "version": [0, 5, 0],
+    "version": [0, 6, 0],
     "min_engine_version": [1, 21, 0]
   },
   "modules": [
     {
       "type": "resources",
       "uuid": "aade58c0-9ff6-4bae-88bb-3d39fcefb2b0",
-      "version": [0, 5, 0]
+      "version": [0, 6, 0]
     }
   ],
   "metadata": {

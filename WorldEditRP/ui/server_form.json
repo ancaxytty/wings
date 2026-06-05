@@ -1,7 +1,7 @@
 {
   "namespace": "server_form",
 
-  "//": "Custom skin for ActionForm menus whose title contains '2026' (the WorldEdit main menu and the FIFA menu). Every other server form (other titles, modal forms, message forms, other addons) falls through to the faithful vanilla branch below, so nothing else changes.",
+  "//": "Custom skin for ActionForm menus whose title contains the marker '[we]'. The marker is stripped before display. Every other server form (modal forms, message forms, vanilla, other addons) falls through to the faithful vanilla branch, so nothing else changes. Layout: horizontal 2-column grid of icon tiles.",
 
   "long_form": {
     "type": "panel",
@@ -22,7 +22,7 @@
             },
             {
               "binding_type": "view",
-              "source_property_name": "((#title_text - '2026') = #title_text)",
+              "source_property_name": "((#title_text - '[we]') = #title_text)",
               "target_property_name": "#visible"
             }
           ]
@@ -37,7 +37,7 @@
             },
             {
               "binding_type": "view",
-              "source_property_name": "(not ((#title_text - '2026') = #title_text))",
+              "source_property_name": "(not ((#title_text - '[we]') = #title_text))",
               "target_property_name": "#visible"
             }
           ]
@@ -48,7 +48,7 @@
 
   "weui_panel": {
     "type": "panel",
-    "size": [328, 204],
+    "size": [322, 212],
     "anchor_from": "center",
     "anchor_to": "center",
     "controls": [
@@ -59,7 +59,7 @@
         "inset": {
           "type": "stack_panel",
           "orientation": "vertical",
-          "size": ["100% - 20px", "100% - 18px"],
+          "size": ["100% - 18px", "100% - 16px"],
           "anchor_from": "center",
           "anchor_to": "center",
           "controls": [
@@ -125,6 +125,11 @@
     "bindings": [
       {
         "binding_name": "#title_text"
+      },
+      {
+        "binding_type": "view",
+        "source_property_name": "(#title_text - '[we]')",
+        "target_property_name": "#title_text"
       }
     ]
   },
@@ -150,37 +155,35 @@
         "scroll@common.scrolling_panel": {
           "$show_background": false,
           "$scroll_size": ["100%", "100%"],
-          "$scrolling_content": "server_form.weui_scrolling_content"
+          "$scrolling_content": "server_form.weui_grid"
         }
       }
     ]
   },
 
-  "weui_scrolling_content": {
-    "type": "stack_panel",
-    "orientation": "vertical",
+  "weui_grid": {
+    "type": "grid",
     "size": ["100%", "100%c"],
     "collection_name": "form_buttons",
-    "factory": {
-      "name": "buttons",
-      "control_name": "server_form.weui_button"
-    },
+    "grid_item_template": "server_form.weui_button",
+    "grid_dimensions": [2, 1],
+    "grid_rescaling_type": "vertical",
     "bindings": [
       {
         "binding_name": "#form_button_length",
-        "binding_name_override": "#collection_length"
+        "binding_name_override": "#maximum_grid_items"
       }
     ]
   },
 
   "weui_button": {
     "type": "panel",
-    "size": ["100%", 30],
+    "size": [148, 44],
     "controls": [
       {
-        "padding": {
+        "tile": {
           "type": "panel",
-          "size": ["100%", "100% - 3px"],
+          "size": ["100% - 4px", "100% - 4px"],
           "anchor_from": "center",
           "anchor_to": "center",
           "controls": [
@@ -188,21 +191,26 @@
               "button_bg@server_form.weui_button_bg": {}
             },
             {
-              "row": {
+              "col": {
                 "type": "stack_panel",
-                "orientation": "horizontal",
-                "size": ["100% - 16px", "100%"],
-                "offset": [8, 0],
-                "anchor_from": "left_middle",
-                "anchor_to": "left_middle",
+                "orientation": "vertical",
+                "size": ["100%", "100%"],
+                "anchor_from": "top_middle",
+                "anchor_to": "top_middle",
                 "controls": [
+                  {
+                    "pad_top": {
+                      "type": "panel",
+                      "size": ["100%", 4]
+                    }
+                  },
                   {
                     "icon": {
                       "type": "image",
-                      "size": [24, 24],
+                      "size": [22, 22],
                       "layer": 12,
-                      "anchor_from": "left_middle",
-                      "anchor_to": "left_middle",
+                      "anchor_from": "top_middle",
+                      "anchor_to": "top_middle",
                       "bindings": [
                         {
                           "binding_name": "#form_button_texture",
@@ -225,20 +233,14 @@
                     }
                   },
                   {
-                    "icon_gap": {
-                      "type": "panel",
-                      "size": [8, "100%"]
-                    }
-                  },
-                  {
                     "label": {
                       "type": "label",
-                      "size": ["fill", "default"],
+                      "size": ["100% - 6px", "default"],
                       "layer": 12,
                       "color": [0.95, 0.97, 1.0],
-                      "anchor_from": "left_middle",
-                      "anchor_to": "left_middle",
-                      "text_alignment": "left",
+                      "anchor_from": "top_middle",
+                      "anchor_to": "top_middle",
+                      "text_alignment": "center",
                       "shadow": true,
                       "text": "#form_button_text",
                       "bindings": [
@@ -277,7 +279,7 @@
     "size": ["100%", "100%"],
     "texture": "textures/custom_ui/custom_bg",
     "nineslice_size": 7,
-    "alpha": 0.45
+    "alpha": 0.5
   },
 
   "weui_close_button": {

@@ -399,6 +399,17 @@ def s_help(px):
     rect(px, 15, 23, 18, 26, WHITE)      # dot
 
 
+def s_soon(px):
+    ring(px, 16, 16, 9, 2, WHITE)        # clock face
+    line(px, 16, 16, 16, 9, WHITE, 2)    # hour hand
+    line(px, 16, 16, 21, 18, WHITE, 2)   # minute hand
+    disc(px, 16, 16, 1.4, WHITE)
+
+
+def s_back(px):
+    arrow(px, 23, 16, 9, 16, WHITE, 4, 7)  # left arrow
+
+
 # name -> (plate color, symbol fn)
 STEEL = (74, 92, 122)
 PURPLE = (118, 86, 168)
@@ -441,6 +452,8 @@ ICONS = {
     "info": (CYAN, s_info),
     "fifa": ((44, 124, 72), s_fifa),
     "help": ((58, 110, 178), s_help),
+    "soon": ((150, 80, 170), s_soon),
+    "back": ((92, 100, 120), s_back),
 }
 
 

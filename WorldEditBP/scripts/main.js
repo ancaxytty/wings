@@ -25,7 +25,7 @@
  *     selección. Esquina POS1 verde, esquina POS2 naranja.
  *   - Barra de acción (actionbar) con el progreso 0% -> 100% al rellenar.
  *
- * Activación:  /tag @p worldedit
+ * Activación:  /tag @p add worldedit
  *   -> consola: "addon activado correctamente"
  */
 
@@ -47,6 +47,7 @@ import {
 /* ------------------------------------------------------------------ */
 const WAND = "minecraft:wooden_axe"; // varita de selección
 const MENU_ITEM = "minecraft:compass"; // item especial que abre el menú
+const BUILDER = "minecraft:blaze_rod"; // herramienta que construye formas donde miras
 const TAG = "worldedit";
 const MAX_BLOCKS = 64000; // límite de bloques por operación
 const MAX_UNDO = 8; // operaciones guardadas para deshacer
@@ -102,6 +103,7 @@ const undoStacks = new Map(); // id -> [ [{x,y,z,perm,dim}] ]
 const activated = new Set(); // ids ya activados
 const boxHidden = new Set(); // ids que ocultaron la caja de partículas
 const busy = new Set(); // ids con un trabajo pesado en curso
+const builderConfig = new Map(); // id -> { shape, block, radius, height, hollow }
 
 /* ------------------------------------------------------------------ */
 /*  Utilidades                                                         */
@@ -394,11 +396,11 @@ function opClear(player) {
   fillRegion(player, minMax(s.pos1, s.pos2), () => air, "Vaciando");
 }
 
-function opSphere(player, blockName, radius, hollow) {
+function opSphere(player, blockName, radius, hollow, center) {
   const perm = resolvePerm(blockName);
   if (!perm) return badBlock(player, blockName);
   const r = Math.max(1, Math.min(40, Math.floor(radius)));
-  const c = toBlockLoc(player.location);
+  const c = center || toBlockLoc(player.location);
   const b = {
     minX: c.x - r,
     maxX: c.x + r,
@@ -422,12 +424,12 @@ function opSphere(player, blockName, radius, hollow) {
   );
 }
 
-function opCylinder(player, blockName, radius, height, hollow) {
+function opCylinder(player, blockName, radius, height, hollow, center) {
   const perm = resolvePerm(blockName);
   if (!perm) return badBlock(player, blockName);
   const r = Math.max(1, Math.min(40, Math.floor(radius)));
   const h = Math.max(1, Math.min(160, Math.floor(height)));
-  const c = toBlockLoc(player.location);
+  const c = center || toBlockLoc(player.location);
   const b = {
     minX: c.x - r,
     maxX: c.x + r,
@@ -451,11 +453,11 @@ function opCylinder(player, blockName, radius, height, hollow) {
   );
 }
 
-function opPyramid(player, blockName, size) {
+function opPyramid(player, blockName, size, center) {
   const perm = resolvePerm(blockName);
   if (!perm) return badBlock(player, blockName);
   const s = Math.max(1, Math.min(60, Math.floor(size)));
-  const c = toBlockLoc(player.location);
+  const c = center || toBlockLoc(player.location);
   const b = {
     minX: c.x - s,
     maxX: c.x + s,
@@ -1706,12 +1708,12 @@ function opHollow(player) {
 }
 
 // Cono (como la pirámide pero circular), centrado en ti.
-function opCone(player, blockName, radius, height, hollow) {
+function opCone(player, blockName, radius, height, hollow, center) {
   const perm = resolvePerm(blockName);
   if (!perm) return badBlock(player, blockName);
   const r = Math.max(1, Math.min(40, Math.floor(radius)));
   const h = Math.max(1, Math.min(160, Math.floor(height)));
-  const c = toBlockLoc(player.location);
+  const c = center || toBlockLoc(player.location);
   const b = {
     minX: c.x - r,
     maxX: c.x + r,
@@ -1858,82 +1860,187 @@ function opLine(player, blockName) {
 /* ------------------------------------------------------------------ */
 async function openMenu(player) {
   if (!player.hasTag(TAG)) {
-    return msg(player, "§cActiva WorldEdit con §e/tag @p worldedit§c.");
+    return msg(player, "§cActiva WorldEdit con §e/tag @p add worldedit§c.");
   }
-  const I = "textures/custom_ui/icons/";
-  const form = new ActionFormData()
-    .title("§b§lWorldEdit §r§6\u26bd WC 2026")
-    .body("§7Elige una herramienta:")
-    .button("§2Obtener herramientas", I + "tools")
-    .button("§2Item de Menú (Brújula)", I + "compass")
-    .button("§2Varita (Hacha)", I + "wand")
-    .button("§aMarcar POS1 (aquí)", I + "pos1")
-    .button("§aMarcar POS2 (aquí)", I + "pos2")
-    .button("Set / Rellenar", I + "set")
-    .button("Replace / Reemplazar", I + "replace")
-    .button("Walls / Paredes", I + "walls")
-    .button("Outline / Contorno", I + "outline")
-    .button("§9Hollow / Ahuecar", I + "hollow")
-    .button("Sphere / Esfera", I + "sphere")
-    .button("§9HSphere / Esfera hueca", I + "hsphere")
-    .button("Cylinder / Cilindro", I + "cylinder")
-    .button("Cone / Cono", I + "cone")
-    .button("Pyramid / Pirámide", I + "pyramid")
-    .button("Line / Línea", I + "line")
-    .button("§6Naturalize / Naturalizar", I + "naturalize")
-    .button("§6Smooth / Suavizar", I + "smooth")
-    .button("§3Drain / Drenar", I + "drain")
-    .button("§cClear / Vaciar", I + "clear")
-    .button("Copy / Copiar", I + "copy")
-    .button("Paste / Pegar", I + "paste")
-    .button("Stack / Multiplicar", I + "stack")
-    .button("Rotate / Rotar", I + "rotate")
-    .button("Move / Mover", I + "move")
-    .button("Expand / Expandir", I + "expand")
-    .button("Contract / Contraer", I + "contract")
-    .button("§bUp / Subir", I + "up")
-    .button("§eUndo / Deshacer", I + "undo")
-    .button("Mostrar/Ocultar caja", I + "box")
-    .button("Info / Selección", I + "info")
-    .button("§6§l\u26bd FIFA World Cup 2026", I + "fifa")
-    .button("Ayuda", I + "help");
+  await showActionMenu(
+    player,
+    "§b§lWorldEdit §r§6\u26bd",
+    "§7Selecciona una categoría:",
+    [
+      { label: "§a§lConstruir", icon: "set", run: () => buildMenu(player) },
+      { label: "§d§lFormas", icon: "sphere", run: () => shapesMenu(player) },
+      { label: "§6§lTerreno", icon: "naturalize", run: () => terrainMenu(player) },
+      { label: "§e§lPortapapeles", icon: "copy", run: () => clipboardMenu(player) },
+      { label: "§b§lSelección", icon: "pos1", run: () => selectionMenu(player) },
+      { label: "§3§lHerramientas", icon: "tools", run: () => toolsMenu(player) },
+      { label: "§6§l\u26bd FIFA 2026", icon: "fifa", run: () => fifaMenu(player) },
+      { label: "§5§l\u2728 Próximamente", icon: "soon", run: () => comingSoonMenu(player) },
+      { label: "§f§lAyuda", icon: "help", run: () => helpForm(player) },
+    ]
+  );
+}
 
+// Constructor genérico de menús de acción (ActionForm) con estilo custom.
+// El prefijo "[we]" activa la skin del resource pack; items = [{label, icon, run}].
+const ICON = "textures/custom_ui/icons/";
+async function showActionMenu(player, title, body, items) {
+  const form = new ActionFormData().title("[we]" + title).body(body || "");
+  for (const it of items) {
+    if (it.icon) form.button(it.label, ICON + it.icon);
+    else form.button(it.label);
+  }
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
-  switch (res.selection) {
-    case 0: giveKit(player); break;
-    case 1: giveMenuItem(player); break;
-    case 2: giveWand(player); break;
-    case 3: setPos1(player, toBlockLoc(player.location)); break;
-    case 4: setPos2(player, toBlockLoc(player.location)); break;
-    case 5: await pickBlockThen(player, "Set / Rellenar", (blk) => opSet(player, blk)); break;
-    case 6: await replaceForm(player); break;
-    case 7: await pickBlockThen(player, "Walls / Paredes", (blk) => opWalls(player, blk)); break;
-    case 8: await pickBlockThen(player, "Outline / Contorno", (blk) => opFaces(player, blk)); break;
-    case 9: opHollow(player); break;
-    case 10: await sphereForm(player); break;
-    case 11: await hsphereForm(player); break;
-    case 12: await cylinderForm(player); break;
-    case 13: await coneForm(player); break;
-    case 14: await pyramidForm(player); break;
-    case 15: await lineForm(player); break;
-    case 16: opNaturalize(player); break;
-    case 17: await smoothForm(player); break;
-    case 18: await drainForm(player); break;
-    case 19: opClear(player); break;
-    case 20: opCopy(player); break;
-    case 21: opPaste(player); break;
-    case 22: await stackForm(player); break;
-    case 23: await rotateForm(player); break;
-    case 24: await moveForm(player); break;
-    case 25: await expandForm(player); break;
-    case 26: await contractForm(player); break;
-    case 27: await upForm(player); break;
-    case 28: doUndo(player); break;
-    case 29: toggleBox(player); break;
-    case 30: opSize(player); break;
-    case 31: await fifaMenu(player); break;
-    case 32: await helpForm(player); break;
+  const it = items[res.selection];
+  if (it && it.run) await it.run();
+}
+
+async function buildMenu(player) {
+  await showActionMenu(player, "§a§lConstruir", "§7Operaciones de bloques:", [
+    { label: "Rellenar", icon: "set", run: () => pickBlockThen(player, "Rellenar", (b) => opSet(player, b)) },
+    { label: "Reemplazar", icon: "replace", run: () => replaceForm(player) },
+    { label: "Paredes", icon: "walls", run: () => pickBlockThen(player, "Paredes", (b) => opWalls(player, b)) },
+    { label: "Contorno", icon: "outline", run: () => pickBlockThen(player, "Contorno", (b) => opFaces(player, b)) },
+    { label: "§9Ahuecar", icon: "hollow", run: () => opHollow(player) },
+    { label: "Línea", icon: "line", run: () => lineForm(player) },
+    { label: "§cVaciar", icon: "clear", run: () => opClear(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function shapesMenu(player) {
+  await showActionMenu(player, "§d§lFormas", "§7Figuras geométricas:", [
+    { label: "Esfera", icon: "sphere", run: () => sphereForm(player) },
+    { label: "§9Esfera hueca", icon: "hsphere", run: () => hsphereForm(player) },
+    { label: "Cilindro", icon: "cylinder", run: () => cylinderForm(player) },
+    { label: "Cono", icon: "cone", run: () => coneForm(player) },
+    { label: "Pirámide", icon: "pyramid", run: () => pyramidForm(player) },
+    { label: "§6Constructor de Formas", icon: "wand", run: () => builderForm(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function terrainMenu(player) {
+  await showActionMenu(player, "§6§lTerreno", "§7Modela el terreno:", [
+    { label: "Naturalizar", icon: "naturalize", run: () => opNaturalize(player) },
+    { label: "Suavizar", icon: "smooth", run: () => smoothForm(player) },
+    { label: "§3Drenar", icon: "drain", run: () => drainForm(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function clipboardMenu(player) {
+  await showActionMenu(player, "§e§lPortapapeles", "§7Copiar, pegar y transformar:", [
+    { label: "Copiar", icon: "copy", run: () => opCopy(player) },
+    { label: "Pegar", icon: "paste", run: () => opPaste(player) },
+    { label: "Multiplicar", icon: "stack", run: () => stackForm(player) },
+    { label: "Rotar", icon: "rotate", run: () => rotateForm(player) },
+    { label: "Mover", icon: "move", run: () => moveForm(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function selectionMenu(player) {
+  await showActionMenu(player, "§b§lSelección", "§7Define y ajusta tu zona:", [
+    { label: "§aMarcar POS1 (aquí)", icon: "pos1", run: () => setPos1(player, toBlockLoc(player.location)) },
+    { label: "§aMarcar POS2 (aquí)", icon: "pos2", run: () => setPos2(player, toBlockLoc(player.location)) },
+    { label: "Expandir", icon: "expand", run: () => expandForm(player) },
+    { label: "Contraer", icon: "contract", run: () => contractForm(player) },
+    { label: "§bSubir", icon: "up", run: () => upForm(player) },
+    { label: "Info", icon: "info", run: () => opSize(player) },
+    { label: "Caja on/off", icon: "box", run: () => toggleBox(player) },
+    { label: "§eDeshacer", icon: "undo", run: () => doUndo(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function toolsMenu(player) {
+  await showActionMenu(player, "§3§lHerramientas", "§7Objetos del addon:", [
+    { label: "Obtener herramientas", icon: "tools", run: () => giveKit(player) },
+    { label: "Item de menú (brújula)", icon: "compass", run: () => giveMenuItem(player) },
+    { label: "Varita (hacha)", icon: "wand", run: () => giveWand(player) },
+    { label: "§6Constructor de Formas", icon: "wand", run: () => builderForm(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function comingSoonMenu(player) {
+  await showActionMenu(
+    player,
+    "§5§l\u2728 Próximamente",
+    "§7Muy pronto, §f2 ediciones exclusivas§7:\n\n§6\u2728 §c§lHalloween Edition§r §7— terror, calabazas y estructuras.\n§6\u2728 §a§lChristmas Edition§r §7— nieve, regalos y árboles.\n\n§8¡Atento a las próximas versiones!",
+    [
+      { label: "§c\u2728 Halloween Edition (pronto)", icon: "soon", run: () => msg(player, "§c\u2728 Halloween Edition §7— ¡muy pronto!") },
+      { label: "§a\u2728 Christmas Edition (pronto)", icon: "soon", run: () => msg(player, "§a\u2728 Christmas Edition §7— ¡muy pronto!") },
+      { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+    ]
+  );
+}
+
+/* Constructor de Formas (item BUILDER): configura una forma y constrúyela donde mires. */
+async function builderForm(player) {
+  const shapes = ["Esfera", "Esfera hueca", "Cilindro", "Cono", "Pirámide"];
+  const ids = ["sphere", "hsphere", "cylinder", "cone", "pyramid"];
+  const form = new ModalFormData()
+    .title("§lConstructor de Formas")
+    .dropdown("Forma", shapes, 0)
+    .dropdown("Bloque", COMMON_BLOCKS, 0)
+    .textField("…o bloque personalizado", "ej: glass")
+    .slider("Radio / tamaño", 1, 40, 1, 5)
+    .slider("Altura (cilindro/cono)", 1, 100, 1, 8)
+    .toggle("Hueco (donde aplique)", false);
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [shapeIdx, blkIdx, custom, radius, height, hollow] = res.formValues;
+  const block = custom && custom.trim() ? custom.trim() : COMMON_BLOCKS[blkIdx];
+  let shape = ids[shapeIdx];
+  let hol = !!hollow;
+  if (shape === "hsphere") {
+    shape = "sphere";
+    hol = true;
+  }
+  builderConfig.set(player.id, { shape, block, radius, height, hollow: hol });
+  giveBuilder(player);
+  msg(
+    player,
+    `§a[WE] Constructor listo: §f${shapes[shapeIdx]}§a (§f${block}§a). ` +
+      "Usa el §6Constructor de Formas §apara construir donde mires."
+  );
+}
+
+function giveBuilder(player) {
+  const inv = player.getComponent("minecraft:inventory");
+  if (!inv || !inv.container) return;
+  try {
+    const it = new ItemStack(BUILDER, 1);
+    it.nameTag = "§r§6Constructor de Formas";
+    inv.container.addItem(it);
+  } catch (e) {}
+}
+
+function buildWithTool(player) {
+  const cfg =
+    builderConfig.get(player.id) || {
+      shape: "sphere",
+      block: "stone",
+      radius: 5,
+      height: 8,
+      hollow: false,
+    };
+  let center = null;
+  try {
+    const hit = player.getBlockFromViewDirection({ maxDistance: 96 });
+    const blk = hit && (hit.block || hit);
+    if (blk && blk.location) {
+      center = { x: blk.location.x, y: blk.location.y, z: blk.location.z };
+    }
+  } catch (e) {}
+  if (!center) center = toBlockLoc(player.location);
+  switch (cfg.shape) {
+    case "cylinder": opCylinder(player, cfg.block, cfg.radius, cfg.height, cfg.hollow, center); break;
+    case "cone": opCone(player, cfg.block, cfg.radius, cfg.height, cfg.hollow, center); break;
+    case "pyramid": opPyramid(player, cfg.block, cfg.radius, center); break;
+    default: opSphere(player, cfg.block, cfg.radius, cfg.hollow, center);
   }
 }
 
@@ -1951,21 +2058,23 @@ async function pickBlockThen(player, title, callback) {
 
 async function fifaMenu(player) {
   if (!player.hasTag(TAG)) {
-    return msg(player, "§cActiva WorldEdit con §e/tag @p worldedit§c.");
+    return msg(player, "§cActiva WorldEdit con §e/tag @p add worldedit§c.");
   }
   const keys = Object.keys(FIFA_FLAGS);
   const form = new ActionFormData()
-    .title("§6§l\u26bd FIFA World Cup 2026")
+    .title("[we]§6§l\u26bd FIFA World Cup 2026")
     .body(
       "§7Elige un país y se construirá su bandera §fmirando hacia donde apuntas§7.\n§8" +
         keys.length +
-        " países · usa §7§oUndo§8 para deshacer."
+        " países · usa §7§oDeshacer§8 para revertir."
     );
   for (const k of keys) {
-    form.button("§f" + FIFA_FLAGS[k].name, "textures/ui/icon_multiplayer");
+    form.button("§f" + FIFA_FLAGS[k].name, "textures/custom_ui/flags/" + k);
   }
+  form.button("§8\u2b05 Volver", "textures/custom_ui/icons/back");
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
+  if (res.selection === keys.length) return openMenu(player);
   const key = keys[res.selection];
   if (key) opFlag(player, key, 1);
 }
@@ -2200,7 +2309,7 @@ const HELP_TEXT = [
 /* ------------------------------------------------------------------ */
 function executeCommand(player, raw) {
   if (!player.hasTag(TAG)) {
-    msg(player, "§cWorldEdit no está activado. Ejecuta §e/tag @p worldedit§c.");
+    msg(player, "§cWorldEdit no está activado. Ejecuta §e/tag @p add worldedit§c.");
     return;
   }
   const parts = raw.trim().split(/\s+/);
@@ -2225,6 +2334,10 @@ function executeCommand(player, raw) {
         break;
       case "wand":
         giveWand(player);
+        break;
+      case "builder":
+      case "tool":
+        launch(builderForm(player));
         break;
       case "pos1":
         setPos1(player, toBlockLoc(player.location));
@@ -2494,6 +2607,8 @@ safeSub(
       system.run(() => launch(openMenu(player)));
     } else if (item.typeId === WAND && player.isSneaking) {
       system.run(() => launch(openMenu(player)));
+    } else if (item.typeId === BUILDER) {
+      system.run(() => buildWithTool(player));
     }
   },
   "itemUse"
@@ -2509,7 +2624,7 @@ system.runInterval(() => {
   }
 }, 8);
 
-/* Activación por tag:  /tag @p worldedit */
+/* Activación por tag:  /tag @p add worldedit */
 system.runInterval(() => {
   for (const player of world.getAllPlayers()) {
     const has = player.hasTag(TAG);
@@ -2534,8 +2649,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.5) cargado. " +
-      "Actívalo en el mundo con: /tag @p worldedit"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.6) cargado. " +
+      "Actívalo en el mundo con: /tag @p add worldedit"
   );
 });
 
@@ -2547,7 +2662,7 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
     if (player.hasTag(TAG)) {
       msg(player, "§aActivado. Usa la §ebrújula§a o §e/scriptevent we:menu§a.");
     } else {
-      msg(player, "§7Para activar ejecuta: §e/tag @p worldedit");
+      msg(player, "§7Para activar ejecuta: §e/tag @p add worldedit");
     }
   }, 40);
 });
