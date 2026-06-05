@@ -1565,29 +1565,15 @@ function toggleBox(player) {
 /*  Items                                                              */
 /* ------------------------------------------------------------------ */
 function giveKit(player) {
+  // Solo entrega las HERRAMIENTAS (varita + item de menú). Ya no entrega
+  // bloques: los bloques los consigue/pone el jugador por su cuenta.
   const inv = player.getComponent("minecraft:inventory");
   if (!inv || !inv.container) return;
   giveMenuItem(player, true);
-  const items = [
-    [WAND, 1],
-    ["minecraft:stone", 64],
-    ["minecraft:cobblestone", 64],
-    ["minecraft:oak_planks", 64],
-    ["minecraft:glass", 64],
-    ["minecraft:white_concrete", 64],
-    ["minecraft:sand", 64],
-    ["minecraft:dirt", 64],
-    ["minecraft:bricks", 64],
-    ["minecraft:quartz_block", 64],
-    ["minecraft:glowstone", 64],
-    ["minecraft:obsidian", 64],
-  ];
-  for (const [id, amount] of items) {
-    try {
-      inv.container.addItem(new ItemStack(id, amount));
-    } catch (e) {}
-  }
-  msg(player, "§a[WE] §fKit entregado. §7Varita=hacha · Menú=brújula");
+  try {
+    inv.container.addItem(new ItemStack(WAND, 1));
+  } catch (e) {}
+  msg(player, "§a[WE] §fHerramientas entregadas. §7Varita=hacha · Menú=brújula");
 }
 
 function giveWand(player) {
@@ -1694,42 +1680,223 @@ function drawSelectionBox(player) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Operaciones nuevas (v0.5): Hollow, Cone, Line                      */
+/* ------------------------------------------------------------------ */
+
+// Ahueca la selección: deja una cáscara de 1 bloque y vacía el interior.
+function opHollow(player) {
+  if (!bothPos(player)) return needSel(player);
+  const air = BlockPermutation.resolve("minecraft:air");
+  const s = getSel(player);
+  const b = minMax(s.pos1, s.pos2);
+  fillRegion(
+    player,
+    b,
+    (x, y, z) =>
+      x > b.minX &&
+      x < b.maxX &&
+      y > b.minY &&
+      y < b.maxY &&
+      z > b.minZ &&
+      z < b.maxZ
+        ? air
+        : null,
+    "Ahuecando"
+  );
+}
+
+// Cono (como la pirámide pero circular), centrado en ti.
+function opCone(player, blockName, radius, height, hollow) {
+  const perm = resolvePerm(blockName);
+  if (!perm) return badBlock(player, blockName);
+  const r = Math.max(1, Math.min(40, Math.floor(radius)));
+  const h = Math.max(1, Math.min(160, Math.floor(height)));
+  const c = toBlockLoc(player.location);
+  const b = {
+    minX: c.x - r,
+    maxX: c.x + r,
+    minY: c.y,
+    maxY: c.y + h - 1,
+    minZ: c.z - r,
+    maxZ: c.z + r,
+  };
+  fillRegion(
+    player,
+    b,
+    (x, y, z) => {
+      const t = (y - c.y) / h; // 0 en la base, ~1 en la punta
+      const rad = r * (1 - t);
+      if (rad <= 0) return null;
+      const d = Math.sqrt((x - c.x) ** 2 + (z - c.z) ** 2);
+      if (d > rad + 0.5) return null;
+      if (hollow && d < rad - 0.5) return null;
+      return perm;
+    },
+    "Cono"
+  );
+}
+
+// Línea 3D (Bresenham) entre POS1 y POS2.
+function line3D(p1, p2) {
+  const points = [];
+  let x = p1.x,
+    y = p1.y,
+    z = p1.z;
+  const dx = Math.abs(p2.x - x),
+    dy = Math.abs(p2.y - y),
+    dz = Math.abs(p2.z - z);
+  const sx = p2.x > x ? 1 : -1,
+    sy = p2.y > y ? 1 : -1,
+    sz = p2.z > z ? 1 : -1;
+  if (dx >= dy && dx >= dz) {
+    let e1 = 2 * dy - dx,
+      e2 = 2 * dz - dx;
+    while (true) {
+      points.push({ x, y, z });
+      if (x === p2.x) break;
+      if (e1 >= 0) {
+        y += sy;
+        e1 -= 2 * dx;
+      }
+      if (e2 >= 0) {
+        z += sz;
+        e2 -= 2 * dx;
+      }
+      e1 += 2 * dy;
+      e2 += 2 * dz;
+      x += sx;
+    }
+  } else if (dy >= dx && dy >= dz) {
+    let e1 = 2 * dx - dy,
+      e2 = 2 * dz - dy;
+    while (true) {
+      points.push({ x, y, z });
+      if (y === p2.y) break;
+      if (e1 >= 0) {
+        x += sx;
+        e1 -= 2 * dy;
+      }
+      if (e2 >= 0) {
+        z += sz;
+        e2 -= 2 * dy;
+      }
+      e1 += 2 * dx;
+      e2 += 2 * dz;
+      y += sy;
+    }
+  } else {
+    let e1 = 2 * dy - dz,
+      e2 = 2 * dx - dz;
+    while (true) {
+      points.push({ x, y, z });
+      if (z === p2.z) break;
+      if (e1 >= 0) {
+        y += sy;
+        e1 -= 2 * dz;
+      }
+      if (e2 >= 0) {
+        x += sx;
+        e2 -= 2 * dz;
+      }
+      e1 += 2 * dy;
+      e2 += 2 * dx;
+      z += sz;
+    }
+  }
+  return points;
+}
+
+// Aplica una permutación a una lista de puntos (con progreso + undo).
+function applyPoints(player, points, perm, label) {
+  if (isBusy(player)) return;
+  if (points.length === 0) return;
+  if (points.length > MAX_BLOCKS) {
+    return msg(
+      player,
+      `§cDemasiado grande: §f${points.length}§c (máx §f${MAX_BLOCKS}§c).`
+    );
+  }
+  const dim = player.dimension;
+  const changes = [];
+  let processed = 0;
+  let placed = 0;
+  const total = points.length;
+  const gen = (function* () {
+    for (const p of points) {
+      try {
+        const block = dim.getBlock(p);
+        if (block) {
+          changes.push({ x: p.x, y: p.y, z: p.z, perm: block.permutation, dim });
+          block.setPermutation(perm);
+          placed++;
+        }
+      } catch (e) {}
+      processed++;
+      if (processed % CHUNK === 0) {
+        setProgress(player, label, processed / total);
+        yield;
+      }
+    }
+    pushUndo(player, changes);
+    setProgress(player, label, 1);
+    msg(player, `§a[WE] ${label}: §f${placed}§a bloques.`);
+    clearActionBarLater(player);
+  })();
+  startBlockJob(player, gen);
+}
+
+function opLine(player, blockName) {
+  if (!bothPos(player)) return needSel(player);
+  const perm = resolvePerm(blockName);
+  if (!perm) return badBlock(player, blockName);
+  const s = getSel(player);
+  applyPoints(player, line3D(s.pos1, s.pos2), perm, "Línea");
+}
+
+/* ------------------------------------------------------------------ */
 /*  Formularios (UI)                                                   */
 /* ------------------------------------------------------------------ */
 async function openMenu(player) {
   if (!player.hasTag(TAG)) {
     return msg(player, "§cActiva WorldEdit con §e/tag @p worldedit§c.");
   }
+  const I = "textures/custom_ui/icons/";
   const form = new ActionFormData()
     .title("§b§lWorldEdit §r§6\u26bd WC 2026")
     .body("§7Elige una herramienta:")
-    .button("§2Obtener Kit", "textures/items/diamond_pickaxe")
-    .button("§2Item de Menú (Brújula)", "textures/items/compass_item")
-    .button("§2Varita (Hacha)", "textures/items/wood_axe")
-    .button("Set / Rellenar", "textures/blocks/stone")
-    .button("Replace / Reemplazar", "textures/blocks/sandstone_normal")
-    .button("Walls / Paredes", "textures/blocks/brick")
-    .button("Outline / Contorno", "textures/blocks/glass")
-    .button("Sphere / Esfera", "textures/items/snowball")
-    .button("§9HSphere / Esfera hueca", "textures/items/snowball")
-    .button("Cylinder / Cilindro", "textures/blocks/log_oak")
-    .button("Pyramid / Pirámide", "textures/blocks/sandstone_carved")
-    .button("§6Naturalize / Naturalizar", "textures/blocks/grass_side_carried")
-    .button("§6Smooth / Suavizar", "textures/blocks/dirt")
-    .button("§3Drain / Drenar", "textures/blocks/water_placeholder")
-    .button("§cClear / Vaciar", "textures/blocks/barrier")
-    .button("Copy / Copiar", "textures/ui/copy")
-    .button("Paste / Pegar", "textures/ui/paste")
-    .button("Stack / Multiplicar", "textures/ui/MCoin")
-    .button("Rotate / Rotar", "textures/ui/refresh")
-    .button("Move / Mover", "textures/ui/arrow_right")
-    .button("Expand / Expandir", "textures/ui/plus")
-    .button("Contract / Contraer", "textures/ui/minus")
-    .button("§eUndo / Deshacer", "textures/ui/undo")
-    .button("Mostrar/Ocultar caja", "textures/ui/magnifyingGlass")
-    .button("Info / Selección", "textures/ui/infobulb")
-    .button("§6§l\u26bd FIFA World Cup 2026", "textures/ui/icon_best3")
-    .button("Ayuda", "textures/ui/help");
+    .button("§2Obtener herramientas", I + "tools")
+    .button("§2Item de Menú (Brújula)", I + "compass")
+    .button("§2Varita (Hacha)", I + "wand")
+    .button("§aMarcar POS1 (aquí)", I + "pos1")
+    .button("§aMarcar POS2 (aquí)", I + "pos2")
+    .button("Set / Rellenar", I + "set")
+    .button("Replace / Reemplazar", I + "replace")
+    .button("Walls / Paredes", I + "walls")
+    .button("Outline / Contorno", I + "outline")
+    .button("§9Hollow / Ahuecar", I + "hollow")
+    .button("Sphere / Esfera", I + "sphere")
+    .button("§9HSphere / Esfera hueca", I + "hsphere")
+    .button("Cylinder / Cilindro", I + "cylinder")
+    .button("Cone / Cono", I + "cone")
+    .button("Pyramid / Pirámide", I + "pyramid")
+    .button("Line / Línea", I + "line")
+    .button("§6Naturalize / Naturalizar", I + "naturalize")
+    .button("§6Smooth / Suavizar", I + "smooth")
+    .button("§3Drain / Drenar", I + "drain")
+    .button("§cClear / Vaciar", I + "clear")
+    .button("Copy / Copiar", I + "copy")
+    .button("Paste / Pegar", I + "paste")
+    .button("Stack / Multiplicar", I + "stack")
+    .button("Rotate / Rotar", I + "rotate")
+    .button("Move / Mover", I + "move")
+    .button("Expand / Expandir", I + "expand")
+    .button("Contract / Contraer", I + "contract")
+    .button("§bUp / Subir", I + "up")
+    .button("§eUndo / Deshacer", I + "undo")
+    .button("Mostrar/Ocultar caja", I + "box")
+    .button("Info / Selección", I + "info")
+    .button("§6§l\u26bd FIFA World Cup 2026", I + "fifa")
+    .button("Ayuda", I + "help");
 
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
@@ -1737,30 +1904,36 @@ async function openMenu(player) {
     case 0: giveKit(player); break;
     case 1: giveMenuItem(player); break;
     case 2: giveWand(player); break;
-    case 3: await pickBlockThen(player, "Set / Rellenar", (blk) => opSet(player, blk)); break;
-    case 4: await replaceForm(player); break;
-    case 5: await pickBlockThen(player, "Walls / Paredes", (blk) => opWalls(player, blk)); break;
-    case 6: await pickBlockThen(player, "Outline / Contorno", (blk) => opFaces(player, blk)); break;
-    case 7: await sphereForm(player); break;
-    case 8: await hsphereForm(player); break;
-    case 9: await cylinderForm(player); break;
-    case 10: await pyramidForm(player); break;
-    case 11: opNaturalize(player); break;
-    case 12: await smoothForm(player); break;
-    case 13: await drainForm(player); break;
-    case 14: opClear(player); break;
-    case 15: opCopy(player); break;
-    case 16: opPaste(player); break;
-    case 17: await stackForm(player); break;
-    case 18: await rotateForm(player); break;
-    case 19: await moveForm(player); break;
-    case 20: await expandForm(player); break;
-    case 21: await contractForm(player); break;
-    case 22: doUndo(player); break;
-    case 23: toggleBox(player); break;
-    case 24: opSize(player); break;
-    case 25: await fifaMenu(player); break;
-    case 26: await helpForm(player); break;
+    case 3: setPos1(player, toBlockLoc(player.location)); break;
+    case 4: setPos2(player, toBlockLoc(player.location)); break;
+    case 5: await pickBlockThen(player, "Set / Rellenar", (blk) => opSet(player, blk)); break;
+    case 6: await replaceForm(player); break;
+    case 7: await pickBlockThen(player, "Walls / Paredes", (blk) => opWalls(player, blk)); break;
+    case 8: await pickBlockThen(player, "Outline / Contorno", (blk) => opFaces(player, blk)); break;
+    case 9: opHollow(player); break;
+    case 10: await sphereForm(player); break;
+    case 11: await hsphereForm(player); break;
+    case 12: await cylinderForm(player); break;
+    case 13: await coneForm(player); break;
+    case 14: await pyramidForm(player); break;
+    case 15: await lineForm(player); break;
+    case 16: opNaturalize(player); break;
+    case 17: await smoothForm(player); break;
+    case 18: await drainForm(player); break;
+    case 19: opClear(player); break;
+    case 20: opCopy(player); break;
+    case 21: opPaste(player); break;
+    case 22: await stackForm(player); break;
+    case 23: await rotateForm(player); break;
+    case 24: await moveForm(player); break;
+    case 25: await expandForm(player); break;
+    case 26: await contractForm(player); break;
+    case 27: await upForm(player); break;
+    case 28: doUndo(player); break;
+    case 29: toggleBox(player); break;
+    case 30: opSize(player); break;
+    case 31: await fifaMenu(player); break;
+    case 32: await helpForm(player); break;
   }
 }
 
@@ -1887,6 +2060,43 @@ async function pyramidForm(player) {
   opPyramid(player, blk, size);
 }
 
+async function coneForm(player) {
+  const form = new ModalFormData()
+    .title("§lCone / Cono")
+    .dropdown("Bloque", COMMON_BLOCKS, 0)
+    .textField("…o bloque personalizado", "ej: quartz_block")
+    .slider("Radio (base)", 1, 40, 1, 5)
+    .slider("Altura", 1, 100, 1, 8)
+    .toggle("Hueco (hollow)", false);
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [idx, custom, radius, height, hollow] = res.formValues;
+  const blk = custom && custom.trim() ? custom.trim() : COMMON_BLOCKS[idx];
+  opCone(player, blk, radius, height, hollow);
+}
+
+async function lineForm(player) {
+  if (!bothPos(player)) return needSel(player);
+  const form = new ModalFormData()
+    .title("§lLine / Línea")
+    .dropdown("Bloque", COMMON_BLOCKS, 0)
+    .textField("…o bloque personalizado", "ej: glowstone");
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [idx, custom] = res.formValues;
+  const blk = custom && custom.trim() ? custom.trim() : COMMON_BLOCKS[idx];
+  opLine(player, blk);
+}
+
+async function upForm(player) {
+  const form = new ModalFormData()
+    .title("§lUp / Subir")
+    .slider("Bloques a subir", 1, 64, 1, 1);
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  opUp(player, res.formValues[0]);
+}
+
 async function stackForm(player) {
   const form = new ModalFormData()
     .title("§lStack / Multiplicar")
@@ -1965,6 +2175,9 @@ const HELP_TEXT = [
   "§b/scriptevent we:replace <de> <a>",
   "§b/scriptevent we:sphere <bloque> <radio> [h]",
   "§b/scriptevent we:hsphere <bloque> <radio>",
+  "§b/scriptevent we:cone <bloque> <radio> [altura] [h]",
+  "§b/scriptevent we:line <bloque> §7(entre POS1 y POS2)",
+  "§b/scriptevent we:hollow §7(ahueca la selección)",
   "§a/scriptevent we:naturalize",
   "§a/scriptevent we:smooth [iteraciones]",
   "§a/scriptevent we:drain [radio]",
@@ -2067,6 +2280,22 @@ function executeCommand(player, raw) {
         opPyramid(player, args[0], parseInt(args[1]) || 5);
         break;
       }
+      case "cone": {
+        if (!args[0]) return msg(player, "§cUso: we:cone <bloque> <radio> [altura] [h]");
+        const radius = parseInt(args[1]) || 5;
+        const height = parseInt(args[2]) || 8;
+        const hollow = (args[3] || "").toLowerCase().startsWith("h");
+        opCone(player, args[0], radius, height, hollow);
+        break;
+      }
+      case "hollow":
+        opHollow(player);
+        break;
+      case "line":
+      case "linea":
+        if (!args[0]) return msg(player, "§cUso: we:line <bloque> (usa POS1 y POS2)");
+        opLine(player, args[0]);
+        break;
       case "naturalize":
       case "nat":
         opNaturalize(player);
@@ -2287,11 +2516,12 @@ system.runInterval(() => {
     const id = player.id;
     if (has && !activated.has(id)) {
       activated.add(id);
-      console.warn("[WorldEdit] addon activado correctamente para " + player.name);
-      msg(player, "§a§l[WorldEdit] §r§aAddon activado correctamente!");
-      msg(player, "§7Usa la §ebrújula§7 (item de menú) o §eagáchate + varita§7 para abrir el menú.");
-      msg(player, "§7Comandos: §e/scriptevent we:menu§7 , §e/scriptevent we:set stone§7 …");
-      msg(player, "§7Te di el §ekit§7. Varita=§ehacha§7, Menú=§ebrújula§7.");
+      console.warn("[WorldEdit] Activado para " + player.name + ".");
+      msg(player, "§b§l========== §r§b§lWorldEdit §6\u26bd§r §b§l==========");
+      msg(player, "§a\u2714 Activado correctamente.");
+      msg(player, "§7Abre el menú con la §ebrújula§7, o §eagáchate + usa la varita§7.");
+      msg(player, "§7También: §e/scriptevent we:menu§7.");
+      msg(player, "§7Te entregué la §evarita §7(hacha) y el §emenú §7(brújula). §8Los bloques los pones tú.");
       system.run(() => giveKit(player));
     } else if (!has && activated.has(id)) {
       activated.delete(id);
@@ -2303,7 +2533,10 @@ system.runInterval(() => {
 
 /* Mensaje de carga */
 system.run(() => {
-  console.warn("[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.4) cargado. Activa con: /tag @p worldedit");
+  console.warn(
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.5) cargado. " +
+      "Actívalo en el mundo con: /tag @p worldedit"
+  );
 });
 
 world.afterEvents.playerSpawn.subscribe((ev) => {

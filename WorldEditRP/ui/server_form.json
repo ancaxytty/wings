@@ -175,7 +175,7 @@
 
   "weui_button": {
     "type": "panel",
-    "size": ["100%", 25],
+    "size": ["100%", 30],
     "controls": [
       {
         "padding": {
@@ -199,7 +199,7 @@
                   {
                     "icon": {
                       "type": "image",
-                      "size": [16, 16],
+                      "size": [24, 24],
                       "layer": 12,
                       "anchor_from": "left_middle",
                       "anchor_to": "left_middle",
