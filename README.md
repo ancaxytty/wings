@@ -74,11 +74,34 @@ hacia donde apuntes. Incluye **25 países**:
 
 ---
 
+## Aspecto del menú (Resource Pack de UI)
+
+La edición incluye un **paquete de recursos** que reskina los menús de WorldEdit con un
+panel personalizado (fondo oscuro con borde dorado/cian y botón de cerrar con textura
+propia), usando un *server form* JSON-UI.
+
+- **Solo afecta a los menús de WorldEdit** (los que llevan el icono ⚽: el menú principal y
+  el de FIFA). Cualquier otro formulario del juego o de otros addons se ve **igual que
+  siempre** — el reskin es condicional por título.
+- Los botones conservan el comportamiento nativo (lista con scroll fiable para cualquier
+  cantidad), envueltos en el marco personalizado.
+- **Es opcional y reversible:** si en tu versión de Minecraft algo se ve raro, simplemente
+  **no actives el paquete de recursos** (o quítalo) y el addon sigue funcionando al 100 %
+  con el menú estándar.
+- ⚠️ El JSON-UI depende de la versión del juego y Mojang lo está migrando a *Ore UI*, así
+  que con el tiempo podría necesitar ajustes. Por eso el reskin va en un RP separado y
+  desactivable. Texturas en `WorldEditRP/textures/custom_ui/` (regenerables con
+  `python3 build_tools/make_ui_textures.py`).
+
+---
+
 ## Instalación
 
 1. Descarga **`worldedit_mcpe_fifa_wc2026.mcaddon`** (edición FIFA, recomendada).
 2. Ábrelo con Minecraft (o impórtalo desde *Configuración → Almacenamiento → Importar*).
-3. Crea/edita un mundo y activa el paquete de comportamiento **WorldEdit MCPE**.
+3. Crea/edita un mundo y activa **los dos paquetes**:
+   - **Comportamiento:** `WorldEdit … FIFA World Cup 2026 Edition` (obligatorio).
+   - **Recursos:** `WorldEdit … UI Pack` (opcional — da el aspecto personalizado al menú).
 4. Activa los **Experimentos** del mundo (la **API de Beta/GameTest**), porque el addon
    usa scripts.
 
@@ -207,15 +230,23 @@ dónde miras**). Los bloques aceptan con o sin `minecraft:` (ej: `stone`).
 
 ```
 WorldEditBP/
-├── manifest.json              # Manifiesto (FIFA WC 2026 Edition, v0.4)
+├── manifest.json              # Manifiesto BP (FIFA WC 2026 Edition, v0.4)
 ├── pack_icon.png              # Ícono del paquete
 └── scripts/
     └── main.js                # Toda la lógica del addon
+WorldEditRP/                   # Resource Pack: aspecto personalizado del menú
+├── manifest.json              # Manifiesto RP
+├── pack_icon.png
+├── ui/
+│   ├── _ui_defs.json          # Registra el server form personalizado
+│   └── we_server_form.json    # Override condicional de long_form
+└── textures/custom_ui/        # Texturas del menú (panel, botón cerrar)
 build_tools/
 ├── make_icon.py               # Genera el pack_icon.png
-└── build_mcaddon.py           # Empaqueta el .mcaddon
-worldedit_mcpe_fifa_wc2026.mcaddon  # ⚽ Edición FIFA WC 2026 (recomendada)
-worldedit_mcpe_v0.3.mcaddon         # Edición estándar (sin banderas)
+├── make_ui_textures.py        # Genera las texturas del menú (RP)
+└── build_mcaddon.py           # Empaqueta el .mcaddon (BP + RP)
+worldedit_mcpe_fifa_wc2026.mcaddon  # ⚽ Edición FIFA WC 2026 (BP + RP)
+worldedit_mcpe_v0.3.mcaddon         # Edición estándar (solo BP)
 ```
 
 ### Reconstruir el `.mcaddon`

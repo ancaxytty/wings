@@ -1,0 +1,116 @@
+{
+  "namespace": "server_form",
+
+  "long_form": {
+    "type": "panel",
+    "size": ["100%", "100%"],
+    "controls": [
+      {
+        "default_long_form@common_dialogs.main_panel_no_buttons": {
+          "$title_panel": "common_dialogs.standard_title_label",
+          "$title_size": ["100% - 14px", 10],
+          "size": [300, 175],
+          "$text_name": "#title_text",
+          "$title_text_binding_type": "none",
+          "$child_control": "server_form.long_form_panel",
+          "layer": 2,
+          "bindings": [
+            { "binding_name": "#title_text" },
+            {
+              "binding_type": "view",
+              "source_property_name": "((#title_text - '\u26bd') = #title_text)",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      },
+      {
+        "we_long_form@server_form.we_long_form": {
+          "layer": 2,
+          "bindings": [
+            { "binding_name": "#title_text" },
+            {
+              "binding_type": "view",
+              "source_property_name": "(not ((#title_text - '\u26bd') = #title_text))",
+              "target_property_name": "#visible"
+            }
+          ]
+        }
+      }
+    ]
+  },
+
+  "we_long_form": {
+    "type": "panel",
+    "size": [306, 184],
+    "controls": [
+      { "we_bg@server_form.we_bg": {} },
+      {
+        "we_inner": {
+          "type": "panel",
+          "size": ["100% - 22px", "100% - 20px"],
+          "offset": [0, 2],
+          "controls": [
+            {
+              "we_content@server_form.long_form_panel": {
+                "size": ["100%", "100%"]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "we_close@server_form.we_close_button": {
+          "offset": [-7, 7]
+        }
+      }
+    ]
+  },
+
+  "we_bg": {
+    "type": "image",
+    "texture": "textures/custom_ui/custom_bg",
+    "size": ["100%", "100%"],
+    "nineslice_size": 8,
+    "layer": 0
+  },
+
+  "we_close_button": {
+    "type": "button",
+    "default_control": "default",
+    "hover_control": "hover",
+    "anchor_from": "top_right",
+    "anchor_to": "top_right",
+    "size": [13, 13],
+    "layer": 64,
+    "sound_name": "random.click",
+    "controls": [
+      {
+        "default": {
+          "type": "image",
+          "size": ["100%", "100%"],
+          "texture": "textures/custom_ui/close_button"
+        }
+      },
+      {
+        "hover": {
+          "type": "image",
+          "size": ["100%", "100%"],
+          "texture": "textures/custom_ui/close_button_hover"
+        }
+      }
+    ],
+    "button_mappings": [
+      {
+        "from_button_id": "button.menu_select",
+        "to_button_id": "button.menu_exit",
+        "mapping_type": "pressed"
+      },
+      {
+        "from_button_id": "button.menu_ok",
+        "to_button_id": "button.menu_exit",
+        "mapping_type": "focused"
+      }
+    ]
+  }
+}
