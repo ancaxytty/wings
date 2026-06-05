@@ -21,7 +21,16 @@ PACK_DIRS = [
     os.path.join(ROOT, "WorldEditBP"),
     os.path.join(ROOT, "WorldEditRP"),
 ]
+# Nombre canónico (el que referencia el README) + un nombre con la versión del
+# manifest (p. ej. worldedit_mcpe_v0.4.mcaddon) para reconocer cada build nuevo.
 OUTPUT = os.path.join(ROOT, "worldedit_mcpe_fifa_wc2026.mcaddon")
+
+
+def version_output_name():
+    """worldedit_mcpe_v<major>.<minor>.mcaddon a partir del manifest del BP."""
+    with open(os.path.join(ROOT, "WorldEditBP", "manifest.json"), encoding="utf-8") as f:
+        ver = json.load(f)["header"]["version"]
+    return os.path.join(ROOT, f"worldedit_mcpe_v{ver[0]}.{ver[1]}.mcaddon")
 
 
 def validate_manifest(pack_dir):
@@ -63,6 +72,12 @@ def build():
 
     size = os.path.getsize(OUTPUT)
     print(f"\nBuilt {OUTPUT} ({count} files, {size} bytes)")
+
+    # Copia con nombre versionado para identificar el build nuevo.
+    versioned = version_output_name()
+    with open(OUTPUT, "rb") as src, open(versioned, "wb") as dst:
+        dst.write(src.read())
+    print(f"Built {versioned} (mismo contenido, nombre versionado)")
 
 
 if __name__ == "__main__":
