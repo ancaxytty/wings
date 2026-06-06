@@ -2,22 +2,22 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search MCPE §7RP",
-    "description": "§eGUI oscura pro, 12 cabezas-bloque, hologramas y partículas.\n§7Resource Pack v3",
+    "description": "§eGUI pro estilo CubeCraft, 12 cabezas-bloque, hologramas y partículas.\n§7Resource Pack v4",
     "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
-    "version": [3, 0, 0],
+    "version": [4, 0, 0],
     "min_engine_version": [1, 21, 0]
   },
   "modules": [
     {
       "type": "resources",
       "uuid": "d18e488f-c778-41e2-9e7d-13124a9b3387",
-      "version": [3, 0, 0]
+      "version": [4, 0, 0]
     }
   ],
   "dependencies": [
     {
       "uuid": "af9a6c3e-6c87-49bf-bad6-c258612ed211",
-      "version": [3, 0, 0]
+      "version": [4, 0, 0]
     }
   ]
 }

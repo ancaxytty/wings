@@ -2,23 +2,20 @@ import { world, system, BlockPermutation, MolangVariableMap } from "@minecraft/s
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * The Search MCPE v3
- * - 12 CABEZAS como BLOQUES custom (wings:head, estado wings:skin 0..11, tipo "skull" 8px).
- * - Varita (wings:wand) para elegir y COLOCAR el bloque-cabeza.
- * - Se ENCUENTRA al ROMPER el bloque -> explosión de partículas custom del color de la cabeza.
- * - Holograma de 3 líneas (entidad invisible) encima de cada cabeza.
- * - Llama de antorcha custom sobre las cabezas NO encontradas.
- * - GUI oscura profesional, título "The Search MCPE".
+ * The Search MCPE v4
+ * - 12 CABEZAS como BLOQUES custom (wings:head, estado wings:skin 0..11).
+ * - SIN varita: el jugador COLOCA el bloque él mismo; toma la cabeza seleccionada.
+ * - Se ENCUENTRA al INTERACTUAR (como abrir un cofre) -> recompensa + partículas + TITLE/SUBTITLE.
+ * - Holograma de 3 líneas encima de cada cabeza + llama de antorcha si no está hallada.
+ * - GUI oscura profesional (estilo CubeCraft). Menú con la brújula.
  */
 
 const DB_KEY = "wings:searches";
 const HEAD_BLOCK = "wings:head";
 const HOLO_ID = "wings:hologram";
-const WAND_ID = "wings:wand";
 const TITLE = "The Search MCPE";
 const DIM_IDS = ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"];
 
-// index = wings:skin. Debe coincidir con texturas h0..h11. rgb = color de partícula (0..1).
 const HEAD_CATALOG = [
   { name: "Halloween", color: "6", rgb: [0.90, 0.52, 0.12] },
   { name: "Navidad", color: "a", rgb: [0.29, 0.66, 0.34] },
@@ -95,6 +92,24 @@ function setSkin(player, skin) {
   player.setDynamicProperty("wings:skin", clampSkin(skin));
 }
 
+// ----------------------------- Title / Subtitle / ActionBar -----------------------------
+
+function showTitle(player, title, subtitle) {
+  try {
+    player.onScreenDisplay.setTitle(title, {
+      fadeInDuration: 5,
+      stayDuration: 45,
+      fadeOutDuration: 12,
+      subtitle: subtitle || ""
+    });
+  } catch (e) {}
+}
+function actionBar(player, text) {
+  try {
+    player.onScreenDisplay.setActionBar(text);
+  } catch (e) {}
+}
+
 // ----------------------------- Hologramas -----------------------------
 
 function holoLines(search, headData, index, total) {
@@ -102,11 +117,10 @@ function holoLines(search, headData, index, total) {
   const c = colorCode(cat.color);
   return [
     `§8§l✦ §r§${c}§l${cat.name}§r §8§l✦`,
-    `§7▶ §f¡Rómpeme! §7◀`,
+    `§7▶ §f¡Interactúa! §7◀`,
     `§8${search.name} · §7${index + 1}/${total}`
   ];
 }
-
 function center(h) {
   return { x: h.x + 0.5, y: h.y, z: h.z + 0.5 };
 }
@@ -126,7 +140,7 @@ function spawnHolos(dimension, search, index) {
   }
 }
 
-function placeHeadBlock(dimension, h) {
+function applySkin(dimension, h) {
   try {
     const block = dimension.getBlock({ x: h.x, y: h.y, z: h.z });
     if (!block) return false;
@@ -158,7 +172,6 @@ function getHolos(searchId) {
   }
   return out;
 }
-
 function removeHolos(searchId, index) {
   for (const e of getHolos(searchId)) {
     if (index === null || e.getDynamicProperty("wings:index") === index) {
@@ -168,7 +181,6 @@ function removeHolos(searchId, index) {
     }
   }
 }
-
 function clearHeadBlock(h) {
   try {
     const dim = world.getDimension(h.dim || "minecraft:overworld");
@@ -189,13 +201,12 @@ function respawnSearch(search) {
     } catch (e) {
       d = world.getDimension("minecraft:overworld");
     }
-    placeHeadBlock(d, h);
+    applySkin(d, h);
     spawnHolos(d, search, i);
     count++;
   }
   return count;
 }
-
 function reloadAll() {
   const db = loadDB();
   removeHolos(null, null);
@@ -214,7 +225,6 @@ function torchOnUnfoundHeads() {
       const h = s.heads[i];
       if (h.found) continue;
       const c = center(h);
-      // sólo si hay un jugador cerca en la misma dimensión (evita cargar chunks lejanos)
       let near = false;
       for (const p of players) {
         if (p.dimension.id !== (h.dim || "minecraft:overworld")) continue;
@@ -251,7 +261,6 @@ function foundExplosion(dimension, loc, skin) {
     dimension.spawnParticle("minecraft:totem_particle", { x: loc.x, y: loc.y + 0.6, z: loc.z });
   } catch (e) {}
 }
-
 function selectBurst(player, skin) {
   const loc = player.location;
   try {
@@ -262,93 +271,84 @@ function selectBurst(player, skin) {
   } catch (e) {}
 }
 
-// ----------------------------- Hallazgo (romper bloque) -----------------------------
+// ----------------------------- Hallazgo (interactuar como un cofre) -----------------------------
 
-function handleFoundAt(player, loc, dimId) {
+function findHeadAt(loc, dimId) {
   const db = loadDB();
   for (const s of searchList(db)) {
     for (let i = 0; i < s.heads.length; i++) {
       const h = s.heads[i];
       if (h.found) continue;
       if (h.x === loc.x && h.y === loc.y && h.z === loc.z && (h.dim || "minecraft:overworld") === dimId) {
-        h.found = true;
-        h.foundBy = player.name;
-        saveDB(db);
-        removeHolos(s.id, i);
-        const c = center(h);
-        foundExplosion(player.dimension, { x: c.x, y: h.y + 0.3, z: c.z }, h.skin);
-        try {
-          player.playSound("random.levelup", { volume: 1, pitch: 1.2 });
-        } catch (e) {}
-        const cat = HEAD_CATALOG[clampSkin(h.skin)];
-        const foundCount = s.heads.filter((x) => x.found).length;
-        const total = s.heads.length;
-        player.sendMessage(
-          `§a¡Encontraste §${colorCode(cat.color)}${cat.name}§a de §${colorCode(s.color)}${s.name}§a! §7(${foundCount}/${total})`
-        );
-        if (s.reward && String(s.reward).trim().length > 0) {
-          try {
-            player.runCommand(String(s.reward).trim());
-          } catch (e) {}
-        }
-        if (foundCount >= total && total > 0) {
-          world.sendMessage(`§6§l[${TITLE}] §r§e${player.name} §acompletó §${colorCode(s.color)}${s.name}§a!`);
-        }
-        return true;
+        return { db, s, i, h };
       }
     }
   }
-  return false;
+  return null;
 }
 
-// ----------------------------- Colocación con varita -----------------------------
+function handleFound(player, loc, dimId, removeBlock) {
+  const match = findHeadAt(loc, dimId);
+  if (!match) return false;
+  const { db, s, i, h } = match;
+  h.found = true;
+  h.foundBy = player.name;
+  saveDB(db);
+  removeHolos(s.id, i);
+  if (removeBlock) clearHeadBlock(h);
 
-const FACE_OFFSET = {
-  Up: [0, 1, 0],
-  Down: [0, -1, 0],
-  North: [0, 0, -1],
-  South: [0, 0, 1],
-  East: [1, 0, 0],
-  West: [-1, 0, 0]
-};
+  const c = center(h);
+  foundExplosion(player.dimension, { x: c.x, y: h.y + 0.3, z: c.z }, h.skin);
+  try {
+    player.playSound("random.levelup", { volume: 1, pitch: 1.2 });
+    player.playSound("random.chestopen", { pitch: 1.1 });
+  } catch (e) {}
 
-function placeWithWand(player, block, face) {
+  const cat = HEAD_CATALOG[clampSkin(h.skin)];
+  const foundCount = s.heads.filter((x) => x.found).length;
+  const total = s.heads.length;
+  showTitle(
+    player,
+    `§a§l¡ENCONTRADA!`,
+    `§${colorCode(cat.color)}${cat.name} §7· §${colorCode(s.color)}${s.name} §8(${foundCount}/${total})`
+  );
+  player.sendMessage(`§a¡Encontraste §${colorCode(cat.color)}${cat.name}§a! §7(${foundCount}/${total})`);
+
+  if (s.reward && String(s.reward).trim().length > 0) {
+    try {
+      player.runCommand(String(s.reward).trim());
+    } catch (e) {}
+  }
+  if (foundCount >= total && total > 0) {
+    showTitle(player, `§6§l¡COMPLETADA!`, `§e${s.name} §7· ¡todas las cabezas!`);
+    world.sendMessage(`§6§l[${TITLE}] §r§e${player.name} §acompletó §${colorCode(s.color)}${s.name}§a!`);
+  }
+  return true;
+}
+
+// ----------------------------- Colocar el bloque (tú mismo) -----------------------------
+
+function onPlaceHead(player, block) {
+  const skin = getSkin(player);
+  const loc = block.location;
+  const h = { x: loc.x, y: loc.y, z: loc.z, dim: player.dimension.id, found: false, skin: skin };
+  applySkin(player.dimension, h);
+
   const id = getActiveSearch(player);
   const db = loadDB();
+  const cat = HEAD_CATALOG[skin];
   if (!id || !db[id]) {
-    player.sendMessage("§c[Search] No hay búsqueda activa. §7Agáchate + Varita → Crear o marca una activa.");
+    actionBar(player, `§e[Search] §${colorCode(cat.color)}${cat.name}§7 colocada (sin búsqueda activa). §8Brújula → Crear/activar.`);
     return;
   }
   const s = db[id];
-  const off = FACE_OFFSET[face] || [0, 1, 0];
-  const base = block.location;
-  const pos = { x: base.x + off[0], y: base.y + off[1], z: base.z + off[2] };
-
-  let target;
-  try {
-    target = player.dimension.getBlock(pos);
-  } catch (e) {}
-  if (!target) {
-    player.sendMessage("§c[Search] No puedo colocar la cabeza ahí.");
-    return;
-  }
-  if (!target.isAir && target.typeId !== "minecraft:water") {
-    player.sendMessage("§e[Search] Apunta a una cara con aire libre al lado.");
-    return;
-  }
-
-  const skin = getSkin(player);
-  const h = { x: pos.x, y: pos.y, z: pos.z, dim: player.dimension.id, found: false, skin: skin };
-  if (!placeHeadBlock(player.dimension, h)) {
-    player.sendMessage("§c[Search] No se pudo colocar el bloque.");
-    return;
-  }
   s.heads.push(h);
   saveDB(db);
   spawnHolos(player.dimension, s, s.heads.length - 1);
-  const cat = HEAD_CATALOG[skin];
-  player.playSound("random.orb", { pitch: 1.3 });
-  player.sendMessage(`§a[Search] §${colorCode(cat.color)}${cat.name}§a colocada en §f${s.name}§a §7(total ${s.heads.length}).`);
+  try {
+    player.playSound("random.orb", { pitch: 1.3 });
+  } catch (e) {}
+  actionBar(player, `§a[Search] §${colorCode(cat.color)}${cat.name}§a añadida a §f${s.name}§a §7(${s.heads.length})`);
 }
 
 // ----------------------------- GUI -----------------------------
@@ -373,7 +373,7 @@ function openMain(player) {
     .body(
       `§8› §7Búsquedas: §f${list.length}  §8| §7Cabezas: §f${totalHeads}  §8| §aHalladas: §f${totalFound}\n` +
         `§8› §7Activa: §f${activeLabel(player)}\n` +
-        `§8› §7Varita: §${colorCode(cat.color)}${cat.name}`
+        `§8› §7Tu cabeza: §${colorCode(cat.color)}${cat.name}`
     )
     .button("§l§aCrear\n§r§7nueva búsqueda", "textures/custom_ui/icon_create")
     .button(`§l§bRevisar\n§r§7${list.length} búsqueda(s)`, "textures/custom_ui/icon_review")
@@ -403,7 +403,7 @@ function openHeadPicker(player) {
   const cur = getSkin(player);
   const form = new ActionFormData()
     .title("Galería de Cabezas")
-    .body(`§7Búsqueda activa: §f${activeLabel(player)}\n§7Actual: §f${HEAD_CATALOG[cur].name}\n§7Elige la cabeza para tu varita:`);
+    .body(`§7Búsqueda activa: §f${activeLabel(player)}\n§7Actual: §f${HEAD_CATALOG[cur].name}\n§7Elige una cabeza (te daré el bloque):`);
   for (let i = 0; i < HEAD_CATALOG.length; i++) {
     const cat = HEAD_CATALOG[i];
     const mark = i === cur ? " §a✔" : "";
@@ -419,7 +419,11 @@ function openHeadPicker(player) {
     setSkin(player, res.selection);
     const cat = HEAD_CATALOG[res.selection];
     selectBurst(player, res.selection);
-    player.sendMessage(`§a[Search] Cabeza: §${colorCode(cat.color)}${cat.name}§a. Usa la varita sobre un bloque para colocarla.`);
+    try {
+      player.runCommand("give @s wings:head 1");
+    } catch (e) {}
+    actionBar(player, `§a[Search] Cabeza: §${colorCode(cat.color)}${cat.name}§a — colócala donde quieras.`);
+    player.sendMessage(`§a[Search] Seleccionaste §${colorCode(cat.color)}${cat.name}§a. Te di 1 bloque; el que coloques tomará esta cabeza.`);
   });
 }
 
@@ -429,20 +433,18 @@ function openHelp(player) {
     .body(
       `§e§l${TITLE}§r\n\n` +
         "§6§lCómo se juega§r\n" +
-        "§7• Consigue la §fVarita de Búsqueda§7.\n" +
-        "§7• §fAgáchate + Varita§7: abre este menú.\n" +
-        "§7• §fVarita en el aire§7: galería de 12 cabezas.\n" +
-        "§7• §fVarita sobre un bloque§7: coloca la cabeza\n  seleccionada (bloque) en la búsqueda activa.\n" +
+        "§7• Abre el menú con una §fbrújula§7.\n" +
+        "§7• En §fCabezas§7 eliges una de las 12 (recibes el bloque).\n" +
+        "§7• §fColoca tú mismo§7 el bloque-cabeza donde quieras;\n  tomará la cabeza seleccionada y se añade a la activa.\n" +
         "§7• Las cabezas sin hallar tienen una §6llama§7 encima.\n" +
-        "§7• §fROMPE§7 la cabeza para encontrarla → §dpartículas§7.\n" +
-        "§7• La §fbrújula§7 también abre el menú.\n"
+        "§7• §fINTERACTÚA§7 (como abrir un cofre) para encontrarla:\n  §dpartículas§7, §atítulo§7 y recompensa.\n"
     )
     .button1("§aRecargar todo")
     .button2("Cerrar");
   form.show(player).then((res) => {
     if (!res.canceled && res.selection === 0) {
       const n = reloadAll();
-      player.sendMessage(`§a[Search] Recargado. Cabezas activas: §f${n}`);
+      actionBar(player, `§a[Search] Recargado. Cabezas activas: §f${n}`);
     }
   });
 }
@@ -453,7 +455,7 @@ function openCreate(player) {
     .textField("Nombre de la búsqueda", "Búsqueda de Halloween", "Búsqueda de Halloween")
     .textField("Color del nombre (0-9, a-f)", "e", "e")
     .textField("Comando de recompensa (usa @s, opcional)", "give @s diamond 1")
-    .toggle("Marcar como búsqueda activa para la varita", true);
+    .toggle("Marcar como búsqueda activa", true);
   form.show(player).then((res) => {
     if (res.canceled) return;
     const [name, color, reward, makeActive] = res.formValues;
@@ -472,7 +474,7 @@ function openCreate(player) {
     if (makeActive) setActiveSearch(player, id);
     player.sendMessage(
       `§a[Search] Búsqueda §f${s.name}§a creada${makeActive ? " §7(activa)" : ""}.\n` +
-        "§7Elige una cabeza y colócala con la varita sobre un bloque."
+        "§7Elige una cabeza en el menú y colócala por el mundo."
     );
     openManage(player, id);
   });
@@ -514,9 +516,9 @@ function openManage(player, searchId) {
     .body(
       `§${colorCode(s.color)}§l${s.name}§r\n` +
         `§7Cabezas: §f${s.heads.length}§7  Halladas: §a${found}\n` +
-        `§7Activa para varita: ${isActive ? "§aSÍ" : "§cNO"}\n`
+        `§7Activa: ${isActive ? "§aSÍ" : "§cNO"}\n`
     )
-    .button(isActive ? "§a● Búsqueda activa" : "§eMarcar como activa", "textures/custom_ui/icon_wand")
+    .button(isActive ? "§a● Búsqueda activa" : "§eMarcar como activa", "textures/custom_ui/icon_place")
     .button("§aAñadir cabeza aquí (tu pos.)", "textures/custom_ui/icon_place")
     .button("§bInfo de la búsqueda", "textures/custom_ui/icon_help")
     .button("§eEditar (nombre/color/recompensa)", "textures/custom_ui/icon_review")
@@ -530,7 +532,7 @@ function openManage(player, searchId) {
     switch (res.selection) {
       case 0:
         setActiveSearch(player, searchId);
-        player.sendMessage(`§a[Search] §f${s.name}§a es ahora la búsqueda activa.`);
+        actionBar(player, `§a[Search] §f${s.name}§a es ahora la búsqueda activa.`);
         openManage(player, searchId);
         break;
       case 1:
@@ -544,7 +546,7 @@ function openManage(player, searchId) {
         break;
       case 4: {
         const n = respawnSearch(s);
-        player.sendMessage(`§a[Search] Reaparecidas §f${n}§a cabezas de §f${s.name}§a.`);
+        actionBar(player, `§a[Search] Reaparecidas §f${n}§a cabezas.`);
         openManage(player, searchId);
         break;
       }
@@ -575,7 +577,7 @@ function addHeadHere(player, searchId) {
     found: false,
     skin: skin
   };
-  placeHeadBlock(player.dimension, h);
+  applySkin(player.dimension, h);
   s.heads.push(h);
   saveDB(db);
   spawnHolos(player.dimension, s, s.heads.length - 1);
@@ -626,7 +628,7 @@ function openEdit(player, searchId) {
     s2.reward = reward ? String(reward) : "";
     saveDB(db2);
     if (refresh) respawnSearch(s2);
-    player.sendMessage(`§a[Search] Búsqueda actualizada: §f${s2.name}`);
+    actionBar(player, `§a[Search] Búsqueda actualizada: §f${s2.name}`);
     openManage(player, searchId);
   });
 }
@@ -681,7 +683,7 @@ function openTeleport(player, searchId) {
     try {
       const dim = world.getDimension(h.dim || "minecraft:overworld");
       player.teleport({ x: h.x + 0.5, y: h.y + 1, z: h.z + 0.5 }, { dimension: dim });
-      player.sendMessage(`§a[Search] Teletransportado a la cabeza #${res.selection + 1}.`);
+      actionBar(player, `§a[Search] Teletransportado a la cabeza #${res.selection + 1}.`);
     } catch (e) {
       player.sendMessage("§c[Search] No se pudo teletransportar.");
     }
@@ -690,42 +692,48 @@ function openTeleport(player, searchId) {
 
 // ----------------------------- Eventos -----------------------------
 
-const blockUseTick = {};
-
-world.afterEvents.playerInteractWithBlock.subscribe((event) => {
-  const { player, itemStack, block, blockFace } = event;
-  if (!itemStack || itemStack.typeId !== WAND_ID) return;
-  blockUseTick[player.name] = system.currentTick;
-  if (player.isSneaking) {
-    system.run(() => openMain(player));
-  } else {
-    placeWithWand(player, block, blockFace);
+// Abrir menú con la brújula
+world.afterEvents.itemUse.subscribe((event) => {
+  const { source, itemStack } = event;
+  if (itemStack && itemStack.typeId === "minecraft:compass") {
+    system.run(() => openMain(source));
   }
 });
 
-world.afterEvents.itemUse.subscribe((event) => {
-  const { source, itemStack } = event;
-  if (!itemStack) return;
-  if (itemStack.typeId === "minecraft:compass") {
-    system.run(() => openMain(source));
-    return;
-  }
-  if (itemStack.typeId === WAND_ID) {
-    const t = system.currentTick;
+// Colocar el bloque-cabeza uno mismo
+world.afterEvents.playerPlaceBlock.subscribe((event) => {
+  const { player, block } = event;
+  if (block && block.typeId === HEAD_BLOCK) {
     system.run(() => {
-      if (blockUseTick[source.name] === t) return; // fue clic sobre bloque
-      if (source.isSneaking) openMain(source);
-      else openHeadPicker(source);
+      try {
+        onPlaceHead(player, block);
+      } catch (e) {}
     });
   }
 });
 
-// Encontrar al ROMPER el bloque-cabeza
+// Encontrar al INTERACTUAR (como abrir un cofre)
+world.afterEvents.playerInteractWithBlock.subscribe((event) => {
+  const { player, block, itemStack } = event;
+  if (!block || block.typeId !== HEAD_BLOCK) return;
+  // si lleva el bloque-cabeza en la mano está construyendo, no buscando
+  if (itemStack && itemStack.typeId === HEAD_BLOCK) return;
+  if (player.isSneaking) return;
+  handleFound(player, block.location, player.dimension.id, true);
+});
+
+// Romper la cabeza = limpieza (sin recompensa)
 world.afterEvents.playerBreakBlock.subscribe((event) => {
-  const { player, block, brokenBlockPermutation } = event;
+  const { player, brokenBlockPermutation, block } = event;
   try {
     if (brokenBlockPermutation && brokenBlockPermutation.type.id === HEAD_BLOCK) {
-      handleFoundAt(player, block.location, player.dimension.id);
+      const match = findHeadAt(block.location, player.dimension.id);
+      if (match) {
+        match.h.found = true;
+        match.h.foundBy = player.name + " (roto)";
+        saveDB(match.db);
+        removeHolos(match.s.id, match.i);
+      }
     }
   } catch (e) {}
 });
@@ -745,4 +753,4 @@ system.runInterval(() => {
   } catch (e) {}
 }, 10);
 
-console.warn("[The Search MCPE] v3 cargado con " + HEAD_CATALOG.length + " cabezas-bloque.");
+console.warn("[The Search MCPE] v4 cargado con " + HEAD_CATALOG.length + " cabezas-bloque.");

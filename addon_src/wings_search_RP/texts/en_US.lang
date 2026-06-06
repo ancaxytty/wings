@@ -1,7 +1,4 @@
-item.wings:wand=Search Wand
-entity.wings:head.name=Custom Head
 entity.wings:hologram.name=Hologram
-pack.name=Wings Search RP
-pack.description=The Search MCPE - custom heads, holograms and particles.
-
 tile.wings:head.name=Custom Search Head
+pack.name=The Search MCPE RP
+pack.description=The Search MCPE - custom head blocks, holograms and particles.
