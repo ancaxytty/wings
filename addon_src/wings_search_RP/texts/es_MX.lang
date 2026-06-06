@@ -3,3 +3,5 @@ entity.wings:head.name=Cabeza Custom
 entity.wings:hologram.name=Holograma
 pack.name=Wings Search RP
 pack.description=The Search MCPE - cabezas custom, hologramas y partículas.
+
+tile.wings:head.name=Cabeza de Búsqueda
