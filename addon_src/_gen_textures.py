@@ -73,11 +73,47 @@ def make_close(hover=False):
     return w, h, img
 
 def make_bg(hover=False):
+    # Panel oscuro profesional: degradado diagonal + doble borde + esquinas en L + brillo superior
     w = h = 64
-    base = (20, 22, 30) if not hover else (40, 46, 66)
-    border = (70, 80, 110) if not hover else (120, 150, 210)
-    glow = (90, 110, 160) if not hover else (150, 190, 255)
-    return w, h, fill_rounded_panel(w, h, base, border, glow=glow, radius=8, alpha=238 if not hover else 250)
+    if not hover:
+        top = (32, 36, 52); bot = (12, 14, 22)
+        bd_out = (96, 112, 158); bd_in = (52, 60, 88); accent = (120, 150, 220); alpha = 244
+    else:
+        top = (58, 70, 104); bot = (28, 34, 54)
+        bd_out = (150, 190, 255); bd_in = (86, 110, 165); accent = (180, 210, 255); alpha = 255
+    radius = 9
+    img = blank(w, h)
+    for y in range(h):
+        for x in range(w):
+            cx = min(x, w - 1 - x); cy = min(y, h - 1 - y)
+            if cx < radius and cy < radius:
+                dx = radius - cx; dy = radius - cy
+                if dx * dx + dy * dy > radius * radius:
+                    continue
+            edge = min(cx, cy)
+            if edge == 0:
+                img[y][x] = [bd_out[0], bd_out[1], bd_out[2], 255]
+            elif edge == 1:
+                img[y][x] = [bd_in[0], bd_in[1], bd_in[2], 255]
+            else:
+                # degradado diagonal
+                t = (x + y) / (2.0 * (w - 1))
+                r = int(top[0] * (1 - t) + bot[0] * t)
+                g = int(top[1] * (1 - t) + bot[1] * t)
+                b = int(top[2] * (1 - t) + bot[2] * t)
+                img[y][x] = [r, g, b, alpha]
+    # brillo superior
+    for x in range(4, w - 4):
+        img[3][x] = [accent[0], accent[1], accent[2], 150]
+        img[4][x] = [accent[0], accent[1], accent[2], 70]
+    # esquinas en L (acento)
+    L = 9
+    for i in range(3, L):
+        for (ax, ay) in ((i, 3), (3, i), (w - 1 - i, 3), (3, h - 1 - i),
+                          (i, h - 4), (w - 4, i), (w - 1 - i, h - 4), (w - 4, h - 1 - i)):
+            if 0 <= ax < w and 0 <= ay < h:
+                img[ay][ax] = [accent[0], accent[1], accent[2], 230]
+    return w, h, img
 
 def make_icon(kind):
     w = h = 48
@@ -209,16 +245,50 @@ def make_holo():
     return 8, 8, blank(8, 8, (0, 0, 0, 0))
 
 def make_pack_icon(rp=True):
+    # Tema "búsqueda": panel oscuro pro + cabeza calabaza + lupa + chispas
     w = h = 128
-    base = (18, 20, 28)
-    accent = (120, 160, 240) if rp else (230, 180, 80)
-    img = fill_rounded_panel(w, h, base, accent, glow=accent, radius=14, alpha=255)
-    draw_disc(img, 64, 58, 30, (228, 132, 32, 255))   # pumpkin head
-    draw_rect(img, 52, 50, 60, 58, (24, 20, 26, 255))
-    draw_rect(img, 68, 50, 76, 58, (24, 20, 26, 255))
-    draw_rect(img, 54, 68, 74, 72, (24, 20, 26, 255))
-    draw_rect(img, 40, 16, 88, 22, (accent[0], accent[1], accent[2], 255))
-    draw_rect(img, 48, 26, 80, 30, (accent[0], accent[1], accent[2], 200))
+    accent = (120, 160, 240) if rp else (235, 170, 70)
+    img = blank(w, h)
+    radius = 16
+    top = (34, 38, 56); bot = (12, 14, 22)
+    for y in range(h):
+        for x in range(w):
+            cx = min(x, w - 1 - x); cy = min(y, h - 1 - y)
+            if cx < radius and cy < radius:
+                dx = radius - cx; dy = radius - cy
+                if dx * dx + dy * dy > radius * radius:
+                    continue
+            edge = min(cx, cy)
+            if edge < 2:
+                img[y][x] = [accent[0], accent[1], accent[2], 255]
+            elif edge < 4:
+                img[y][x] = [int(accent[0] * .4), int(accent[1] * .4), int(accent[2] * .5), 255]
+            else:
+                t = (x + y) / (2.0 * (w - 1))
+                img[y][x] = [int(top[0] * (1 - t) + bot[0] * t),
+                             int(top[1] * (1 - t) + bot[1] * t),
+                             int(top[2] * (1 - t) + bot[2] * t), 255]
+    # cabeza calabaza
+    draw_disc(img, 56, 70, 30, (228, 132, 32, 255))
+    draw_disc(img, 56, 70, 30, (228, 132, 32, 255))
+    draw_rect(img, 43, 60, 53, 70, (24, 20, 26, 255))   # ojo izq (triangulo aprox)
+    draw_rect(img, 45, 62, 51, 68, (255, 180, 40, 255))
+    draw_rect(img, 47, 64, 49, 66, (24, 20, 26, 255))
+    draw_rect(img, 60, 60, 70, 70, (24, 20, 26, 255))   # ojo der
+    draw_rect(img, 62, 62, 68, 68, (255, 180, 40, 255))
+    draw_rect(img, 64, 64, 66, 66, (24, 20, 26, 255))
+    draw_rect(img, 46, 80, 68, 84, (24, 20, 26, 255))   # boca
+    draw_rect(img, 50, 84, 54, 88, (24, 20, 26, 255))
+    draw_rect(img, 60, 84, 64, 88, (24, 20, 26, 255))
+    # lupa (search) arriba a la derecha
+    draw_disc(img, 92, 40, 18, (235, 240, 255, 255))
+    draw_disc(img, 92, 40, 13, (70, 120, 200, 255))
+    draw_disc(img, 92, 40, 9, (150, 195, 255, 255))
+    for i in range(0, 22):
+        draw_rect(img, 104 + i - 2, 52 + i - 2, 104 + i + 3, 52 + i + 3, (210, 220, 245, 255))
+    # chispas
+    for (sx, sy) in ((26, 30), (108, 92), (30, 100), (96, 100)):
+        draw_disc(img, sx, sy, 2, (255, 240, 150, 255))
     return w, h, img
 
 # ------------------------------------------------------------------ Particles atlas
@@ -256,18 +326,54 @@ def make_particle_atlas():
     return w, h, img
 
 def make_wand_item():
-    w = h = 16
+    # Varita 32x32 nítida y vívida: mango de madera diagonal + estrella dorada con borde + chispas
+    w = h = 32
     img = blank(w, h)
-    # mango
-    for i in range(9):
-        draw_rect(img, 2 + i, 13 - i, 4 + i, 15 - i, (140, 95, 50, 255))
-    draw_rect(img, 2, 12, 4, 15, (110, 72, 38, 255))
-    # estrella
-    star = (255, 226, 110)
-    draw_disc(img, 11, 4, 2, star + (255,))
-    draw_rect(img, 10, 1, 12, 8, (255, 244, 180, 255))
-    draw_rect(img, 8, 3, 15, 5, (255, 244, 180, 255))
-    img[2][13] = [255, 255, 255, 255]
+    wood = (150, 100, 52); wood_d = (104, 68, 34); wood_l = (196, 142, 86)
+    # mango diagonal de abajo-izq a centro
+    for i in range(20):
+        x = 4 + i; y = 27 - i
+        draw_rect(img, x - 1, y - 1, x + 3, y + 3, (wood[0], wood[1], wood[2], 255))
+        # sombra y luz
+        if 0 <= y + 2 < h: img[y + 2][min(w - 1, x + 1)] = [wood_d[0], wood_d[1], wood_d[2], 255]
+        if 0 <= y - 1 < h: img[y - 1][x] = [wood_l[0], wood_l[1], wood_l[2], 255]
+    # estrella de 5 puntas (dorada) centrada en (22,9)
+    cx, cy, R = 22, 9, 9
+    star_out = (255, 196, 40); star_in = (255, 240, 150); edge = (180, 120, 10)
+    pts = []
+    for k in range(10):
+        ang = -math.pi / 2 + k * math.pi / 5
+        rr = R if k % 2 == 0 else R * 0.45
+        pts.append((cx + rr * math.cos(ang), cy + rr * math.sin(ang)))
+    # relleno por test de punto-en-poligono
+    def in_poly(px, py, poly):
+        inside = False
+        j = len(poly) - 1
+        for i in range(len(poly)):
+            xi, yi = poly[i]; xj, yj = poly[j]
+            if ((yi > py) != (yj > py)) and (px < (xj - xi) * (py - yi) / (yj - yi + 1e-9) + xi):
+                inside = not inside
+            j = i
+        return inside
+    for y in range(h):
+        for x in range(w):
+            if in_poly(x + 0.5, y + 0.5, pts):
+                d = math.hypot(x - cx, y - cy)
+                img[y][x] = list(star_in + (255,)) if d < R * 0.5 else list(star_out + (255,))
+    # borde de la estrella
+    for y in range(h):
+        for x in range(w):
+            if img[y][x][3] and (star_out[0] == img[y][x][0] or star_in[0] == img[y][x][0]):
+                for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < w and 0 <= ny < h and img[ny][nx][3] == 0:
+                        img[ny][nx] = list(edge + (255,))
+    # chispas alrededor
+    for (sx, sy, c) in ((30, 4, (180, 220, 255)), (28, 16, (255, 255, 255)), (14, 6, (200, 240, 255)), (26, 24, (255, 240, 170))):
+        img[sy][sx] = list(c + (255,))
+        for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            if 0 <= sx + dx < w and 0 <= sy + dy < h:
+                img[sy + dy][sx + dx] = [c[0], c[1], c[2], 150]
     return w, h, img
 
 # ------------------------------------------------------------------ WRITE ALL
