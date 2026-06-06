@@ -1,0 +1,13 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "wings:head",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/wings_head" },
+      "geometry": { "default": "geometry.wings_head" },
+      "render_controllers": ["controller.render.default"],
+      "scale": 1.0
+    }
+  }
+}

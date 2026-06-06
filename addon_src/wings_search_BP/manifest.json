@@ -1,0 +1,38 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "§6Wings Search §7BP",
+    "description": "§eSistema de búsquedas con cabezas custom y hologramas.\n§7Behavior Pack",
+    "uuid": "af9a6c3e-6c87-49bf-bad6-c258612ed211",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "563df3a4-089a-4610-a645-a90fd7dc257e",
+      "version": [1, 0, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "53009795-0769-4c31-a55a-3f8a2e137f49",
+      "version": [1, 0, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
+      "version": [1, 0, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.13.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.2.0"
+    }
+  ]
+}
