@@ -1,9 +1,0 @@
-{
-  "resource_pack_name": "wings",
-  "texture_name": "atlas.items",
-  "texture_data": {
-    "wings_wand": {
-      "textures": "textures/items/wings_wand"
-    }
-  }
-}

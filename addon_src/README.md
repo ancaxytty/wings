@@ -1,50 +1,50 @@
 # The Search MCPE — Addon de búsquedas con cabezas custom
 
-Addon de Minecraft Bedrock para crear "búsquedas" tipo caza de huevos de Pascua,
-con **12 cabezas custom como BLOQUES** (tipo skull 8px), **hologramas** profesionales,
-**partículas custom por cabeza** y una **varita** para colocarlas. GUI oscura: **The Search MCPE**.
+Addon de Minecraft Bedrock para crear "búsquedas" tipo caza de huevos, con **12 cabezas
+custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **title/subtitle**
+y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v3 (actual):** `dist/wings_search_v3.mcaddon`
-- v2: `dist/wings_search_v2.mcaddon` · v1: `dist/wings_search_v1.mcaddon`
+- **v4 (actual):** `dist/wings_search_v4.mcaddon`
+- v3: `dist/wings_search_v3.mcaddon` · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
 
-## Novedades v3
-- **12 cabezas como BLOQUES custom** (`wings:head` con estado `wings:skin` 0–11 y permutaciones):
-  Halloween, Navidad, Santa, Frozen, Olaf, Fantasma, Esqueleto, Reno, Muñeco de Nieve,
-  Regalo, Zombie y Bruja. Pequeñas tipo skull (8×8×8), con sus texturas y un ligero brillo.
-- **Encontrar = ROMPER el bloque** → explosión de **partículas custom del color de cada cabeza**
-  (`wings:found` tintada con `variable.color`).
-- **Llama de antorcha** (`wings:torch`) sobre las cabezas **no encontradas**.
-- **Varita de Búsqueda** con **textura nueva nítida** (32×32):
-  - **Agáchate + Varita** → menú principal.
-  - **Varita en el aire** → galería de 12 cabezas (con burst de partículas al elegir).
-  - **Varita sobre un bloque** → coloca el bloque-cabeza en la búsqueda activa.
-- **Hologramas más profesionales** (3 líneas con estilo).
-- **Menú principal mejorado**: estadísticas (búsquedas/cabezas/halladas), búsqueda activa,
-  y **texturas más pro** (fondo con degradado, doble borde y esquinas decoradas).
-- **pack_icon custom** temático de búsquedas (calabaza + lupa).
+## Novedades v4
+- **Encontrar = INTERACTUAR** (clic derecho), como abrir un cofre. Ya **no hay que romper** el bloque.
+- **Varita eliminada** (daba problemas). Ahora **colocas tú mismo** el bloque-cabeza:
+  el bloque que pongas toma automáticamente la **cabeza seleccionada** en el menú y se
+  añade a la búsqueda activa.
+- **Sistema de TITLE y SUBTITLE**: al encontrar una cabeza y al completar una búsqueda.
+- **Texturas mucho más profesionales (estilo tiles de CubeCraft)**: generadas por código con
+  degradados, bisel, brillo (gloss), bordes redondeados, placa y biseles de color por tema.
+  Incluye el `pack_icon` (calabaza + lupa) y los tiles de cada cabeza y acción.
+- **Menú principal mejorado**: estadísticas, búsqueda activa y cabeza seleccionada.
+- Partículas custom **del color de cada cabeza** (`wings:found`) + **llama de antorcha** sobre las no halladas.
+
+> Nota: las texturas se generan de forma procedural (sin acceso a generadores de IA tipo
+> Nano Banana desde el entorno de build). Si generas PNGs propios con IA y los colocas en
+> `wings_search_RP/textures/...`, sustituyen a las generadas sin tocar el código.
 
 ## Uso rápido
-1. Consigue la **Varita de Búsqueda** (`/give @s wings:wand`) o usa una **brújula** para el menú.
-2. Crea una búsqueda → se marca activa → elige una cabeza en la galería →
-   coloca los bloques-cabeza por el mundo con la varita.
-3. **Rompe** las cabezas para encontrarlas (partículas + sonido + recompensa opcional).
-4. **Crear / Revisar / Editar / Info / Eliminar / Teletransportar / Reaparecer** desde la GUI.
+1. Abre el menú con una **brújula** (`/give @s compass`).
+2. En **Cabezas** elige una de las 12 (recibes 1 bloque-cabeza).
+3. **Coloca** el bloque donde quieras: toma esa cabeza y se añade a la búsqueda activa.
+4. Para encontrarla, **interactúa** (clic derecho) con la cabeza → título + partículas + recompensa.
+5. **Crear / Revisar / Editar / Info / Eliminar / Teletransportar / Reaparecer** desde la GUI.
 
 Los datos se guardan con dynamic properties (persisten al reiniciar el mundo).
 
 ## Estructura
-- `wings_search_BP/` — Behavior Pack (scripts, bloque `wings:head`, item varita, entidad holograma).
-- `wings_search_RP/` — Resource Pack (UI oscura, geometría de bloque, terrain/item textures,
-  render por estado, partículas, idiomas).
-- `_gen_textures.py` — generador de todas las texturas PNG (sin dependencias).
+- `wings_search_BP/` — Behavior Pack (scripts, bloque `wings:head`, entidad holograma).
+- `wings_search_RP/` — Resource Pack (UI oscura pro, geometría de bloque, terrain textures,
+  partículas, idiomas).
+- `_gen_textures.py` — generador profesional de todas las texturas PNG (sin dependencias).
 
 ## Re-empaquetar
 ```bash
 cd addon_src
 python3 _gen_textures.py
-zip -r -X ../dist/wings_search_v3.mcaddon wings_search_BP wings_search_RP -x "*.py"
+zip -r -X ../dist/wings_search_v4.mcaddon wings_search_BP wings_search_RP -x "*.py"
 ```
