@@ -1,195 +1,294 @@
 #!/usr/bin/env python3
-"""Generador de texturas PNG (RGBA) sin dependencias externas."""
+"""Generador de texturas PNG (RGBA) sin dependencias externas - Wings Search v2."""
 import struct, zlib, os, math
 
 RP = "wings_search_RP"
 BP = "wings_search_BP"
 
+# ------------------------------------------------------------------ PNG IO
 def write_png(path, w, h, pixels):
-    """pixels: list of rows, each row list of (r,g,b,a)."""
     raw = bytearray()
     for y in range(h):
-        raw.append(0)  # filter type 0
-        row = pixels[y]
-        for px in row:
+        raw.append(0)
+        for px in pixels[y]:
             raw += bytes(px)
     def chunk(typ, data):
         c = struct.pack(">I", len(data)) + typ + data
         c += struct.pack(">I", zlib.crc32(typ + data) & 0xffffffff)
         return c
     sig = b"\x89PNG\r\n\x1a\n"
-    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)  # 8bit, RGBA
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
     idat = zlib.compress(bytes(raw), 9)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
         f.write(sig + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b""))
 
-def blank(w, h, color=(0,0,0,0)):
+def blank(w, h, color=(0, 0, 0, 0)):
     return [[list(color) for _ in range(w)] for _ in range(h)]
 
+def draw_rect(img, x0, y0, x1, y1, color):
+    h = len(img); w = len(img[0])
+    for y in range(max(0, y0), min(h, y1)):
+        for x in range(max(0, x0), min(w, x1)):
+            img[y][x] = [color[0], color[1], color[2], color[3] if len(color) > 3 else 255]
+
+def draw_disc(img, cx, cy, r, color):
+    h = len(img); w = len(img[0])
+    for y in range(max(0, cy - r), min(h, cy + r + 1)):
+        for x in range(max(0, cx - r), min(w, cx + r + 1)):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                img[y][x] = [color[0], color[1], color[2], color[3] if len(color) > 3 else 255]
+
+# ------------------------------------------------------------------ UI panels
 def fill_rounded_panel(w, h, base, border, glow=None, radius=6, alpha=235):
     img = blank(w, h)
     for y in range(h):
         for x in range(w):
-            # rounded corner mask
-            inside = True
-            cx = min(x, w-1-x); cy = min(y, h-1-y)
+            cx = min(x, w - 1 - x); cy = min(y, h - 1 - y)
             if cx < radius and cy < radius:
-                dx = radius-cx; dy = radius-cy
-                if dx*dx + dy*dy > radius*radius:
-                    inside = False
-            if not inside:
-                continue
-            edge = (cx < 2 or cy < 2)
-            if edge:
+                dx = radius - cx; dy = radius - cy
+                if dx * dx + dy * dy > radius * radius:
+                    continue
+            if cx < 2 or cy < 2:
                 img[y][x] = [border[0], border[1], border[2], 255]
             else:
-                # subtle vertical gradient for dark glass look
-                t = y / max(1, h-1)
-                r = int(base[0] * (1.0 - 0.25*t))
-                g = int(base[1] * (1.0 - 0.25*t))
-                b = int(base[2] * (1.0 - 0.25*t))
-                img[y][x] = [r, g, b, alpha]
-    # inner accent line
+                t = y / max(1, h - 1)
+                img[y][x] = [int(base[0] * (1 - .25 * t)), int(base[1] * (1 - .25 * t)),
+                             int(base[2] * (1 - .25 * t)), alpha]
     if glow:
-        for x in range(3, w-3):
-            if 3 < h:
-                img[3][x] = [glow[0], glow[1], glow[2], 180]
+        for x in range(3, w - 3):
+            img[3][x] = [glow[0], glow[1], glow[2], 180]
     return img
 
 def make_close(hover=False):
-    w=h=32
-    base=(35,12,16) if not hover else (120,30,36)
-    border=(90,30,34) if not hover else (200,70,76)
-    x_col=(220,80,80) if not hover else (255,235,235)
-    img = fill_rounded_panel(w,h,base,border,radius=7,alpha=245)
-    # draw X
-    for i in range(8, w-8):
-        for t in (-1,0,1):
-            y1=i+t
-            if 0<=y1<h: img[y1][i]=[x_col[0],x_col[1],x_col[2],255]
-            y2=(h-1-i)+t
-            if 0<=y2<h: img[y2][i]=[x_col[0],x_col[1],x_col[2],255]
-    return w,h,img
+    w = h = 32
+    base = (35, 12, 16) if not hover else (120, 30, 36)
+    border = (90, 30, 34) if not hover else (200, 70, 76)
+    xc = (220, 80, 80) if not hover else (255, 235, 235)
+    img = fill_rounded_panel(w, h, base, border, radius=7, alpha=245)
+    for i in range(8, w - 8):
+        for t in (-1, 0, 1):
+            if 0 <= i + t < h: img[i + t][i] = [xc[0], xc[1], xc[2], 255]
+            if 0 <= (h - 1 - i) + t < h: img[(h - 1 - i) + t][i] = [xc[0], xc[1], xc[2], 255]
+    return w, h, img
 
 def make_bg(hover=False):
-    w=h=64
-    base=(20,22,30) if not hover else (40,46,66)
-    border=(70,80,110) if not hover else (120,150,210)
-    glow=(90,110,160) if not hover else (150,190,255)
-    return w,h,fill_rounded_panel(w,h,base,border,glow=glow,radius=8,alpha=238 if not hover else 250)
-
-def draw_disc(img, cx, cy, r, color):
-    h=len(img); w=len(img[0])
-    for y in range(max(0,cy-r), min(h,cy+r+1)):
-        for x in range(max(0,cx-r), min(w,cx+r+1)):
-            if (x-cx)**2+(y-cy)**2 <= r*r:
-                img[y][x]=[color[0],color[1],color[2],color[3] if len(color)>3 else 255]
-
-def draw_rect(img, x0,y0,x1,y1,color):
-    h=len(img); w=len(img[0])
-    for y in range(max(0,y0),min(h,y1)):
-        for x in range(max(0,x0),min(w,x1)):
-            img[y][x]=[color[0],color[1],color[2],color[3] if len(color)>3 else 255]
+    w = h = 64
+    base = (20, 22, 30) if not hover else (40, 46, 66)
+    border = (70, 80, 110) if not hover else (120, 150, 210)
+    glow = (90, 110, 160) if not hover else (150, 190, 255)
+    return w, h, fill_rounded_panel(w, h, base, border, glow=glow, radius=8, alpha=238 if not hover else 250)
 
 def make_icon(kind):
-    w=h=48
-    img=blank(w,h)
-    if kind=="create":  # plus / egg
-        draw_disc(img,24,26,15,(110,200,120,255))
-        draw_disc(img,24,26,15,(110,200,120,255))
-        draw_rect(img,22,14,26,38,(245,255,245,255))
-        draw_rect(img,12,24,36,28,(245,255,245,255))
-    elif kind=="review":  # magnifier
-        draw_disc(img,20,20,12,(120,170,240,255))
-        draw_disc(img,20,20,8,(20,22,30,255))
-        for i in range(0,12):
-            x=28+i; y=28+i
-            if x<w and y<h:
-                draw_rect(img,x-1,y-1,x+3,y+3,(120,170,240,255))
-    elif kind=="reload":  # circular arrows
-        for a in range(40,320):
-            rad=a*math.pi/180
-            x=int(24+13*math.cos(rad)); y=int(24+13*math.sin(rad))
-            draw_rect(img,x-2,y-2,x+2,y+2,(200,150,240,255))
-        draw_rect(img,32,4,46,16,(200,150,240,255))
-    elif kind=="help":  # question
-        draw_disc(img,24,24,16,(230,200,90,255))
-        draw_disc(img,24,24,12,(40,34,12,255))
-        # question mark blocks
-        draw_rect(img,20,14,30,18,(255,240,180,255))
-        draw_rect(img,26,18,30,24,(255,240,180,255))
-        draw_rect(img,22,24,28,28,(255,240,180,255))
-        draw_rect(img,22,32,27,37,(255,240,180,255))
-    elif kind=="delete":  # trash
-        draw_rect(img,14,16,34,38,(200,70,76,255))
-        draw_rect(img,12,12,36,16,(230,90,96,255))
-        draw_rect(img,20,8,28,12,(230,90,96,255))
-        for x in (19,24,29):
-            draw_rect(img,x,20,x+2,34,(40,16,18,255))
-    return w,h,img
+    w = h = 48
+    img = blank(w, h)
+    if kind == "create":
+        draw_disc(img, 24, 26, 15, (110, 200, 120, 255))
+        draw_rect(img, 22, 14, 26, 38, (245, 255, 245, 255))
+        draw_rect(img, 12, 24, 36, 28, (245, 255, 245, 255))
+    elif kind == "review":
+        draw_disc(img, 20, 20, 12, (120, 170, 240, 255))
+        draw_disc(img, 20, 20, 8, (20, 22, 30, 255))
+        for i in range(0, 12):
+            draw_rect(img, 28 + i - 1, 28 + i - 1, 28 + i + 3, 28 + i + 3, (120, 170, 240, 255))
+    elif kind == "reload":
+        for a in range(40, 320):
+            rad = a * math.pi / 180
+            draw_rect(img, int(24 + 13 * math.cos(rad)) - 2, int(24 + 13 * math.sin(rad)) - 2,
+                      int(24 + 13 * math.cos(rad)) + 2, int(24 + 13 * math.sin(rad)) + 2, (200, 150, 240, 255))
+        draw_rect(img, 32, 4, 46, 16, (200, 150, 240, 255))
+    elif kind == "help":
+        draw_disc(img, 24, 24, 16, (230, 200, 90, 255))
+        draw_disc(img, 24, 24, 12, (40, 34, 12, 255))
+        draw_rect(img, 20, 14, 30, 18, (255, 240, 180, 255))
+        draw_rect(img, 26, 18, 30, 24, (255, 240, 180, 255))
+        draw_rect(img, 22, 24, 28, 28, (255, 240, 180, 255))
+        draw_rect(img, 22, 32, 27, 37, (255, 240, 180, 255))
+    elif kind == "delete":
+        draw_rect(img, 14, 16, 34, 38, (200, 70, 76, 255))
+        draw_rect(img, 12, 12, 36, 16, (230, 90, 96, 255))
+        draw_rect(img, 20, 8, 28, 12, (230, 90, 96, 255))
+        for x in (19, 24, 29):
+            draw_rect(img, x, 20, x + 2, 34, (40, 16, 18, 255))
+    elif kind == "wand":
+        draw_disc(img, 14, 34, 4, (180, 130, 70, 255))
+        for i in range(20):
+            draw_rect(img, 12 + i, 32 - i, 15 + i, 35 - i, (150, 110, 60, 255))
+        # star tip
+        draw_disc(img, 34, 14, 6, (255, 230, 120, 255))
+        draw_rect(img, 33, 6, 35, 22, (255, 245, 180, 255))
+        draw_rect(img, 26, 13, 42, 15, (255, 245, 180, 255))
+    elif kind == "place":
+        draw_disc(img, 24, 22, 13, (110, 200, 120, 255))
+        draw_rect(img, 22, 30, 26, 42, (245, 255, 245, 255))
+        draw_rect(img, 16, 22, 32, 26, (40, 34, 12, 255))
+    return w, h, img
 
-def make_head():
-    # 64x64 player-head-style net, golden/dark theme
-    w=h=64
-    img=blank(w,h,(0,0,0,0))
-    gold=(196,158,72); gold_d=(150,118,52); dark=(34,30,40)
-    # fill the typical head faces region of a 64x64 skin layout
-    # top row faces: top [8..16,0..8], bottom[16..24,0..8]
-    def face(x0,y0,size,col,cold):
-        for y in range(y0,y0+size):
-            for x in range(x0,x0+size):
-                # slight noise
-                n = ((x*7+y*13) % 5)
-                c = col if n<3 else cold
-                img[y][x]=[c[0],c[1],c[2],255]
-    s=8
-    # standard 8x8 head uv at [0,0]: arrangement used by box uv:
-    # We'll just paint the whole 64x64 area used (0..32,0..16-ish) gold,
-    # plus a face with eyes on the front.
-    for y in range(0,16):
-        for x in range(0,32):
-            n=((x*5+y*11)%7)
-            c=gold if n<5 else gold_d
-            img[y][x]=[c[0],c[1],c[2],255]
-    # front face approx region [8..16,8..16]
-    for y in range(8,16):
-        for x in range(8,16):
-            img[y][x]=[gold[0],gold[1],gold[2],255]
-    # eyes
-    draw_rect(img,9,10,11,12,dark)
-    draw_rect(img,13,10,15,12,dark)
-    # mouth
-    draw_rect(img,10,13,14,14,dark)
-    return w,h,img
+# ------------------------------------------------------------------ Heads
+PAL = {
+    '.': None,  # base
+    ' ': None,
+    'K': (24, 20, 26), 'W': (236, 239, 246), 'R': (201, 42, 47), 'r': (150, 28, 32),
+    'G': (74, 168, 86), 'g': (44, 112, 54), 'O': (228, 132, 32), 'o': (182, 96, 18),
+    'B': (120, 182, 236), 'b': (70, 122, 192), 'P': (146, 84, 184), 'Y': (242, 212, 82),
+    'S': (227, 182, 142), 'N': (120, 80, 45), 'n': (82, 52, 28), 'C': (172, 222, 242),
+}
+
+# (key, nombre, base, top, 8x8 face)
+HEADS = [
+    ("halloween", "Halloween", (228, 132, 32), (182, 96, 18), [
+        "........", ".K....K.", ".KK..KK.", "........",
+        "...KK...", ".K.KK.K.", ".KKKKKK.", "..K..K.."]),
+    ("navidad", "Navidad", (44, 112, 54), (44, 112, 54), [
+        "...GG...", "..GGGG..", ".GRGGYG.", "..GGGG..",
+        ".GGRGGG.", "GGGGGYGG", "...NN...", "...NN..."]),
+    ("santa", "Santa", (227, 182, 142), (201, 42, 47), [
+        "RRRRRRRR", "RRRRRRRW", "WWWWWWWW", "..K..K..",
+        "...SS...", ".WWWWWW.", "WWWWWWWW", ".WWWWWW."]),
+    ("frozen", "Frozen", (172, 222, 242), (120, 182, 236), [
+        "..BBBB..", ".BBBBBB.", "BBCCCCBB", "B.K..K.B",
+        "BBCCCCBB", ".BC..CB.", "..BCCB..", "...BB..."]),
+    ("olaf", "Olaf", (236, 239, 246), (236, 239, 246), [
+        "...WW...", ".WWWWWW.", "WWWWWWWW", "W.K..K.W",
+        "WWWOOWWW", "W.K..K.W", ".WKKKKW.", "..WWWW.."]),
+    ("fantasma", "Fantasma", (236, 239, 246), (236, 239, 246), [
+        "..WWWW..", ".WWWWWW.", "WWWWWWWW", "WKKWWKKW",
+        "WWWWWWWW", "WWWWWWWW", "WWWWWWWW", "W.WW.WW."]),
+    ("esqueleto", "Esqueleto", (236, 239, 246), (236, 239, 246), [
+        ".WWWWWW.", "WWWWWWWW", "WKKWWKKW", "WKKWWKKW",
+        "WWWKKWWW", "WWWWWWWW", "WKWKWKWW", ".WWWWWW."]),
+    ("reno", "Reno", (120, 80, 45), (82, 52, 28), [
+        "n..nn..n", ".n.nn.n.", "..NNNN..", ".NNNNNN.",
+        "NK.NN.KN", "NNNRRNNN", ".NNNNNN.", "..NNNN.."]),
+    ("munieco", "Muneco de Nieve", (236, 239, 246), (24, 20, 26), [
+        "KKKKKKKK", "..KKKK..", "..KKKK..", ".WWWWWW.",
+        "W.K..K.W", "WWWOWWWW", "W.KKKK.W", ".WWWWWW."]),
+    ("regalo", "Regalo", (201, 42, 47), (242, 212, 82), [
+        "RRRYYRRR", "RRRYYRRR", "YYYYYYYY", "RRRYYRRR",
+        "RRRYYRRR", "RRRYYRRR", "RRRYYRRR", "RRRYYRRR"]),
+    ("zombie", "Zombie", (74, 168, 86), (44, 112, 54), [
+        ".gggggg.", "gggggggg", "gKKggKKg", "gggggggg",
+        "ggKggKgg", "gggggggg", "gKgKgKgg", ".gggggg."]),
+    ("bruja", "Bruja", (74, 168, 86), (146, 84, 184), [
+        "...PP...", "..PPPP..", ".PPPPPP.", "PPPPPPPP",
+        ".GK..KG.", ".GGGGGG.", ".GGKKGG.", "..GGGG.."]),
+]
+
+def paint_face(img, ox, oy, cell, base, rows):
+    for gy in range(8):
+        for gx in range(8):
+            ch = rows[gy][gx]
+            col = PAL.get(ch)
+            if col is None:
+                col = base
+            draw_rect(img, ox + gx * cell, oy + gy * cell, ox + (gx + 1) * cell, oy + (gy + 1) * cell,
+                      (col[0], col[1], col[2], 255))
+
+def make_head_skin(theme):
+    _key, _name, base, top, rows = theme
+    w = h = 64
+    img = blank(w, h)
+    # rellenar todas las caras con base (region del head en uv [0,0]: x 0..32, y 0..16)
+    draw_rect(img, 0, 0, 32, 16, (base[0], base[1], base[2], 255))
+    # cara superior (top) [8..16, 0..8]
+    draw_rect(img, 8, 0, 16, 8, (top[0], top[1], top[2], 255))
+    # cara frontal [8..16, 8..16] con patron (cell=1)
+    paint_face(img, 8, 8, 1, base, rows)
+    return w, h, img
+
+def make_head_icon(theme):
+    _key, _name, base, top, rows = theme
+    w = h = 64
+    accent = (top[0], top[1], top[2])
+    img = fill_rounded_panel(w, h, (18, 20, 28), accent, glow=accent, radius=10, alpha=255)
+    # retrato: cara 8x8 escalada (cell=6) centrada
+    paint_face(img, 8, 8, 6, base, rows)
+    return w, h, img
 
 def make_holo():
-    # fully transparent 8x8
-    return 8,8,blank(8,8,(0,0,0,0))
+    return 8, 8, blank(8, 8, (0, 0, 0, 0))
 
 def make_pack_icon(rp=True):
-    w=h=128
-    base=(18,20,28); accent=(120,160,240) if rp else (230,180,80)
-    img=fill_rounded_panel(w,h,base,accent,glow=accent,radius=14,alpha=255)
-    # a golden head silhouette
-    draw_disc(img,64,58,30,(196,158,72,255))
-    draw_rect(img,52,48,60,56,(34,30,40,255))
-    draw_rect(img,68,48,76,56,(34,30,40,255))
-    draw_rect(img,56,66,72,70,(34,30,40,255))
-    # hologram bars on top
-    draw_rect(img,40,16,88,22,(accent[0],accent[1],accent[2],255))
-    draw_rect(img,48,26,80,30,(accent[0],accent[1],accent[2],200))
-    return w,h,img
+    w = h = 128
+    base = (18, 20, 28)
+    accent = (120, 160, 240) if rp else (230, 180, 80)
+    img = fill_rounded_panel(w, h, base, accent, glow=accent, radius=14, alpha=255)
+    draw_disc(img, 64, 58, 30, (228, 132, 32, 255))   # pumpkin head
+    draw_rect(img, 52, 50, 60, 58, (24, 20, 26, 255))
+    draw_rect(img, 68, 50, 76, 58, (24, 20, 26, 255))
+    draw_rect(img, 54, 68, 74, 72, (24, 20, 26, 255))
+    draw_rect(img, 40, 16, 88, 22, (accent[0], accent[1], accent[2], 255))
+    draw_rect(img, 48, 26, 80, 30, (accent[0], accent[1], accent[2], 200))
+    return w, h, img
 
-# ---- write everything ----
-cw,ch,ci = make_close(False); write_png(f"{RP}/textures/custom_ui/close_button.png", cw,ch,ci)
-cw,ch,ci = make_close(True);  write_png(f"{RP}/textures/custom_ui/close_button_hover.png", cw,ch,ci)
-bw,bh,bi = make_bg(False); write_png(f"{RP}/textures/custom_ui/custom_bg.png", bw,bh,bi)
-bw,bh,bi = make_bg(True);  write_png(f"{RP}/textures/custom_ui/custom_bg_hover.png", bw,bh,bi)
-for k in ("create","review","reload","help","delete"):
-    iw,ih,ii=make_icon(k); write_png(f"{RP}/textures/custom_ui/icon_{k}.png", iw,ih,ii)
-hw,hh,hi=make_head(); write_png(f"{RP}/textures/entity/wings_head.png", hw,hh,hi)
-hw,hh,hi=make_holo(); write_png(f"{RP}/textures/entity/wings_hologram.png", hw,hh,hi)
-pw,ph,pi=make_pack_icon(True); write_png(f"{RP}/pack_icon.png", pw,ph,pi)
-pw,ph,pi=make_pack_icon(False); write_png(f"{BP}/pack_icon.png", pw,ph,pi)
-print("texturas generadas OK")
+# ------------------------------------------------------------------ Particles atlas
+def make_particle_atlas():
+    # 32x16: izq (0..16) destello/estrella, der (16..32) llama de antorcha
+    w, h = 32, 16
+    img = blank(w, h)
+    # estrella / sparkle (colorida)
+    cx, cy = 8, 8
+    draw_disc(img, cx, cy, 3, (255, 255, 255, 255))
+    for d in range(1, 7):
+        for (dx, dy) in ((d, 0), (-d, 0), (0, d), (0, -d)):
+            x, y = cx + dx, cy + dy
+            if 0 <= x < 16 and 0 <= y < h:
+                a = max(60, 255 - d * 30)
+                img[y][x] = [255, 240, 130, a]
+    draw_disc(img, cx, cy, 1, (180, 220, 255, 255))
+    # llama de antorcha (der)
+    fx = 24
+    for y in range(h):
+        t = y / (h - 1)
+        rad = int(1 + 5 * (1 - t))
+        if y < 3:
+            rad = max(0, rad - 2)
+        for dx in range(-rad, rad + 1):
+            x = fx + dx
+            if 16 <= x < w:
+                if abs(dx) >= rad - 1 and t < 0.7:
+                    col = (255, 90, 20, 235)      # borde naranja
+                elif t < 0.35:
+                    col = (255, 230, 90, 255)     # nucleo amarillo
+                else:
+                    col = (240, 140, 30, 245)     # cuerpo naranja
+                img[y][x] = list(col)
+    return w, h, img
+
+def make_wand_item():
+    w = h = 16
+    img = blank(w, h)
+    # mango
+    for i in range(9):
+        draw_rect(img, 2 + i, 13 - i, 4 + i, 15 - i, (140, 95, 50, 255))
+    draw_rect(img, 2, 12, 4, 15, (110, 72, 38, 255))
+    # estrella
+    star = (255, 226, 110)
+    draw_disc(img, 11, 4, 2, star + (255,))
+    draw_rect(img, 10, 1, 12, 8, (255, 244, 180, 255))
+    draw_rect(img, 8, 3, 15, 5, (255, 244, 180, 255))
+    img[2][13] = [255, 255, 255, 255]
+    return w, h, img
+
+# ------------------------------------------------------------------ WRITE ALL
+cw, ch, ci = make_close(False); write_png(f"{RP}/textures/custom_ui/close_button.png", cw, ch, ci)
+cw, ch, ci = make_close(True);  write_png(f"{RP}/textures/custom_ui/close_button_hover.png", cw, ch, ci)
+bw, bh, bi = make_bg(False); write_png(f"{RP}/textures/custom_ui/custom_bg.png", bw, bh, bi)
+bw, bh, bi = make_bg(True);  write_png(f"{RP}/textures/custom_ui/custom_bg_hover.png", bw, bh, bi)
+for k in ("create", "review", "reload", "help", "delete", "wand", "place"):
+    iw, ih, ii = make_icon(k); write_png(f"{RP}/textures/custom_ui/icon_{k}.png", iw, ih, ii)
+
+for n, theme in enumerate(HEADS):
+    sw, sh, si = make_head_skin(theme); write_png(f"{RP}/textures/entity/heads/h{n}.png", sw, sh, si)
+    iw, ih, ii = make_head_icon(theme); write_png(f"{RP}/textures/custom_ui/heads/h{n}.png", iw, ih, ii)
+
+# textura por defecto de la entidad = halloween
+sw, sh, si = make_head_skin(HEADS[0]); write_png(f"{RP}/textures/entity/wings_head.png", sw, sh, si)
+hw, hh, hi = make_holo(); write_png(f"{RP}/textures/entity/wings_hologram.png", hw, hh, hi)
+
+pw, ph, pi = make_particle_atlas(); write_png(f"{RP}/textures/particle/wings_particles.png", pw, ph, pi)
+ww, wh, wi = make_wand_item(); write_png(f"{RP}/textures/items/wings_wand.png", ww, wh, wi)
+
+pw, ph, pi = make_pack_icon(True); write_png(f"{RP}/pack_icon.png", pw, ph, pi)
+pw, ph, pi = make_pack_icon(False); write_png(f"{BP}/pack_icon.png", pw, ph, pi)
+print("texturas v2 generadas OK -", len(HEADS), "cabezas")

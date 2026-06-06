@@ -20,7 +20,7 @@
                         },
                         {
                             "binding_type": "view",
-                            "source_property_name": "((#title_text - 'Custom Form') = #title_text)",
+                            "source_property_name": "((#title_text - 'The Search MCPE') = #title_text)",
                             "target_property_name": "#visible"
                         }
                     ]
@@ -81,7 +81,7 @@
                         },
                         {
                             "binding_type": "view",
-                            "source_property_name": "(#title_text = 'Custom Form')",
+                            "source_property_name": "(#title_text = 'The Search MCPE')",
                             "target_property_name": "#visible"
                         }
                     ]
