@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "render_controllers": {
+    "controller.render.wings_head": {
+      "geometry": "Geometry.default",
+      "materials": [{ "*": "Material.default" }],
+      "textures": ["Array.skins[query.property('wings:skin')]"],
+      "arrays": {
+        "textures": {
+          "Array.skins": [
+            "Texture.h0",
+            "Texture.h1",
+            "Texture.h2",
+            "Texture.h3",
+            "Texture.h4",
+            "Texture.h5",
+            "Texture.h6",
+            "Texture.h7",
+            "Texture.h8",
+            "Texture.h9",
+            "Texture.h10",
+            "Texture.h11"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -5,7 +5,15 @@
       "identifier": "wings:head",
       "is_spawnable": false,
       "is_summonable": true,
-      "is_experimental": false
+      "is_experimental": false,
+      "properties": {
+        "wings:skin": {
+          "type": "int",
+          "range": [0, 11],
+          "default": 0,
+          "client_sync": true
+        }
+      }
     },
     "components": {
       "minecraft:type_family": {
