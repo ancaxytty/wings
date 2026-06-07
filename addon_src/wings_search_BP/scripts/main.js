@@ -110,6 +110,34 @@ function actionBar(player, text) {
   } catch (e) {}
 }
 
+// Plantillas editables de title/subtitle (con placeholders)
+const DEFAULT_TITLE = "§a¡Encontraste {found} de {total} cabezas!";
+const DEFAULT_SUBTITLE = "§{hc}{head} §7en §{sc}{search}";
+const HINT_RADIUS = 3.2;
+
+function applyTemplate(tpl, ctx) {
+  return String(tpl)
+    .replace(/\{found\}/g, ctx.found)
+    .replace(/\{total\}/g, ctx.total)
+    .replace(/\{head\}/g, ctx.head)
+    .replace(/\{search\}/g, ctx.search)
+    .replace(/\{player\}/g, ctx.player)
+    .replace(/\{hc\}/g, ctx.hc)
+    .replace(/\{sc\}/g, ctx.sc);
+}
+function buildCtx(s, h, foundCount, total, playerName) {
+  const cat = HEAD_CATALOG[clampSkin(h.skin)];
+  return {
+    found: foundCount,
+    total: total,
+    head: cat.name,
+    search: s.name,
+    player: playerName,
+    hc: colorCode(cat.color),
+    sc: colorCode(s.color)
+  };
+}
+
 // ----------------------------- Hologramas -----------------------------
 
 function holoLines(search, headData, index, total) {
@@ -246,6 +274,41 @@ function torchOnUnfoundHeads() {
   }
 }
 
+// Aviso "Interactúa" cuando el jugador está MUY cerca de una cabeza no hallada
+function proximityHints() {
+  const db = loadDB();
+  const players = world.getAllPlayers();
+  for (const p of players) {
+    const pl = p.location;
+    const dim = p.dimension.id;
+    let best = null;
+    let bestd = 999;
+    for (const s of searchList(db)) {
+      const total = s.heads.length;
+      const found = s.heads.filter((x) => x.found).length;
+      for (let i = 0; i < s.heads.length; i++) {
+        const h = s.heads[i];
+        if (h.found) continue;
+        if ((h.dim || "minecraft:overworld") !== dim) continue;
+        const c = center(h);
+        const dx = pl.x - c.x, dy = pl.y - (h.y + 0.5), dz = pl.z - c.z;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (d < bestd) {
+          bestd = d;
+          best = { s, h, found, total };
+        }
+      }
+    }
+    if (best && bestd <= HINT_RADIUS) {
+      const cat = HEAD_CATALOG[clampSkin(best.h.skin)];
+      actionBar(
+        p,
+        `§e❖ §fInteractúa §7para recoger §${colorCode(cat.color)}§l${cat.name}§r §8(§a${best.found}§8/§f${best.total}§8)`
+      );
+    }
+  }
+}
+
 function foundExplosion(dimension, loc, skin) {
   const pts = [
     { x: loc.x, y: loc.y + 0.4, z: loc.z },
@@ -307,10 +370,11 @@ function handleFound(player, loc, dimId, removeBlock) {
   const cat = HEAD_CATALOG[clampSkin(h.skin)];
   const foundCount = s.heads.filter((x) => x.found).length;
   const total = s.heads.length;
+  const ctx = buildCtx(s, h, foundCount, total, player.name);
   showTitle(
     player,
-    `§a§l¡ENCONTRADA!`,
-    `§${colorCode(cat.color)}${cat.name} §7· §${colorCode(s.color)}${s.name} §8(${foundCount}/${total})`
+    applyTemplate(s.title || DEFAULT_TITLE, ctx),
+    applyTemplate(s.subtitle || DEFAULT_SUBTITLE, ctx)
   );
   player.sendMessage(`§a¡Encontraste §${colorCode(cat.color)}${cat.name}§a! §7(${foundCount}/${total})`);
 
@@ -437,7 +501,9 @@ function openHelp(player) {
         "§7• En §fCabezas§7 eliges una de las 12 (recibes el bloque).\n" +
         "§7• §fColoca tú mismo§7 el bloque-cabeza donde quieras;\n  tomará la cabeza seleccionada y se añade a la activa.\n" +
         "§7• Las cabezas sin hallar tienen una §6llama§7 encima.\n" +
-        "§7• §fINTERACTÚA§7 (como abrir un cofre) para encontrarla:\n  §dpartículas§7, §atítulo§7 y recompensa.\n"
+        "§7• Al acercarte verás §e❖ Interactúa§7 en la barra.\n" +
+        "§7• §fINTERACTÚA§7 (como abrir un cofre) para encontrarla:\n  §dpartículas§7, §atítulo§7 y recompensa.\n" +
+        "§7• El §3title/subtitle§7 es editable por búsqueda (con placeholders).\n"
     )
     .button1("§aRecargar todo")
     .button2("Cerrar");
@@ -467,7 +533,9 @@ function openCreate(player) {
       color: colorCode(color),
       reward: reward ? String(reward) : "",
       createdBy: player.name,
-      heads: []
+      heads: [],
+      title: DEFAULT_TITLE,
+      subtitle: DEFAULT_SUBTITLE
     };
     db[id] = s;
     saveDB(db);
@@ -522,6 +590,7 @@ function openManage(player, searchId) {
     .button("§aAñadir cabeza aquí (tu pos.)", "textures/custom_ui/icon_place")
     .button("§bInfo de la búsqueda", "textures/custom_ui/icon_help")
     .button("§eEditar (nombre/color/recompensa)", "textures/custom_ui/icon_review")
+    .button("§3Editar title / subtitle", "textures/custom_ui/icon_review")
     .button("§dReaparecer cabezas", "textures/custom_ui/icon_reload")
     .button("§6Teletransportar a una cabeza")
     .button("§cEliminar búsqueda", "textures/custom_ui/icon_delete")
@@ -544,19 +613,22 @@ function openManage(player, searchId) {
       case 3:
         openEdit(player, searchId);
         break;
-      case 4: {
+      case 4:
+        openMessages(player, searchId);
+        break;
+      case 5: {
         const n = respawnSearch(s);
         actionBar(player, `§a[Search] Reaparecidas §f${n}§a cabezas.`);
         openManage(player, searchId);
         break;
       }
-      case 5:
+      case 6:
         openTeleport(player, searchId);
         break;
-      case 6:
+      case 7:
         openDelete(player, searchId);
         break;
-      case 7:
+      case 8:
         openReview(player);
         break;
     }
@@ -629,6 +701,44 @@ function openEdit(player, searchId) {
     saveDB(db2);
     if (refresh) respawnSearch(s2);
     actionBar(player, `§a[Search] Búsqueda actualizada: §f${s2.name}`);
+    openManage(player, searchId);
+  });
+}
+
+function openMessages(player, searchId) {
+  const db = loadDB();
+  const s = db[searchId];
+  if (!s) return;
+  const t = s.title || DEFAULT_TITLE;
+  const sub = s.subtitle || DEFAULT_SUBTITLE;
+  const form = new ModalFormData()
+    .title("Editar title / subtitle")
+    .textField(
+      "Título al encontrar\n§7Placeholders: {found} {total} {head} {search} {player} §{hc} §{sc}",
+      t,
+      t
+    )
+    .textField("Subtítulo al encontrar", sub, sub);
+  form.show(player).then((res) => {
+    if (res.canceled) {
+      openManage(player, searchId);
+      return;
+    }
+    const [nt, nsub] = res.formValues;
+    const db2 = loadDB();
+    const s2 = db2[searchId];
+    if (!s2) return;
+    s2.title = nt !== undefined && String(nt).length ? String(nt) : DEFAULT_TITLE;
+    s2.subtitle = nsub !== undefined ? String(nsub) : DEFAULT_SUBTITLE;
+    saveDB(db2);
+    // vista previa con datos de ejemplo
+    const exTotal = s2.heads.length || 20;
+    const ctx = {
+      found: 1, total: exTotal, head: HEAD_CATALOG[0].name, search: s2.name,
+      player: player.name, hc: "6", sc: colorCode(s2.color)
+    };
+    showTitle(player, applyTemplate(s2.title, ctx), applyTemplate(s2.subtitle, ctx));
+    actionBar(player, "§a[Search] Mensajes actualizados (vista previa arriba).");
     openManage(player, searchId);
   });
 }
@@ -753,4 +863,11 @@ system.runInterval(() => {
   } catch (e) {}
 }, 10);
 
-console.warn("[The Search MCPE] v4 cargado con " + HEAD_CATALOG.length + " cabezas-bloque.");
+// Aviso "Interactúa" al estar muy cerca
+system.runInterval(() => {
+  try {
+    proximityHints();
+  } catch (e) {}
+}, 6);
+
+console.warn("[The Search MCPE] v5 cargado con " + HEAD_CATALOG.length + " cabezas-bloque.");
