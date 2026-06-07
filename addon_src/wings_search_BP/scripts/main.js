@@ -2,7 +2,7 @@ import { world, system, BlockPermutation, MolangVariableMap } from "@minecraft/s
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * The Search MCPE v7.1.0
+ * The Search MCPE v7.1.1
  * - 16 CABEZAS como BLOQUES (estilo cabeza de Minecraft, 8px) con texturas custom.
  *   -> Son BLOQUES (siempre visibles). NO desaparecen al encontrarlas.
  * - Tamaños: Pequeña / Normal / Grande / Gigante (estado wings:size + transformation).
@@ -992,7 +992,7 @@ world.afterEvents.worldInitialize.subscribe(() => {
       reloadAll();
     } catch (e) {}
   }, 40);
-  log("v7.1.0 cargado: " + HEAD_CATALOG.length + " cabezas (bloques) + " + FX_NAMES.length + " partículas. Usa /tag @p add admin para gestionar.");
+  log("v7.1.1 cargado: " + HEAD_CATALOG.length + " cabezas (bloques) + " + FX_NAMES.length + " partículas. Usa /tag @p add admin para gestionar.");
 });
 
 // Aviso [Interactuar] al acercarse (SIN partículas ambientales)

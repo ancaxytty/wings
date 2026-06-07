@@ -2,12 +2,12 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search MCPE §7RP",
-    "description": "§eGUI pro, 16 cabezas-bloque, tamanos, 12 particulas.\n§7Resource Pack v7.1.0",
+    "description": "§eGUI pro, 16 cabezas-bloque, tamanos, 12 particulas.\n§7Resource Pack v7.1.1",
     "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
     "version": [
       7,
       1,
-      0
+      1
     ],
     "min_engine_version": [
       1,
@@ -22,7 +22,7 @@
       "version": [
         7,
         1,
-        0
+        1
       ]
     }
   ],
@@ -32,7 +32,7 @@
       "version": [
         7,
         1,
-        0
+        1
       ]
     }
   ]

@@ -5,11 +5,20 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v7.1.0 (actual):** `dist/wings_search_v7.1.0.mcaddon`
-- v7 · v6 · v5 · v4 · v3 · v2 · v1
+- **v7.1.1 (actual):** `dist/wings_search_v7.1.1.mcaddon`
+- v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v7.1.1
+- **ARREGLO: las cabezas vuelven a ser interactivas y las partículas vuelven a salir.**
+  El problema era que el manifest pedía las APIs de script `@minecraft/server 1.13.0` /
+  `@minecraft/server-ui 1.2.0`, que solo existen en **Minecraft 1.21.20+**, mientras que el
+  `min_engine_version` es **1.21.0**. En Minecraft 1.21.0–1.21.10 el módulo de scripts no
+  cargaba, así que los bloques-cabeza **se veían** (vienen del Resource Pack) pero **nada**
+  funcionaba (ni interactuar, ni partículas, ni hologramas). Ahora se piden versiones
+  compatibles desde 1.21.0 (`@minecraft/server 1.11.0`, `@minecraft/server-ui 1.1.0`).
 
 ## Novedades v7.1.0
 - **ARREGLO DEFINITIVO de visibilidad:** las cabezas vuelven a ser **BLOQUES**
