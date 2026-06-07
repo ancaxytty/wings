@@ -2,10 +2,10 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search MCPE §7RP",
-    "description": "§eGUI pro, 16 cabezas HD, boton Interactuar, particulas.\n§7Resource Pack v6",
+    "description": "§eGUI pro, 16 cabezas visibles, 12 particulas custom, tamanos.\n§7Resource Pack v7",
     "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
     "version": [
-      6,
+      7,
       0,
       0
     ],
@@ -20,7 +20,7 @@
       "type": "resources",
       "uuid": "d18e488f-c778-41e2-9e7d-13124a9b3387",
       "version": [
-        6,
+        7,
         0,
         0
       ]
@@ -30,7 +30,7 @@
     {
       "uuid": "af9a6c3e-6c87-49bf-bad6-c258612ed211",
       "version": [
-        6,
+        7,
         0,
         0
       ]

@@ -339,84 +339,187 @@ def make_pack_icon():
     return size, size, img
 
 # ------------------------------------------------------------------ block skins (pixel, 64px)
-def make_head_skin_hd(theme):
-    # Textura HD 128x128 con layout por caras (up/face/down) para geometria con UV por cara.
-    # La cara se renderiza desde el arte 8x8 escalado x2 con sombreado y contorno (AO).
+def make_head_skin(theme):
+    # Net COMPLETO box-uv en 64x64 (visible desde todos los angulos, robusto).
+    # Caras: top/bottom/right/front/left/back con sombreado; rasgos en la frontal.
     _key, _name, base, top, rows = theme
-    W = H = 128
-    img = blank(W, H, (0, 0, 0, 0))
-    topc = lighten(top, 0.18); topc2 = lighten(top, 0.02)
-    botc = darken(base, 0.46)
-    # UP tile en (0,0)
-    for y in range(16):
-        for x in range(16):
-            c = mix(topc, topc2, y / 15.0)
-            img[y][x] = [clamp(c[0]), clamp(c[1]), clamp(c[2]), 255]
-    for x in range(16):
-        blend(img, x, 0, (255, 255, 255), 0.20)
-    # DOWN tile en (32,0)
-    for y in range(16):
-        for x in range(16):
-            img[y][32 + x] = [clamp(botc[0]), clamp(botc[1]), clamp(botc[2]), 255]
-    # FACE tile en (16,16)
-    ox, oy = 16, 16
-    for ty in range(16):
-        for tx in range(16):
-            sx = tx // 2; sy = ty // 2
-            ch = rows[sy][sx]
+    w = h = 64
+    img = blank(w, h)
+
+    def fill(x0, y0, x1, y1, col):
+        draw_rect(img, x0, y0, x1, y1, (clamp(col[0]), clamp(col[1]), clamp(col[2]), 255))
+
+    topc = lighten(top, 0.16)
+    botc = darken(base, 0.44)
+    rightc = darken(base, 0.10)
+    frontc = base
+    leftc = darken(base, 0.18)
+    backc = darken(base, 0.30)
+    fill(8, 0, 16, 8, topc)      # top
+    fill(16, 0, 24, 8, botc)     # bottom
+    fill(0, 8, 8, 16, rightc)    # right
+    fill(8, 8, 16, 16, frontc)   # front
+    fill(16, 8, 24, 16, leftc)   # left
+    fill(24, 8, 32, 16, backc)   # back
+    # sombreado vertical en la cara frontal
+    for y in range(8, 16):
+        for x in range(8, 16):
+            sh = 1.0 - 0.045 * (y - 8)
+            px = img[y][x]
+            img[y][x] = [clamp(px[0] * sh), clamp(px[1] * sh), clamp(px[2] * sh), 255]
+    # rasgos de la cara frontal ('.'/' ' = fondo)
+    for gy in range(8):
+        for gx in range(8):
+            ch = rows[gy][gx]
             col = PAL.get(ch)
-            bgmode = col is None
-            if bgmode:
-                col = base
-            sh = 1.0 - 0.05 * sy
-            r, g, b = col[0] * sh, col[1] * sh, col[2] * sh
-            if bgmode and sy < 2:
-                r += 22; g += 22; b += 22
-            if tx % 2 == 1 and sx + 1 < 8 and rows[sy][sx + 1] != ch:
-                r *= 0.78; g *= 0.78; b *= 0.78
-            if ty % 2 == 1 and sy + 1 < 8 and rows[sy + 1][sx] != ch:
-                r *= 0.82; g *= 0.82; b *= 0.82
-            img[oy + ty][ox + tx] = [clamp(r), clamp(g), clamp(b), 255]
-    # marco sutil de la cara
-    for i in range(16):
-        blend(img, ox + i, oy, (0, 0, 0), 0.12)
-        blend(img, ox + i, oy + 15, (0, 0, 0), 0.20)
-        blend(img, ox, oy + i, (0, 0, 0), 0.12)
-        blend(img, ox + 15, oy + i, (0, 0, 0), 0.20)
-    return W, H, img
+            if col is None:
+                continue
+            img[8 + gy][8 + gx] = [col[0], col[1], col[2], 255]
+    # contorno/AO: oscurece bordes entre color y fondo en la cara frontal
+    for gy in range(8):
+        for gx in range(8):
+            ch = rows[gy][gx]
+            if PAL.get(ch) is None:
+                continue
+            for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                ny, nx = gy + dy, gx + dx
+                if 0 <= ny < 8 and 0 <= nx < 8 and PAL.get(rows[ny][nx]) is None:
+                    px = img[8 + ny][8 + nx]
+                    img[8 + ny][8 + nx] = [clamp(px[0] * 0.7), clamp(px[1] * 0.7), clamp(px[2] * 0.7), 255]
+    # brillo borde superior del techo
+    for x in range(8, 16):
+        blend(img, x, 0, (255, 255, 255), 0.16)
+    return w, h, img
 
 def make_holo():
     return 8, 8, blank(8, 8, (0, 0, 0, 0))
 
-# ------------------------------------------------------------------ particle atlas
+# ------------------------------------------------------------------ particle atlas (64x64, rejilla 4x4 de 16px)
 def make_particle_atlas():
-    w, h = 32, 16
+    w = h = 64
     img = blank(w, h)
-    cx, cy = 8, 8
-    draw_disc(img, cx, cy, 3, (255, 255, 255, 255))
-    for d in range(1, 7):
+
+    def cell(cx, cy):
+        return cx * 16, cy * 16
+
+    def disc(ox, oy, cx, cy, r, col):
+        for y in range(16):
+            for x in range(16):
+                if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                    img[oy + y][ox + x] = list(col)
+
+    def px(ox, oy, x, y, col):
+        if 0 <= x < 16 and 0 <= y < 16:
+            img[oy + y][ox + x] = list(col)
+
+    # (0,0) destello/sparkle (blanco-amarillo) -> burst tintable
+    ox, oy = cell(0, 0)
+    disc(ox, oy, 8, 8, 3, (255, 255, 255, 255))
+    for d in range(1, 8):
         for (dx, dy) in ((d, 0), (-d, 0), (0, d), (0, -d), (d, d), (-d, -d), (d, -d), (-d, d)):
-            x, y = cx + dx, cy + dy
-            if 0 <= x < 16 and 0 <= y < h:
-                a = max(40, 255 - d * 32)
-                img[y][x] = [255, 245, 180, a]
-    draw_disc(img, cx, cy, 1, (200, 230, 255, 255))
-    fx = 24
-    for y in range(h):
-        t = y / (h - 1)
-        rad = int(1 + 5 * (1 - t))
-        if y < 3:
-            rad = max(0, rad - 2)
-        for dx in range(-rad, rad + 1):
-            x = fx + dx
-            if 16 <= x < w:
-                if abs(dx) >= rad - 1 and t < 0.7:
-                    col = (255, 90, 20, 235)
-                elif t < 0.35:
-                    col = (255, 230, 90, 255)
-                else:
-                    col = (240, 140, 30, 245)
-                img[y][x] = list(col)
+            px(ox, oy, 8 + dx, 8 + dy, (255, 248, 200, max(40, 255 - d * 30)))
+    disc(ox, oy, 8, 8, 1, (255, 255, 255, 255))
+
+    # (1,0) corazon (rojo)
+    ox, oy = cell(1, 0)
+    heart = ["..XX.XX.", ".XXXXXXX", ".XXXXXXX", "..XXXXX.", "...XXX..", "....X..."]
+    for j, row in enumerate(heart):
+        for i, c in enumerate(row):
+            if c == "X":
+                px(ox, oy, i + 4, j + 4, (230, 40, 70, 255))
+
+    # (2,0) estrella 5 puntas (amarilla)
+    ox, oy = cell(2, 0)
+    import math as _m
+    pts = []
+    for k in range(10):
+        a = -_m.pi / 2 + k * _m.pi / 5
+        rr = 7 if k % 2 == 0 else 3
+        pts.append((8 + rr * _m.cos(a), 8 + rr * _m.sin(a)))
+    for y in range(16):
+        for x in range(16):
+            inside = False
+            jp = len(pts) - 1
+            for ip in range(len(pts)):
+                xi, yi = pts[ip]; xj, yj = pts[jp]
+                if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9) + xi):
+                    inside = not inside
+                jp = ip
+            if inside:
+                px(ox, oy, x, y, (255, 214, 70, 255))
+
+    # (3,0) copo de nieve (blanco/cyan)
+    ox, oy = cell(3, 0)
+    for d in range(-6, 7):
+        px(ox, oy, 8 + d, 8, (210, 240, 255, 255))
+        px(ox, oy, 8, 8 + d, (210, 240, 255, 255))
+        px(ox, oy, 8 + d, 8 + d, (170, 220, 255, 255))
+        px(ox, oy, 8 + d, 8 - d, (170, 220, 255, 255))
+
+    # (0,1) llama (naranja) -> torch
+    ox, oy = cell(0, 1)
+    for y in range(16):
+        t = y / 15.0
+        r = int(1 + 6 * (1 - t))
+        for dx in range(-r, r + 1):
+            if t < 0.35:
+                col = (255, 232, 90, 255)
+            elif abs(dx) >= r - 1:
+                col = (255, 90, 20, 235)
+            else:
+                col = (240, 140, 30, 245)
+            px(ox, oy, 8 + dx, y, col)
+
+    # (1,1) magia (morado swirl)
+    ox, oy = cell(1, 1)
+    disc(ox, oy, 8, 8, 6, (150, 90, 210, 230))
+    disc(ox, oy, 8, 8, 3, (210, 160, 255, 255))
+
+    # (2,1) confeti (blanco, se tinta)
+    ox, oy = cell(2, 1)
+    for y in range(3, 13):
+        for x in range(3, 13):
+            px(ox, oy, x, y, (255, 255, 255, 255))
+
+    # (3,1) humo (gris suave)
+    ox, oy = cell(3, 1)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 8) ** 2 + (y - 8) ** 2
+            if d <= 49:
+                a = int(200 * (1 - d / 49.0))
+                px(ox, oy, x, y, (180, 180, 188, max(0, a)))
+
+    # (0,2) ender (diamante morado)
+    ox, oy = cell(0, 2)
+    for j in range(8):
+        wj = j if j < 4 else 7 - j
+        for x in range(-wj, wj + 1):
+            px(ox, oy, 8 + x, 4 + j, (170, 70, 220, 255))
+
+    # (1,2) nota musical (blanca)
+    ox, oy = cell(1, 2)
+    disc(ox, oy, 6, 11, 2, (245, 245, 250, 255))
+    for y in range(3, 11):
+        px(ox, oy, 8, y, (245, 245, 250, 255))
+    for x in range(8, 12):
+        px(ox, oy, x, 3, (245, 245, 250, 255))
+
+    # (2,2) burbuja (anillo azul)
+    ox, oy = cell(2, 2)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 8) ** 2 + (y - 8) ** 2
+            if 25 <= d <= 49:
+                px(ox, oy, x, y, (140, 200, 255, 230))
+    px(ox, oy, 6, 6, (255, 255, 255, 255))
+
+    # (3,2) sparkle plus (blanco)
+    ox, oy = cell(3, 2)
+    for d in range(-6, 7):
+        px(ox, oy, 8 + d, 8, (255, 255, 255, max(60, 255 - abs(d) * 30)))
+        px(ox, oy, 8, 8 + d, (255, 255, 255, max(60, 255 - abs(d) * 30)))
+
     return w, h, img
 
 # ================================================================== WRITE ALL
@@ -442,8 +545,8 @@ for n, theme in enumerate(HEADS):
     sym = (lambda b, r: (lambda img, size: paint_face_scaled(img, size, b, r)))(base, rows)
     tile = compose_tile(96, c1, c2, bd, symbol=sym, plate=True)
     write_png(f"{RP}/textures/custom_ui/heads/h{n}.png", 96, 96, tile)
-    # skin pixel del bloque/entidad (HD 128)
-    sw, sh, si = make_head_skin_hd(theme)
+    # skin del bloque/entidad (net box-uv 64, visible)
+    sw, sh, si = make_head_skin(theme)
     write_png(f"{RP}/textures/entity/heads/h{n}.png", sw, sh, si)
 
 # Paneles / close / pack
@@ -455,7 +558,7 @@ iw, ih, ii = make_pack_icon();  write_png(f"{RP}/pack_icon.png", iw, ih, ii)
 write_png(f"{BP}/pack_icon.png", iw, ih, ii)
 
 # Entidad/particula
-sw, sh, si = make_head_skin_hd(HEADS[0]); write_png(f"{RP}/textures/entity/wings_head.png", sw, sh, si)
+sw, sh, si = make_head_skin(HEADS[0]); write_png(f"{RP}/textures/entity/wings_head.png", sw, sh, si)
 hw, hh, hi = make_holo(); write_png(f"{RP}/textures/entity/wings_hologram.png", hw, hh, hi)
 aw, ah, ai = make_particle_atlas(); write_png(f"{RP}/textures/particle/wings_particles.png", aw, ah, ai)
 

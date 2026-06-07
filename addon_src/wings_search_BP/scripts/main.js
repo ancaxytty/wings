@@ -116,6 +116,41 @@ function setSkin(player, skin) {
   player.setDynamicProperty("wings:skin", clampSkin(skin));
 }
 
+// Tamaños y partículas
+const SIZE_NAMES = ["Pequeña", "Normal", "Grande", "Gigante"];
+const FX_NAMES = [
+  "Destello", "Corazones", "Estrellas", "Nieve", "Fuego", "Magia",
+  "Confeti", "Humo", "Ender", "Notas", "Burbujas", "Brillos"
+];
+function clampSize(n) {
+  n = Math.floor(Number(n));
+  return Number.isFinite(n) && n >= 0 && n <= 3 ? n : 1;
+}
+function clampFx(n) {
+  n = Math.floor(Number(n));
+  return Number.isFinite(n) && n >= 0 && n <= 11 ? n : 0;
+}
+function getSize(player) {
+  const v = player.getDynamicProperty("wings:size");
+  return clampSize(typeof v === "number" ? v : 1);
+}
+function setSize(player, s) {
+  player.setDynamicProperty("wings:size", clampSize(s));
+}
+function getFx(player) {
+  const v = player.getDynamicProperty("wings:fx");
+  return clampFx(typeof v === "number" ? v : 0);
+}
+function setFx(player, f) {
+  player.setDynamicProperty("wings:fx", clampFx(f));
+}
+function headSize(h) {
+  return clampSize(h && h.size !== undefined ? h.size : 1);
+}
+function headFx(h) {
+  return clampFx(h && h.fx !== undefined ? h.fx : 0);
+}
+
 // ----------------------------- Title / Subtitle / ActionBar -----------------------------
 
 function showTitle(player, title, subtitle) {
@@ -186,6 +221,9 @@ function spawnHead(dimension, search, index) {
     ent.addTag("wings_head");
     try {
       ent.setProperty("wings:skin", clampSkin(h.skin));
+    } catch (e) {}
+    try {
+      ent.triggerEvent("wings:size" + headSize(h));
     } catch (e) {}
   } catch (e) {}
   const lines = holoLines(search, h, index, search.heads.length);
@@ -326,6 +364,7 @@ function proximityHints() {
 }
 
 function foundExplosion(dimension, loc, h) {
+  const fxId = "wings:fx" + headFx(h);
   const pts = [
     { x: loc.x, y: loc.y + 0.4, z: loc.z },
     { x: loc.x, y: loc.y + 0.8, z: loc.z },
@@ -333,7 +372,7 @@ function foundExplosion(dimension, loc, h) {
   ];
   for (const p of pts) {
     try {
-      dimension.spawnParticle("wings:found", p, colorMapFor(h));
+      dimension.spawnParticle(fxId, p, colorMapFor(h));
     } catch (e) {}
   }
   try {
@@ -343,7 +382,7 @@ function foundExplosion(dimension, loc, h) {
 function selectBurst(player, skin) {
   const loc = player.location;
   try {
-    player.dimension.spawnParticle("wings:found", { x: loc.x, y: loc.y + 1.2, z: loc.z }, colorMapFor({ skin }));
+    player.dimension.spawnParticle("wings:fx" + getFx(player), { x: loc.x, y: loc.y + 1.2, z: loc.z }, colorMapFor({ skin }));
   } catch (e) {}
   try {
     player.playSound("random.orb", { pitch: 1.5 });
@@ -359,7 +398,7 @@ function handleFoundEntity(player, entity) {
   if (typeof id !== "string" || typeof index !== "number") {
     // cabeza decorativa (no registrada)
     try {
-      player.dimension.spawnParticle("wings:found", { x: loc.x, y: loc.y + 0.6, z: loc.z });
+      player.dimension.spawnParticle("wings:fx0", { x: loc.x, y: loc.y + 0.6, z: loc.z });
       player.playSound("random.orb", { pitch: 1.2 });
     } catch (e) {}
     return;
@@ -421,12 +460,13 @@ function onPlaceHead(player, block) {
     try {
       const ent = dim.spawnEntity(HEAD_ID, { x: loc.x + 0.5, y: loc.y, z: loc.z + 0.5 });
       ent.setProperty("wings:skin", skin);
+      ent.triggerEvent("wings:size" + getSize(player));
     } catch (e) {}
     actionBar(player, `§e[Search] §${colorCode(cat.color)}${cat.name}§7 colocada (sin búsqueda activa). §8Brújula → Crear/activar.`);
     return;
   }
   const s = db[id];
-  const h = { x: loc.x, y: loc.y, z: loc.z, dim: dim.id, found: false, skin: skin };
+  const h = { x: loc.x, y: loc.y, z: loc.z, dim: dim.id, found: false, skin: skin, size: getSize(player), fx: getFx(player) };
   s.heads.push(h);
   saveDB(db);
   spawnHead(dim, s, s.heads.length - 1);
@@ -456,14 +496,17 @@ function openMain(player) {
   const form = new ActionFormData()
     .title(TITLE)
     .body(
-      `§8› §7Búsquedas: §f${list.length}  §8| §7Cabezas: §f${totalHeads}  §8| §aHalladas: §f${totalFound}\n` +
-        `§8› §7Activa: §f${activeLabel(player)}\n` +
-        `§8› §7Tu cabeza: §${colorCode(cat.color)}${cat.name}`
+      `§8§l━━━━━━━━━━━━━━━━━━━━━\n` +
+        `§6§l✦ §r§eThe Search§r §6§l✦\n` +
+        `§8§l━━━━━━━━━━━━━━━━━━━━━\n` +
+        `§7Búsquedas §8»§f ${list.length}   §7Cabezas §8»§f ${totalHeads}   §aHalladas §8»§f ${totalFound}\n` +
+        `§7Activa §8»§f ${activeLabel(player)}\n` +
+        `§7Tu cabeza §8»§${colorCode(cat.color)} ${cat.name} §8(§7${SIZE_NAMES[getSize(player)]}§8, §7${FX_NAMES[getFx(player)]}§8)\n`
     )
-    .button("§l§aCrear\n§r§7nueva búsqueda", "textures/custom_ui/icon_create")
-    .button(`§l§bRevisar\n§r§7${list.length} búsqueda(s)`, "textures/custom_ui/icon_review")
-    .button(`§l§eCabezas\n§r§7${cat.name}`, headIcon(skin))
-    .button("§l§dAyuda\n§r§7cómo se juega", "textures/custom_ui/icon_help");
+    .button("§l§aCREAR\n§r§7nueva búsqueda", "textures/custom_ui/icon_create")
+    .button(`§l§bREVISAR\n§r§7${list.length} búsqueda(s)`, "textures/custom_ui/icon_review")
+    .button(`§l§eCABEZAS\n§r§7${cat.name}`, headIcon(skin))
+    .button("§l§dAYUDA\n§r§7cómo se juega", "textures/custom_ui/icon_help");
 
   form.show(player).then((res) => {
     if (res.canceled) return;
@@ -478,19 +521,41 @@ function openMain(player) {
 
 function openHeadPicker(player) {
   const cur = getSkin(player);
+  const sz = getSize(player);
+  const fxi = getFx(player);
   const form = new ActionFormData()
     .title("Galería de Cabezas")
-    .body(`§7Búsqueda activa: §f${activeLabel(player)}\n§7Actual: §f${HEAD_CATALOG[cur].name}\n§7Elige una cabeza (te daré el bloque):`);
+    .body(
+      `§7Activa: §f${activeLabel(player)}\n` +
+        `§7Cabeza: §f${HEAD_CATALOG[cur].name}  §8| §7Tamaño: §f${SIZE_NAMES[sz]}  §8| §7Partícula: §f${FX_NAMES[fxi]}\n` +
+        `§7Elige una cabeza (te daré el bloque):`
+    );
   for (let i = 0; i < HEAD_CATALOG.length; i++) {
     const cat = HEAD_CATALOG[i];
     const mark = i === cur ? " §a✔" : "";
     form.button(`§${colorCode(cat.color)}${cat.name}${mark}`, headIcon(i));
   }
+  const iSize = HEAD_CATALOG.length;
+  const iFx = HEAD_CATALOG.length + 1;
+  const iBack = HEAD_CATALOG.length + 2;
+  form.button(`§6⚙ Tamaño: §f${SIZE_NAMES[sz]} §8»`, "textures/custom_ui/icon_reload");
+  form.button(`§d✨ Partícula: §f${FX_NAMES[fxi]} §8»`, "textures/custom_ui/icon_reload");
   form.button("§7« Volver");
   form.show(player).then((res) => {
     if (res.canceled) return;
-    if (res.selection === HEAD_CATALOG.length) {
+    if (res.selection === iBack) {
       openMain(player);
+      return;
+    }
+    if (res.selection === iSize) {
+      setSize(player, (sz + 1) % SIZE_NAMES.length);
+      openHeadPicker(player);
+      return;
+    }
+    if (res.selection === iFx) {
+      setFx(player, (fxi + 1) % FX_NAMES.length);
+      selectBurst(player, cur);
+      openHeadPicker(player);
       return;
     }
     setSkin(player, res.selection);
@@ -499,8 +564,8 @@ function openHeadPicker(player) {
     try {
       player.runCommand("give @s wings:head 1");
     } catch (e) {}
-    actionBar(player, `§a[Search] Cabeza: §${colorCode(cat.color)}${cat.name}§a — colócala donde quieras.`);
-    player.sendMessage(`§a[Search] Seleccionaste §${colorCode(cat.color)}${cat.name}§a. Te di 1 bloque; el que coloques tomará esta cabeza.`);
+    actionBar(player, `§a[Search] §${colorCode(cat.color)}${cat.name}§a (${SIZE_NAMES[getSize(player)]}) — colócala donde quieras.`);
+    player.sendMessage(`§a[Search] Seleccionaste §${colorCode(cat.color)}${cat.name}§a. Te di 1 bloque; el que coloques tomará esta cabeza, tamaño y partícula.`);
   });
 }
 
@@ -511,10 +576,10 @@ function openHelp(player) {
       `§e§l${TITLE}§r\n\n` +
         "§6§lCómo se juega§r\n" +
         "§7• Abre el menú con una §fbrújula§7.\n" +
-        "§7• En §fCabezas§7 eliges una de las §f16§7 (recibes el bloque).\n" +
+        "§7• En §fCabezas§7 eliges una de las §f16§7, su §6tamaño§7 y su §dpartícula§7.\n" +
         "§7• §fColoca§7 el bloque: se vuelve una cabeza con botón\n  §e[Interactuar]§7 y se añade a la búsqueda activa.\n" +
         "§7• Acércate y pulsa §e[Interactuar]§7 (como un NPC) para hallarla:\n  §dpartículas§7, §atítulo§7 y recompensa.\n" +
-        "§7• Edita cada cabeza (nombre, partículas) en\n  §fRevisar → Gestionar → Editar cabezas§7.\n"
+        "§7• Edita cada cabeza (skin, tamaño, nombre, partícula) en\n  §fRevisar → Gestionar → Editar cabezas§7.\n"
     )
     .button1("§aRecargar todo")
     .button2("Cerrar");
@@ -646,7 +711,9 @@ function addHeadHere(player, searchId) {
     z: Math.floor(loc.z),
     dim: player.dimension.id,
     found: false,
-    skin: skin
+    skin: skin,
+    size: getSize(player),
+    fx: getFx(player)
   };
   s.heads.push(h);
   saveDB(db);
@@ -696,6 +763,8 @@ function openHeadEdit(player, searchId, index) {
   const form = new ModalFormData()
     .title(`Editar cabeza #${index + 1}`)
     .dropdown("Tipo de cabeza (skin)", names, clampSkin(h.skin))
+    .dropdown("Tamaño", SIZE_NAMES, headSize(h))
+    .dropdown("Partícula al encontrar", FX_NAMES, headFx(h))
     .textField("Nombre personalizado (vacío = automático)", headName(h), h.name || "")
     .textField("Color de partícula HEX (ej. #ff8800)", curHex, curHex)
     .toggle("Eliminar esta cabeza", false);
@@ -704,7 +773,7 @@ function openHeadEdit(player, searchId, index) {
       openHeadList(player, searchId);
       return;
     }
-    const [skinIdx, name, hex, del] = res.formValues;
+    const [skinIdx, sizeIdx, fxIdx, name, hex, del] = res.formValues;
     const db2 = loadDB();
     const s2 = db2[searchId];
     if (!s2 || !s2.heads[index]) return;
@@ -719,6 +788,8 @@ function openHeadEdit(player, searchId, index) {
       return;
     }
     h2.skin = clampSkin(skinIdx);
+    h2.size = clampSize(sizeIdx);
+    h2.fx = clampFx(fxIdx);
     const nm = String(name || "").trim();
     if (nm.length) h2.name = nm;
     else delete h2.name;
@@ -726,12 +797,11 @@ function openHeadEdit(player, searchId, index) {
     if (pc) h2.pcolor = pc;
     else delete h2.pcolor;
     saveDB(db2);
-    // re-aplica la cabeza (entidad + holos)
     if (!h2.found) {
       removeHead(searchId, index);
       spawnHead(world.getDimension(h2.dim || "minecraft:overworld"), s2, index);
     }
-    actionBar(player, `§a[Search] Cabeza #${index + 1} actualizada.`);
+    actionBar(player, `§a[Search] Cabeza #${index + 1} actualizada (${SIZE_NAMES[h2.size]}, ${FX_NAMES[h2.fx]}).`);
     openHeadList(player, searchId);
   });
 }
@@ -903,6 +973,14 @@ world.afterEvents.playerInteractWithEntity.subscribe((event) => {
   handleFoundEntity(player, target);
 });
 
+// Fallback: golpear la cabeza también la encuentra
+world.afterEvents.entityHitEntity.subscribe((event) => {
+  const { damagingEntity, hitEntity } = event;
+  if (!hitEntity || hitEntity.typeId !== HEAD_ID) return;
+  if (!damagingEntity || damagingEntity.typeId !== "minecraft:player") return;
+  handleFoundEntity(damagingEntity, hitEntity);
+});
+
 world.afterEvents.worldInitialize.subscribe(() => {
   system.runTimeout(() => {
     try {
@@ -923,4 +1001,4 @@ system.runInterval(() => {
   } catch (e) {}
 }, 6);
 
-console.warn("[The Search MCPE] v6 cargado con " + HEAD_CATALOG.length + " cabezas (entidades interactivas).");
+console.warn("[The Search MCPE] v7 cargado con " + HEAD_CATALOG.length + " cabezas + " + FX_NAMES.length + " partículas.");

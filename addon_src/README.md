@@ -5,11 +5,24 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v6 (actual):** `dist/wings_search_v6.mcaddon`
-- v5 · v4 · v3 · v2 · v1
+- **v7 (actual):** `dist/wings_search_v7.mcaddon`
+- v6 · v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v7
+- **ARREGLADO: las cabezas ahora SE VEN.** En la v6 la geometría con UV por cara las dejaba
+  invisibles (solo partículas). Volví a una geometría **box-uv 64px** robusta + textura de
+  net completo con sombreado → la cabeza se ve desde todos los ángulos.
+- **Botón "Interactuar" estilo NPC** (`minecraft:interact`) + sonido al apuntarla; al estar
+  cerca también sale el aviso en la barra de acción. Encontrar = pulsar Interactuar (o golpear).
+- **Tamaños de cabeza**: §fPequeña · Normal · Grande · Gigante§r (se eligen en la galería y
+  por cabeza en la edición; usan `minecraft:scale` por component group).
+- **12 partículas custom**: Destello, Corazones, Estrellas, Nieve, Fuego, Magia, Confeti,
+  Humo, Ender, Notas, Burbujas y Brillos — elegibles por cabeza.
+- **Menú principal rediseñado** (cabecera, separadores y estadísticas más claras).
+- Edición por cabeza ampliada: skin, **tamaño**, **partícula**, nombre y color.
 
 ## Novedades v6
 - **Botón "Interactuar" estilo NPC**: las cabezas ahora son **entidades interactivas**
