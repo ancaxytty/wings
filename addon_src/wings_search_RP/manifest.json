@@ -2,12 +2,12 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search MCPE §7RP",
-    "description": "§eParticulas flotantes + 3 animaciones 3D (Dulces/Volcan/Santa).\n§7Resource Pack v7.2.1",
+    "description": "§e10 animaciones 3D (Dulces/Volcan/Santa/Regalo/Bats/Ruleta/Chief/Rayo/Tornado/Magia).\n§7Resource Pack v8.1.0",
     "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
     "version": [
-      7,
-      2,
-      1
+      8,
+      1,
+      0
     ],
     "min_engine_version": [
       1,
@@ -20,9 +20,9 @@
       "type": "resources",
       "uuid": "d18e488f-c778-41e2-9e7d-13124a9b3387",
       "version": [
-        7,
-        2,
-        1
+        8,
+        1,
+        0
       ]
     }
   ],
@@ -30,9 +30,9 @@
     {
       "uuid": "af9a6c3e-6c87-49bf-bad6-c258612ed211",
       "version": [
-        7,
-        2,
-        1
+        8,
+        1,
+        0
       ]
     }
   ]

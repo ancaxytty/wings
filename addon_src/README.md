@@ -5,26 +5,28 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v7.2.1 (actual):** `dist/wings_search_v7.2.1.mcaddon`
-- v7.1.1 · v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
+- **v8.1.0 (actual):** `dist/wings_search_v8.1.0.mcaddon`
+- v7.2.1 · v7.1.1 · v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
 
-## Novedades v7.2.1
-- **Partículas flotantes sobre las cabezas:** cada cabeza sin encontrar emite
-  partículas del color de la cabeza por encima, para que se vean de lejos.
-- **Romper = encontrar (y la cabeza NO se rompe):** ahora puedes hallar una cabeza
-  con **clic derecho** (interactuar) o **rompiéndola** (clic izquierdo). El bloque
-  no desaparece, solo cuenta como encontrada. Un **admin agachado (shift) + romper**
-  sí retira la cabeza de verdad (limpieza).
-- **3 animaciones 3D al encontrar una cabeza** (partículas volumétricas custom):
-  - 🎃 **Dulces** — explosión de caramelos multicolor + candy corn.
-  - 🌋 **Volcán** — erupción por oleadas: lava, brasas, rocas y columna de humo.
-  - 🎅 **Santa** — regalos y gorros que estallan, campanas y nevada.
-  Se elige por cabeza en **Cabezas** (botón Animación 3D) o en **Editar cabezas**.
-  Por defecto se asigna según el tema de la cabeza (invierno→Santa, guerra→Volcán,
-  resto→Dulces).
+## Novedades v8.1.0
+- **7 animaciones 3D nuevas** (ya son **10** en total), partículas custom volumétricas:
+  - 🎁 **Regalo Gigante** — un regalo grande sube flotando y **explota** en caramelos.
+  - 🦇 **Murciélagos** — bandada que sale volando en oleadas.
+  - 🎡 **Ruleta** — anillo de chispas multicolor **girando** (animación por frames).
+  - 🪖 **Master Chief** — cascos Spartan + chispas verdes.
+  - ⚡ **Relámpago / Kratos** — rayos cayendo + chispas rojas + explosión.
+  - 🌪 **Tornado** — embudo de polvo **girando** que sube (animación por frames).
+  - ✨ **Magia** — espiral creciente de runas y halos morado/cian.
+  - (Las 3 originales siguen: 🎃 Dulces, 🌋 Volcán, 🎅 Santa.)
+  Se eligen por cabeza en *Cabezas* (botón **Animación 3D**, con vista previa) o en *Editar cabezas*.
+- **Recompensa por cofre:** en *Gestionar → Recompensa por cofre (items)*:
+  1) llenas un cofre con los items, 2) pulsas **Vincular cofre** y **tocas el cofre**.
+  Los items se **guardan** y se entregan al jugador al encontrar cada cabeza. Si el
+  cofre sigue cargado, se leen en vivo (puedes editarlo cuando quieras); si no, se usa
+  la copia guardada. La recompensa por **comando** (`@s`) sigue disponible y se puede combinar.
 
 ## Novedades v7.1.0
 - **ARREGLO DEFINITIVO de visibilidad:** las cabezas vuelven a ser **BLOQUES**

@@ -724,3 +724,169 @@ def make_celebration_atlas():
 cw2, ch2, ci2 = make_celebration_atlas()
 write_png(f"{RP}/textures/particle/wings_celebration.png", cw2, ch2, ci2)
 print("Atlas de celebracion v7.2.1 generado: dulces + volcan + santa")
+
+
+
+# ================================================================== v8.1.0 atlas extra
+# Segundo atlas 64x64 (rejilla 4x4 de 16px) para las 7 animaciones nuevas:
+#   bat, lightning, helmet(Master Chief), blade(Kratos), wisp, rune, wedge,
+#   spark, dust, leaf, halo, bigspark. Los "tintables" se dibujan en BLANCO.
+def make_celebration_atlas2():
+    w = h = 64
+    img = blank(w, h)
+
+    def cell(cx, cy):
+        return cx * 16, cy * 16
+
+    def P(ox, oy, x, y, col):
+        if 0 <= x < 16 and 0 <= y < 16:
+            img[oy + y][ox + x] = [clamp(col[0]), clamp(col[1]), clamp(col[2]),
+                                   clamp(col[3]) if len(col) > 3 else 255]
+
+    def DISC(ox, oy, cx, cy, r, col):
+        for y in range(16):
+            for x in range(16):
+                if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                    P(ox, oy, x, y, col)
+
+    def RING(ox, oy, cx, cy, r0, r1, col):
+        for y in range(16):
+            for x in range(16):
+                d = (x - cx) ** 2 + (y - cy) ** 2
+                if r0 * r0 <= d <= r1 * r1:
+                    P(ox, oy, x, y, col)
+
+    def GRID(ox, oy, rows, palette, x0=4, y0=4):
+        for j, row in enumerate(rows):
+            for i, ch in enumerate(row):
+                c = palette.get(ch)
+                if c is not None:
+                    P(ox, oy, x0 + i, y0 + j, c if len(c) > 3 else (c + (255,)))
+
+    # ---- (0,0) murciélago (negro) ----
+    ox, oy = cell(0, 0)
+    bat = [
+        "X......X",
+        "XX....XX",
+        "XXXXXXXX",
+        "XXXXXXXX",
+        ".XX..XX.",
+        "..X..X..",
+        "........",
+        "........"]
+    GRID(ox, oy, bat, {"X": (22, 20, 30)})
+
+    # ---- (1,0) relámpago (amarillo + núcleo blanco) ----
+    ox, oy = cell(1, 0)
+    bolt = [
+        "....XX..",
+        "...XX...",
+        "..XX....",
+        ".XXXXX..",
+        "...XX...",
+        "..XX....",
+        ".XX.....",
+        "XX......"]
+    GRID(ox, oy, bolt, {"X": (255, 226, 70)})
+    core = [
+        "....X...",
+        "...X....",
+        "..X.....",
+        "..XXX...",
+        "...X....",
+        "..X.....",
+        ".X......",
+        "X......."]
+    GRID(ox, oy, core, {"X": (255, 255, 235)})
+
+    # ---- (2,0) casco Master Chief (verde + visor dorado) ----
+    ox, oy = cell(2, 0)
+    DISC(ox, oy, 8, 8, 5, (74, 96, 64))            # casco
+    DISC(ox, oy, 8, 7, 5, (92, 118, 78))
+    for x in range(4, 12):                          # visor
+        for y in range(7, 10):
+            P(ox, oy, x, y, (238, 196, 70))
+    P(ox, oy, 6, 8, (255, 232, 150))
+    DISC(ox, oy, 6, 5, 1, (190, 215, 170))          # brillo
+
+    # ---- (3,0) hoja de Kratos (rojo/naranja diagonal) ----
+    ox, oy = cell(3, 0)
+    for t in range(12):
+        P(ox, oy, 2 + t, 13 - t, (210, 60, 30))
+        P(ox, oy, 3 + t, 13 - t, (245, 120, 40))
+        P(ox, oy, 2 + t, 12 - t, (160, 32, 20))
+    P(ox, oy, 13, 2, (255, 220, 120))
+
+    # ---- (0,1) wisp/estela (BLANCO tintable) ----
+    ox, oy = cell(0, 1)
+    for y in range(2, 14):
+        cx = 8 + int(2.4 * math.sin((y - 2) * 0.6))
+        for dx in (-1, 0, 1):
+            a = 255 if dx == 0 else 150
+            P(ox, oy, cx + dx, y, (255, 255, 255, a))
+
+    # ---- (1,1) runa/estrella 4 puntas (BLANCO tintable) ----
+    ox, oy = cell(1, 1)
+    for d in range(-6, 7):
+        a = max(40, 255 - abs(d) * 28)
+        P(ox, oy, 8 + d, 8, (255, 255, 255, a))
+        P(ox, oy, 8, 8 + d, (255, 255, 255, a))
+    for d in range(-3, 4):
+        a = max(40, 200 - abs(d) * 34)
+        P(ox, oy, 8 + d, 8 + d, (255, 255, 255, a))
+        P(ox, oy, 8 + d, 8 - d, (255, 255, 255, a))
+    DISC(ox, oy, 8, 8, 1, (255, 255, 255, 255))
+
+    # ---- (2,1) cuña/segmento de ruleta (BLANCO tintable) ----
+    ox, oy = cell(2, 1)
+    for y in range(16):
+        half = int((y) * 0.45)
+        for x in range(8 - half, 8 + half + 1):
+            P(ox, oy, x, y, (255, 255, 255, 255))
+
+    # ---- (3,1) chispa (BLANCO tintable, plus pequeño) ----
+    ox, oy = cell(3, 1)
+    for d in range(-4, 5):
+        a = max(60, 255 - abs(d) * 40)
+        P(ox, oy, 8 + d, 8, (255, 255, 255, a))
+        P(ox, oy, 8, 8 + d, (255, 255, 255, a))
+    DISC(ox, oy, 8, 8, 1, (255, 255, 255, 255))
+
+    # ---- (0,2) polvo suave (BLANCO tintable) ----
+    ox, oy = cell(0, 2)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 8) ** 2 + (y - 8) ** 2
+            if d <= 36:
+                a = int(235 * (1 - d / 38.0))
+                P(ox, oy, x, y, (255, 255, 255, max(0, a)))
+
+    # ---- (1,2) hoja/escombro (marrón) ----
+    ox, oy = cell(1, 2)
+    leaf = [
+        "..XX..",
+        ".XXXX.",
+        "XXXXXX",
+        "XXXXXX",
+        ".XXXX.",
+        "..XX.."]
+    GRID(ox, oy, leaf, {"X": (120, 86, 48)}, x0=5, y0=5)
+
+    # ---- (2,2) halo/anillo (BLANCO tintable) ----
+    ox, oy = cell(2, 2)
+    RING(ox, oy, 8, 8, 4, 6.5, (255, 255, 255, 235))
+    RING(ox, oy, 8, 8, 6.0, 6.8, (255, 255, 255, 150))
+
+    # ---- (3,2) destello grande (BLANCO tintable) ----
+    ox, oy = cell(3, 2)
+    for d in range(-7, 8):
+        a = max(40, 255 - abs(d) * 22)
+        P(ox, oy, 8 + d, 8, (255, 255, 255, a))
+        P(ox, oy, 8, 8 + d, (255, 255, 255, a))
+    DISC(ox, oy, 8, 8, 2, (255, 255, 255, 255))
+
+    return w, h, img
+
+c2w, c2h, c2i = make_celebration_atlas2()
+write_png(f"{RP}/textures/particle/wings_celebration2.png", c2w, c2h, c2i)
+print("Atlas de celebracion 2 (v8.1.0) generado: bat/relampago/chief/kratos/wisp/runa/etc.")

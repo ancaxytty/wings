@@ -1,15 +1,16 @@
-import { world, system, BlockPermutation, MolangVariableMap } from "@minecraft/server";
+import { world, system, BlockPermutation, MolangVariableMap, ItemStack } from "@minecraft/server";
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * The Search MCPE v7.2.1
- * - 16 CABEZAS como BLOQUES (estilo cabeza de Minecraft, 8px) con texturas custom.
- *   -> Son BLOQUES (siempre visibles). NO desaparecen al encontrarlas.
- * - Tamaños: Pequeña / Normal / Grande / Gigante (estado wings:size + transformation).
- * - Encontrar = INTERACTUAR (clic derecho) o ROMPER (clic izq): la cabeza NO se rompe,
- *   solo cuenta como encontrada. Admin + agachado (shift) rompe de verdad (limpieza).
+ * The Search MCPE v8.1.0
+ * - 16 CABEZAS como BLOQUES (siempre visibles). NO desaparecen al encontrarlas.
+ * - Tamaños: Pequeña / Normal / Grande / Gigante.
+ * - Encontrar = INTERACTUAR (clic derecho) o ROMPER (clic izq): la cabeza NO se rompe.
+ *   Admin + agachado (shift) rompe de verdad (limpieza).
  * - Partículas FLOTANTES sobre cada cabeza no encontrada (del color de la cabeza).
- * - 12 partículas custom al encontrar + 3 ANIMACIONES 3D: Dulces 🎃 / Volcán 🌋 / Santa 🎅.
+ * - 10 ANIMACIONES 3D al encontrar: Dulces 🎃 / Volcán 🌋 / Santa 🎅 / Regalo Gigante 🎁 /
+ *   Murciélagos 🦇 / Ruleta 🎡 / Master Chief 🪖 / Relámpago ⚡ / Tornado 🌪 / Magia ✨.
+ * - RECOMPENSA POR COFRE: vincula un cofre; los items dentro se guardan y se entregan.
  * - Botón RESET (admin) para volver a encontrarlas.
  * - Sistema de rango: el menú/edición requieren el tag "admin" (/tag @p add admin).
  * - Mensajes en consola (content log).
@@ -47,8 +48,11 @@ const FX_NAMES = [
   "Confeti", "Humo", "Ender", "Notas", "Burbujas", "Brillos"
 ];
 
-// 3 animaciones 3D al encontrar una cabeza
-const CELEB_NAMES = ["Dulces 🎃", "Volcán 🌋", "Santa 🎅"];
+// 10 animaciones 3D al encontrar una cabeza
+const CELEB_NAMES = [
+  "Dulces 🎃", "Volcán 🌋", "Santa 🎅", "Regalo Gigante 🎁", "Murciélagos 🦇",
+  "Ruleta 🎡", "Master Chief 🪖", "Relámpago ⚡", "Tornado 🌪", "Magia ✨"
+];
 // colores de los dulces para la explosión multicolor
 const CANDY_COLORS = [
   [0.95, 0.20, 0.25], // rojo
@@ -96,15 +100,14 @@ function headFx(h) {
 }
 function clampCeleb(n) {
   n = Math.floor(Number(n));
-  return Number.isFinite(n) && n >= 0 && n <= 2 ? n : 0;
+  return Number.isFinite(n) && n >= 0 && n <= CELEB_NAMES.length - 1 ? n : 0;
 }
 function defaultCeleb(skin) {
-  // invierno/navidad -> Santa(2); guerra/fuego -> Volcán(1); resto -> Dulces(0)
-  const winter = [1, 2, 3, 4, 7, 8, 9]; // Navidad, Santa, Frozen, Olaf, Reno, Muñeco, Regalo
-  const fire = [12, 13, 14];            // Master Chief, God of War, Gears of War
-  if (winter.indexOf(skin) !== -1) return 2;
-  if (fire.indexOf(skin) !== -1) return 1;
-  return 0;
+  if (skin === 12) return 6;             // Master Chief -> animación Master Chief
+  if (skin === 13 || skin === 14) return 7; // God of War / Gears -> Relámpago
+  const winter = [1, 2, 3, 4, 7, 8, 9];  // Navidad, Santa, Frozen, Olaf, Reno, Muñeco, Regalo
+  if (winter.indexOf(skin) !== -1) return 2; // Santa
+  return 0;                              // Dulces
 }
 function headCeleb(h) {
   if (h && h.celeb !== undefined) return clampCeleb(h.celeb);
@@ -435,7 +438,18 @@ function ambientAbove() {
   }
 }
 
-// ----------------------------- 3 animaciones 3D (al encontrar) -----------------------------
+// ----------------------------- animaciones 3D (al encontrar) -----------------------------
+
+// programa fn(i) en varios "frames" para crear animaciones que se mueven en el tiempo
+function animate(frames, step, fn) {
+  for (let i = 0; i < frames; i++) {
+    system.runTimeout(() => {
+      try {
+        fn(i);
+      } catch (e) {}
+    }, i * step);
+  }
+}
 
 function playCelebration(dimension, base, type) {
   const t = clampCeleb(type);
@@ -464,7 +478,7 @@ function playCelebration(dimension, base, type) {
     system.runTimeout(() => erupt(2), 12);
     system.runTimeout(() => erupt(3), 18);
     system.runTimeout(() => spawnP(dimension, "wings:ash", { x: base.x, y: base.y + 0.3, z: base.z }), 26);
-  } else {
+  } else if (t === 2) {
     // SANTA: regalos + gorros + campanas + nevada
     spawnP(dimension, "wings:gift", base);
     spawnP(dimension, "wings:santahat", base);
@@ -475,20 +489,110 @@ function playCelebration(dimension, base, type) {
       spawnP(dimension, "wings:snowfall", base);
     }, 10);
     system.runTimeout(() => spawnP(dimension, "wings:snowfall", base), 24);
+  } else if (t === 3) {
+    // REGALO GIGANTE: sube flotando y explota en caramelos/regalos
+    spawnP(dimension, "wings:biggift", base);
+    spawnP(dimension, "wings:spark", { x: base.x, y: base.y + 0.3, z: base.z }, [1.0, 0.85, 0.25]);
+    spawnP(dimension, "wings:spark", { x: base.x, y: base.y + 0.6, z: base.z }, [1.0, 0.85, 0.25]);
+    system.runTimeout(() => {
+      const top = { x: base.x, y: base.y + 1.9, z: base.z };
+      try {
+        dimension.spawnParticle("minecraft:huge_explosion_emitter", top);
+      } catch (e) {}
+      for (const c of CANDY_COLORS) spawnP(dimension, "wings:candy", top, c);
+      spawnP(dimension, "wings:gift", top);
+      spawnP(dimension, "wings:bell", top);
+    }, 18);
+  } else if (t === 4) {
+    // MURCIÉLAGOS: vuelan hacia fuera en oleadas
+    spawnP(dimension, "wings:bat", base);
+    system.runTimeout(() => spawnP(dimension, "wings:bat", { x: base.x, y: base.y + 0.5, z: base.z }), 8);
+    system.runTimeout(() => spawnP(dimension, "wings:bat", base), 16);
+  } else if (t === 5) {
+    // RULETA: anillo de chispas multicolor girando
+    const cols = CANDY_COLORS;
+    const n = 8;
+    animate(26, 1, (i) => {
+      for (let k = 0; k < n; k++) {
+        const ang = i * 0.5 + k * (Math.PI * 2 / n);
+        const r = 1.2;
+        const pos = { x: base.x + r * Math.cos(ang), y: base.y + 0.15 + 0.05 * Math.sin(i * 0.6 + k), z: base.z + r * Math.sin(ang) };
+        spawnP(dimension, "wings:spark", pos, cols[(k + i) % cols.length]);
+      }
+    });
+    spawnP(dimension, "wings:halo", base, [1.0, 0.9, 0.3]);
+  } else if (t === 6) {
+    // MASTER CHIEF: cascos + chispas verdes
+    spawnP(dimension, "wings:helmet", base);
+    animate(8, 2, () => {
+      for (let k = 0; k < 6; k++) {
+        const ang = Math.random() * Math.PI * 2;
+        const r = 0.3 + Math.random() * 0.8;
+        const pos = { x: base.x + r * Math.cos(ang), y: base.y + 0.2 + Math.random() * 1.0, z: base.z + r * Math.sin(ang) };
+        spawnP(dimension, "wings:spark", pos, [0.30, 0.85, 0.38]);
+      }
+    });
+  } else if (t === 7) {
+    // RELÁMPAGO / KRATOS: rayos cayendo + chispas rojas + explosión
+    animate(4, 3, () => {
+      const ox = base.x + (Math.random() - 0.5) * 1.2;
+      const oz = base.z + (Math.random() - 0.5) * 1.2;
+      spawnP(dimension, "wings:bolt", { x: ox, y: base.y, z: oz });
+    });
+    animate(6, 2, () => {
+      for (let k = 0; k < 6; k++) {
+        const ang = Math.random() * Math.PI * 2;
+        const r = 0.2 + Math.random() * 0.9;
+        const pos = { x: base.x + r * Math.cos(ang), y: base.y + Math.random() * 0.8, z: base.z + r * Math.sin(ang) };
+        spawnP(dimension, "wings:spark", pos, [0.95, 0.25, 0.15]);
+      }
+    });
+    try {
+      dimension.spawnParticle("minecraft:huge_explosion_emitter", base);
+    } catch (e) {}
+  } else if (t === 8) {
+    // TORNADO: embudo de polvo girando que sube
+    animate(30, 1, (i) => {
+      const layers = 6;
+      for (let k = 0; k < layers; k++) {
+        const hgt = k * 0.42;
+        const rad = 0.25 + hgt * 0.45;
+        const ang = i * 0.7 + k * 1.1;
+        spawnP(dimension, "wings:wisp", { x: base.x + rad * Math.cos(ang), y: base.y - 0.4 + hgt, z: base.z + rad * Math.sin(ang) }, [0.62, 0.59, 0.55]);
+        if (k < 2) {
+          spawnP(dimension, "wings:dust", { x: base.x + rad * Math.cos(ang + 2.0), y: base.y - 0.4 + hgt, z: base.z + rad * Math.sin(ang + 2.0) }, [0.50, 0.42, 0.32]);
+        }
+      }
+    });
+  } else {
+    // MAGIA: espiral creciente de runas + halos morado/cian
+    const n = 5;
+    animate(24, 1, (i) => {
+      for (let k = 0; k < n; k++) {
+        const ang = i * 0.6 + k * (Math.PI * 2 / n);
+        const r = 0.2 + i * 0.06;
+        const col = (k % 2 === 0) ? [0.62, 0.35, 0.95] : [0.30, 0.80, 0.95];
+        spawnP(dimension, "wings:rune", { x: base.x + r * Math.cos(ang), y: base.y + 0.1 + i * 0.035, z: base.z + r * Math.sin(ang) }, col);
+      }
+    });
+    spawnP(dimension, "wings:halo", base, [0.62, 0.40, 0.95]);
+    system.runTimeout(() => spawnP(dimension, "wings:halo", base, [0.30, 0.80, 0.95]), 10);
   }
 }
 
 function celebrationSound(player, type) {
   try {
-    if (type === 1) {
-      player.playSound("random.explode", { pitch: 0.9 });
-      player.playSound("fire.fire", { pitch: 0.8 });
-    } else if (type === 2) {
-      player.playSound("note.bell", { pitch: 1.1 });
-      player.playSound("note.bell", { pitch: 1.5 });
-    } else {
-      player.playSound("note.pling", { pitch: 1.4 });
-      player.playSound("random.pop", { pitch: 1.2 });
+    switch (clampCeleb(type)) {
+      case 1: player.playSound("random.explode", { pitch: 0.9 }); player.playSound("fire.fire", { pitch: 0.8 }); break;
+      case 2: player.playSound("note.bell", { pitch: 1.1 }); player.playSound("note.bell", { pitch: 1.5 }); break;
+      case 3: player.playSound("random.levelup", { pitch: 1.0 }); player.playSound("random.pop", { pitch: 1.3 }); break;
+      case 4: player.playSound("mob.bat.takeoff", { pitch: 1.0 }); player.playSound("mob.bat.idle", { pitch: 1.2 }); break;
+      case 5: player.playSound("random.orb", { pitch: 1.2 }); player.playSound("note.harp", { pitch: 1.5 }); break;
+      case 6: player.playSound("random.explode", { pitch: 1.3 }); player.playSound("note.bit", { pitch: 1.4 }); break;
+      case 7: player.playSound("ambient.weather.thunder", { pitch: 1.0 }); player.playSound("random.explode", { pitch: 0.8 }); break;
+      case 8: player.playSound("mob.bat.takeoff", { pitch: 0.6 }); player.playSound("random.fizz", { pitch: 0.8 }); break;
+      case 9: player.playSound("random.orb", { pitch: 1.6 }); player.playSound("note.chime", { pitch: 1.3 }); break;
+      default: player.playSound("note.pling", { pitch: 1.4 }); player.playSound("random.pop", { pitch: 1.2 });
     }
   } catch (e) {}
 }
@@ -527,6 +631,70 @@ function removeHeadAt(loc, dimId, player) {
   return false;
 }
 
+// ----------------------------- recompensa por cofre (items guardados) -----------------------------
+
+const CHEST_IDS = ["minecraft:chest", "minecraft:trapped_chest", "minecraft:barrel"];
+
+function getBindReward(player) {
+  const v = player.getDynamicProperty("wings:bindReward");
+  return typeof v === "string" && v.length ? v : null;
+}
+function setBindReward(player, id) {
+  player.setDynamicProperty("wings:bindReward", id || "");
+}
+function readChestItems(dimId, loc) {
+  try {
+    const dim = world.getDimension(dimId);
+    const b = dim.getBlock(loc);
+    if (!b || CHEST_IDS.indexOf(b.typeId) === -1) return null;
+    const inv = b.getComponent("minecraft:inventory");
+    const cont = inv && inv.container;
+    if (!cont) return null;
+    const out = [];
+    for (let i = 0; i < cont.size; i++) {
+      const it = cont.getItem(i);
+      if (it) out.push({ id: it.typeId, amount: it.amount });
+    }
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+function giveItemsToPlayer(player, items) {
+  if (!items || !items.length) return 0;
+  let cont;
+  try {
+    cont = player.getComponent("minecraft:inventory").container;
+  } catch (e) {
+    return 0;
+  }
+  let given = 0;
+  for (const it of items) {
+    let amt = it.amount || 1;
+    while (amt > 0) {
+      const n = Math.min(amt, 64);
+      try {
+        cont.addItem(new ItemStack(it.id, n));
+        given += n;
+      } catch (e) {}
+      amt -= n;
+    }
+  }
+  return given;
+}
+// lee el cofre vinculado en vivo (si está cargado); si no, usa el snapshot guardado
+function rewardItemsFor(s) {
+  if (s.rewardChest) {
+    const live = readChestItems(s.rewardChest.dim, { x: s.rewardChest.x, y: s.rewardChest.y, z: s.rewardChest.z });
+    if (live && live.length) return live;
+  }
+  return s.rewardItems || [];
+}
+function itemsSummary(items) {
+  if (!items || !items.length) return "(ninguno)";
+  return items.map((i) => `${i.amount}x ${String(i.id).replace("minecraft:", "")}`).join(", ");
+}
+
 function handleFound(player, loc, dimId) {
   const match = findHeadAt(loc, dimId);
   if (!match) return false;
@@ -562,6 +730,15 @@ function handleFound(player, loc, dimId) {
   if (s.reward && String(s.reward).trim().length > 0) {
     try {
       player.runCommand(String(s.reward).trim());
+    } catch (e) {}
+  }
+  // recompensa por cofre vinculado (items guardados)
+  const rItems = rewardItemsFor(s);
+  const given = giveItemsToPlayer(player, rItems);
+  if (given > 0) {
+    player.sendMessage(`§a[Search] Recompensa: §f${itemsSummary(rItems)}`);
+    try {
+      player.playSound("random.pop", { pitch: 1.4 });
     } catch (e) {}
   }
   if (foundCount >= total && total > 0) {
@@ -722,10 +899,13 @@ function openHelp(player) {
         "§6§lCómo se juega§r\n" +
         "§7• Rango: gestionar requiere el tag §eadmin§7 (§f/tag @p add admin§7).\n" +
         "§7• En §fCabezas§7 eliges una de las §f16§7, su §6tamaño§7, §dpartícula§7 y §6animación 3D§7.\n" +
+        "§7• §610 animaciones 3D§7: Dulces, Volcán, Santa, Regalo Gigante, Murciélagos,\n" +
+        "§7  Ruleta, Master Chief, Relámpago, Tornado y Magia.\n" +
         "§7• §fColoca§7 el bloque-cabeza (se ve siempre, no desaparece).\n" +
         "§7• Verás §dpartículas flotando§7 encima de las cabezas sin encontrar.\n" +
         "§7• Acércate y §eclic derecho§7 o §erómpela§7 (no se rompe) para hallarla.\n" +
-        "§7• Al hallar: §6animación 3D§7 (Dulces/Volcán/Santa) + §atítulo§7 + recompensa.\n" +
+        "§7• §6Recompensa por cofre§7: en Gestionar, vincula un cofre con items y\n" +
+        "§7  se entregan al encontrar cada cabeza (se guardan).\n" +
         "§7• §8Admin + agachado + romper = retira la cabeza (limpieza).\n" +
         "§7• §fReset§7 (en Gestionar) permite volver a encontrarlas.\n"
     )
@@ -809,6 +989,7 @@ function openManage(player, searchId) {
     .button("§2Reset (volver a encontrar)", "textures/custom_ui/icon_reload")
     .button("§bInfo de la búsqueda", "textures/custom_ui/icon_help")
     .button("§eEditar (nombre/color/recompensa)", "textures/custom_ui/icon_review")
+    .button("§6Recompensa por cofre (items)", "textures/custom_ui/icon_place")
     .button("§3Editar title / subtitle", "textures/custom_ui/icon_review")
     .button("§dReaparecer cabezas", "textures/custom_ui/icon_reload")
     .button("§6Teletransportar a una cabeza")
@@ -828,16 +1009,17 @@ function openManage(player, searchId) {
       case 3: openReset(player, searchId); break;
       case 4: openInfo(player, searchId); break;
       case 5: openEdit(player, searchId); break;
-      case 6: openMessages(player, searchId); break;
-      case 7: {
+      case 6: openRewardChest(player, searchId); break;
+      case 7: openMessages(player, searchId); break;
+      case 8: {
         const n = respawnSearch(s);
         actionBar(player, `§a[Search] Reaparecidas §f${n}§a cabezas.`);
         openManage(player, searchId);
         break;
       }
-      case 8: openTeleport(player, searchId); break;
-      case 9: openDelete(player, searchId); break;
-      case 10: openReview(player); break;
+      case 9: openTeleport(player, searchId); break;
+      case 10: openDelete(player, searchId); break;
+      case 11: openReview(player); break;
     }
   });
 }
@@ -980,7 +1162,8 @@ function openInfo(player, searchId) {
   if (!s) return;
   let body = `§${colorCode(s.color)}§l${s.name}§r\n\n`;
   body += `§7Creador: §f${s.createdBy}\n`;
-  body += `§7Recompensa: §f${s.reward && s.reward.length ? s.reward : "(ninguna)"}\n`;
+  body += `§7Recompensa cmd: §f${s.reward && s.reward.length ? s.reward : "(ninguna)"}\n`;
+  body += `§7Recompensa cofre: §f${itemsSummary(s.rewardItems)}\n`;
   body += `§7Total cabezas: §f${s.heads.length}\n`;
   body += `§7Encontradas: §a${s.heads.filter((h) => h.found).length}\n\n`;
   s.heads.forEach((h, i) => {
@@ -1017,6 +1200,83 @@ function openEdit(player, searchId) {
     if (refresh) respawnSearch(s2);
     actionBar(player, `§a[Search] Búsqueda actualizada: §f${s2.name}`);
     openManage(player, searchId);
+  });
+}
+
+function openRewardChest(player, searchId) {
+  const db = loadDB();
+  const s = db[searchId];
+  if (!s) return;
+  const bound = s.rewardChest ? `§f${s.rewardChest.x}, ${s.rewardChest.y}, ${s.rewardChest.z}` : "§csin vincular";
+  const items = s.rewardItems || [];
+  const form = new ActionFormData()
+    .title("Recompensa por cofre")
+    .body(
+      `§7Cofre vinculado: ${bound}\n` +
+        `§7Items guardados: §f${itemsSummary(items)}\n\n` +
+        `§e§lPasos:\n` +
+        `§71) Coloca un cofre y mete dentro los items de recompensa.\n` +
+        `§72) Pulsa §fVincular cofre§7 y luego §ftoca el cofre§7.\n` +
+        `§7Se guardan los items y se entregan al encontrar cada cabeza.\n`
+    )
+    .button("§aVincular cofre y guardar items", "textures/custom_ui/icon_place")
+    .button("§eDarme un cofre", "textures/custom_ui/icon_create")
+    .button("§bRe-leer items del cofre", "textures/custom_ui/icon_reload")
+    .button("§cQuitar recompensa de items", "textures/custom_ui/icon_delete")
+    .button("§7« Volver");
+  form.show(player).then((res) => {
+    if (res.canceled) {
+      openManage(player, searchId);
+      return;
+    }
+    switch (res.selection) {
+      case 0:
+        setBindReward(player, searchId);
+        actionBar(player, "§a[Search] Ahora §etoca un cofre§a para guardarlo como recompensa.");
+        player.sendMessage("§7[Search] Toca el cofre lleno con los items de recompensa. (Vuelve al menú para cancelar.)");
+        // se cierra el menú a propósito para poder tocar el cofre
+        break;
+      case 1:
+        try {
+          player.runCommand("give @s chest 1");
+        } catch (e) {}
+        actionBar(player, "§a[Search] Cofre entregado. Llénalo y vincúlalo.");
+        openRewardChest(player, searchId);
+        break;
+      case 2: {
+        const db2 = loadDB();
+        const s2 = db2[searchId];
+        if (s2 && s2.rewardChest) {
+          const live = readChestItems(s2.rewardChest.dim, { x: s2.rewardChest.x, y: s2.rewardChest.y, z: s2.rewardChest.z });
+          if (live) {
+            s2.rewardItems = live;
+            saveDB(db2);
+            actionBar(player, `§a[Search] Items actualizados: §f${itemsSummary(live)}`);
+          } else {
+            actionBar(player, "§c[Search] No pude leer el cofre (¿está cargado el chunk?).");
+          }
+        } else {
+          actionBar(player, "§c[Search] No hay cofre vinculado todavía.");
+        }
+        openRewardChest(player, searchId);
+        break;
+      }
+      case 3: {
+        const db2 = loadDB();
+        const s2 = db2[searchId];
+        if (s2) {
+          delete s2.rewardItems;
+          delete s2.rewardChest;
+          saveDB(db2);
+        }
+        actionBar(player, "§a[Search] Recompensa de items eliminada.");
+        openRewardChest(player, searchId);
+        break;
+      }
+      case 4:
+        openManage(player, searchId);
+        break;
+    }
   });
 }
 
@@ -1173,7 +1433,30 @@ world.afterEvents.playerPlaceBlock.subscribe((event) => {
 // Encontrar al INTERACTUAR (clic derecho) con el bloque-cabeza
 world.afterEvents.playerInteractWithBlock.subscribe((event) => {
   const { player, block, itemStack } = event;
-  if (!block || block.typeId !== HEAD_ID) return;
+  if (!block) return;
+  // vincular cofre de recompensa (admin en modo "vincular")
+  const bindId = getBindReward(player);
+  if (bindId && CHEST_IDS.indexOf(block.typeId) !== -1) {
+    setBindReward(player, "");
+    const bloc = { x: block.location.x, y: block.location.y, z: block.location.z };
+    const dimId = player.dimension.id;
+    system.run(() => {
+      try {
+        const items = readChestItems(dimId, bloc) || [];
+        const db = loadDB();
+        const s = db[bindId];
+        if (s) {
+          s.rewardChest = { x: bloc.x, y: bloc.y, z: bloc.z, dim: dimId };
+          s.rewardItems = items;
+          saveDB(db);
+        }
+        actionBar(player, `§a[Search] Cofre vinculado: §f${items.length}§a item(s) guardados como recompensa.`);
+        log(`${player.name} vinculó un cofre de recompensa (${items.length} items).`);
+      } catch (e) {}
+    });
+    return;
+  }
+  if (block.typeId !== HEAD_ID) return;
   if (itemStack && itemStack.typeId === HEAD_ID) return; // está construyendo
   if (player.isSneaking) return;
   handleFound(player, block.location, player.dimension.id);
@@ -1209,7 +1492,7 @@ world.afterEvents.worldInitialize.subscribe(() => {
       reloadAll();
     } catch (e) {}
   }, 40);
-  log("v7.2.1 cargado: " + HEAD_CATALOG.length + " cabezas (bloques) + " + FX_NAMES.length + " partículas + 3 animaciones 3D (" + CELEB_NAMES.join(", ") + "). Usa /tag @p add admin para gestionar.");
+  log("v8.1.0 cargado: " + HEAD_CATALOG.length + " cabezas + " + CELEB_NAMES.length + " animaciones 3D + recompensa por cofre. Usa /tag @p add admin para gestionar.");
 });
 
 // Aviso [Interactuar] al acercarse
