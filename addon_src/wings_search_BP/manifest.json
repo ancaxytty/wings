@@ -2,11 +2,11 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search MCPE §7BP",
-    "description": "§eCabezas-bloque visibles, no desaparecen, reset, rango admin.\n§7Behavior Pack v7.1.1",
+    "description": "§eParticulas flotantes, romper=encontrar, 3 animaciones 3D.\n§7Behavior Pack v7.2.1",
     "uuid": "af9a6c3e-6c87-49bf-bad6-c258612ed211",
     "version": [
       7,
-      1,
+      2,
       1
     ],
     "min_engine_version": [
@@ -21,7 +21,7 @@
       "uuid": "563df3a4-089a-4610-a645-a90fd7dc257e",
       "version": [
         7,
-        1,
+        2,
         1
       ]
     },
@@ -31,7 +31,7 @@
       "uuid": "53009795-0769-4c31-a55a-3f8a2e137f49",
       "version": [
         7,
-        1,
+        2,
         1
       ],
       "entry": "scripts/main.js"
@@ -42,7 +42,7 @@
       "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
       "version": [
         7,
-        1,
+        2,
         1
       ]
     },

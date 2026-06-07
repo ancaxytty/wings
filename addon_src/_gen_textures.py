@@ -563,3 +563,164 @@ hw, hh, hi = make_holo(); write_png(f"{RP}/textures/entity/wings_hologram.png", 
 aw, ah, ai = make_particle_atlas(); write_png(f"{RP}/textures/particle/wings_particles.png", aw, ah, ai)
 
 print("Texturas v4 PRO generadas:", len(HEADS), "cabezas + tiles de accion + panel + close + pack_icon")
+
+
+
+# ================================================================== v7.2.1 celebration atlas
+# Atlas 64x64 (rejilla 4x4 de 16px) para las 3 animaciones 3D:
+#   fila 0 = DULCES, fila 1 = VOLCAN, fila 2 = SANTA/NAVIDAD
+def make_celebration_atlas():
+    w = h = 64
+    img = blank(w, h)
+
+    def cell(cx, cy):
+        return cx * 16, cy * 16
+
+    def P(ox, oy, x, y, col):
+        if 0 <= x < 16 and 0 <= y < 16:
+            img[oy + y][ox + x] = [clamp(col[0]), clamp(col[1]), clamp(col[2]),
+                                   clamp(col[3]) if len(col) > 3 else 255]
+
+    def DISC(ox, oy, cx, cy, r, col):
+        for y in range(16):
+            for x in range(16):
+                if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                    P(ox, oy, x, y, col)
+
+    def RECT(ox, oy, x0, y0, x1, y1, col):
+        for y in range(int(y0), int(y1)):
+            for x in range(int(x0), int(x1)):
+                P(ox, oy, x, y, col)
+
+    # ---- (0,0) caramelo envuelto BLANCO (tintable por el script) ----
+    ox, oy = cell(0, 0)
+    DISC(ox, oy, 8, 8, 4, (255, 255, 255, 255))           # cuerpo
+    # extremos retorcidos
+    for dx in (-1, 1):
+        P(ox, oy, 8 + dx * 6, 6, (255, 255, 255, 230))
+        P(ox, oy, 8 + dx * 6, 9, (255, 255, 255, 230))
+        P(ox, oy, 8 + dx * 7, 7, (255, 255, 255, 200))
+        P(ox, oy, 8 + dx * 7, 8, (255, 255, 255, 200))
+    DISC(ox, oy, 6, 6, 1, (255, 255, 255, 255))           # brillo
+    DISC(ox, oy, 8, 8, 2, (240, 240, 245, 255))
+
+    # ---- (1,0) caramelo "candy corn" (blanco/naranja/amarillo) ----
+    ox, oy = cell(1, 0)
+    for y in range(2, 14):
+        t = (y - 2) / 12.0
+        half = int(1 + 6 * t)
+        if t < 0.34:
+            col = (255, 255, 255, 255)
+        elif t < 0.7:
+            col = (245, 150, 40, 255)
+        else:
+            col = (250, 215, 70, 255)
+        RECT(ox, oy, 8 - half, y, 8 + half, y + 1, col)
+
+    # ---- (2,0) paleta/lollipop (espiral rojo-blanco) ----
+    ox, oy = cell(2, 0)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 7) ** 2 + (y - 6) ** 2
+            if d <= 30:
+                ang = math.atan2(y - 6, x - 7)
+                sp = (ang * 2 + math.sqrt(d) * 0.9)
+                col = (230, 45, 55, 255) if (int(sp) % 2 == 0) else (250, 250, 250, 255)
+                P(ox, oy, x, y, col)
+    RECT(ox, oy, 7, 10, 9, 16, (235, 235, 240, 255))      # palito
+
+    # ---- (3,0) gomita/gumdrop BLANCA (tintable) ----
+    ox, oy = cell(3, 0)
+    for y in range(4, 14):
+        t = (y - 4) / 10.0
+        half = int(2 + 5 * t)
+        RECT(ox, oy, 8 - half, y, 8 + half, y + 1, (255, 255, 255, 255))
+    DISC(ox, oy, 6, 6, 1, (255, 255, 255, 255))           # brillo
+
+    # ---- (0,1) lava (amarillo->naranja->rojo) ----
+    ox, oy = cell(0, 1)
+    DISC(ox, oy, 8, 8, 7, (210, 40, 12, 255))
+    DISC(ox, oy, 8, 8, 5, (250, 120, 20, 255))
+    DISC(ox, oy, 8, 8, 3, (255, 210, 70, 255))
+    DISC(ox, oy, 7, 7, 1, (255, 255, 210, 255))
+
+    # ---- (1,1) ascua/ember (punto brillante) ----
+    ox, oy = cell(1, 1)
+    DISC(ox, oy, 8, 8, 3, (255, 110, 20, 230))
+    DISC(ox, oy, 8, 8, 2, (255, 200, 60, 255))
+    P(ox, oy, 8, 8, (255, 255, 230, 255))
+
+    # ---- (2,1) roca volcanica (gris oscuro + brasa) ----
+    ox, oy = cell(2, 1)
+    rock = ["..XXXX..", ".XXXXXX.", "XXXXXXXX", "XXXXXXXX",
+            "XXXXXXXX", ".XXXXXX.", ".XXXXXX.", "..XXXX.."]
+    for j, row in enumerate(rock):
+        for i, c in enumerate(row):
+            if c == "X":
+                base = (62, 58, 66) if (i + j) % 3 else (78, 72, 80)
+                P(ox, oy, i + 4, j + 4, base + (255,))
+    P(ox, oy, 7, 8, (220, 90, 30, 255))
+    P(ox, oy, 9, 9, (200, 70, 25, 255))
+
+    # ---- (3,1) ceniza/humo (gris suave) ----
+    ox, oy = cell(3, 1)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 8) ** 2 + (y - 8) ** 2
+            if d <= 49:
+                a = int(205 * (1 - d / 49.0))
+                P(ox, oy, x, y, (96, 92, 98, max(0, a)))
+
+    # ---- (0,2) gorro de Santa (rojo + ribete blanco + pompon) ----
+    ox, oy = cell(0, 2)
+    for y in range(3, 12):
+        t = (y - 3) / 9.0
+        half = int(1 + 6 * t)
+        RECT(ox, oy, 8 - half, y, 8 + half, y + 1, (212, 38, 44, 255))
+    RECT(ox, oy, 1, 12, 15, 15, (245, 245, 250, 255))     # ribete
+    DISC(ox, oy, 8, 3, 2, (250, 250, 252, 255))           # pompon
+    P(ox, oy, 6, 6, (245, 120, 120, 255))                 # brillo
+
+    # ---- (1,2) copo/nieve BLANCO suave (tintable) ----
+    ox, oy = cell(1, 2)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 8) ** 2 + (y - 8) ** 2
+            if d <= 20:
+                a = int(255 * (1 - d / 22.0))
+                P(ox, oy, x, y, (255, 255, 255, max(0, a)))
+
+    # ---- (2,2) regalo (caja roja + lazo amarillo) ----
+    ox, oy = cell(2, 2)
+    RECT(ox, oy, 3, 6, 13, 14, (206, 44, 50, 255))        # caja
+    RECT(ox, oy, 3, 6, 13, 8, (180, 32, 38, 255))         # tapa
+    RECT(ox, oy, 7, 6, 9, 14, (240, 206, 78, 255))        # lazo vertical
+    RECT(ox, oy, 3, 9, 13, 11, (240, 206, 78, 255))       # lazo horizontal
+    RECT(ox, oy, 5, 3, 7, 6, (240, 206, 78, 255))         # moño izq
+    RECT(ox, oy, 9, 3, 11, 6, (240, 206, 78, 255))        # moño der
+
+    # ---- (3,2) estrella/campana dorada ----
+    ox, oy = cell(3, 2)
+    pts = []
+    for k in range(10):
+        a = -math.pi / 2 + k * math.pi / 5
+        rr = 7 if k % 2 == 0 else 3
+        pts.append((8 + rr * math.cos(a), 8 + rr * math.sin(a)))
+    for y in range(16):
+        for x in range(16):
+            inside = False
+            jp = len(pts) - 1
+            for ip in range(len(pts)):
+                xi, yi = pts[ip]; xj, yj = pts[jp]
+                if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9) + xi):
+                    inside = not inside
+                jp = ip
+            if inside:
+                P(ox, oy, x, y, (255, 214, 70, 255))
+    DISC(ox, oy, 7, 7, 1, (255, 248, 200, 255))
+
+    return w, h, img
+
+cw2, ch2, ci2 = make_celebration_atlas()
+write_png(f"{RP}/textures/particle/wings_celebration.png", cw2, ch2, ci2)
+print("Atlas de celebracion v7.2.1 generado: dulces + volcan + santa")

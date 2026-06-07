@@ -5,20 +5,26 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v7.1.1 (actual):** `dist/wings_search_v7.1.1.mcaddon`
-- v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
+- **v7.2.1 (actual):** `dist/wings_search_v7.2.1.mcaddon`
+- v7.1.1 · v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
 
-## Novedades v7.1.1
-- **ARREGLO: las cabezas vuelven a ser interactivas y las partículas vuelven a salir.**
-  El problema era que el manifest pedía las APIs de script `@minecraft/server 1.13.0` /
-  `@minecraft/server-ui 1.2.0`, que solo existen en **Minecraft 1.21.20+**, mientras que el
-  `min_engine_version` es **1.21.0**. En Minecraft 1.21.0–1.21.10 el módulo de scripts no
-  cargaba, así que los bloques-cabeza **se veían** (vienen del Resource Pack) pero **nada**
-  funcionaba (ni interactuar, ni partículas, ni hologramas). Ahora se piden versiones
-  compatibles desde 1.21.0 (`@minecraft/server 1.11.0`, `@minecraft/server-ui 1.1.0`).
+## Novedades v7.2.1
+- **Partículas flotantes sobre las cabezas:** cada cabeza sin encontrar emite
+  partículas del color de la cabeza por encima, para que se vean de lejos.
+- **Romper = encontrar (y la cabeza NO se rompe):** ahora puedes hallar una cabeza
+  con **clic derecho** (interactuar) o **rompiéndola** (clic izquierdo). El bloque
+  no desaparece, solo cuenta como encontrada. Un **admin agachado (shift) + romper**
+  sí retira la cabeza de verdad (limpieza).
+- **3 animaciones 3D al encontrar una cabeza** (partículas volumétricas custom):
+  - 🎃 **Dulces** — explosión de caramelos multicolor + candy corn.
+  - 🌋 **Volcán** — erupción por oleadas: lava, brasas, rocas y columna de humo.
+  - 🎅 **Santa** — regalos y gorros que estallan, campanas y nevada.
+  Se elige por cabeza en **Cabezas** (botón Animación 3D) o en **Editar cabezas**.
+  Por defecto se asigna según el tema de la cabeza (invierno→Santa, guerra→Volcán,
+  resto→Dulces).
 
 ## Novedades v7.1.0
 - **ARREGLO DEFINITIVO de visibilidad:** las cabezas vuelven a ser **BLOQUES**

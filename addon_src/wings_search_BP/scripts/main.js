@@ -2,12 +2,14 @@ import { world, system, BlockPermutation, MolangVariableMap } from "@minecraft/s
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * The Search MCPE v7.1.1
+ * The Search MCPE v7.2.1
  * - 16 CABEZAS como BLOQUES (estilo cabeza de Minecraft, 8px) con texturas custom.
  *   -> Son BLOQUES (siempre visibles). NO desaparecen al encontrarlas.
  * - Tamaños: Pequeña / Normal / Grande / Gigante (estado wings:size + transformation).
- * - Encontrar = INTERACTUAR (clic derecho). Sale aviso [Interactuar] al acercarse.
- * - 12 partículas custom al encontrar (NO hay partículas ambientales flotando).
+ * - Encontrar = INTERACTUAR (clic derecho) o ROMPER (clic izq): la cabeza NO se rompe,
+ *   solo cuenta como encontrada. Admin + agachado (shift) rompe de verdad (limpieza).
+ * - Partículas FLOTANTES sobre cada cabeza no encontrada (del color de la cabeza).
+ * - 12 partículas custom al encontrar + 3 ANIMACIONES 3D: Dulces 🎃 / Volcán 🌋 / Santa 🎅.
  * - Botón RESET (admin) para volver a encontrarlas.
  * - Sistema de rango: el menú/edición requieren el tag "admin" (/tag @p add admin).
  * - Mensajes en consola (content log).
@@ -45,6 +47,19 @@ const FX_NAMES = [
   "Confeti", "Humo", "Ender", "Notas", "Burbujas", "Brillos"
 ];
 
+// 3 animaciones 3D al encontrar una cabeza
+const CELEB_NAMES = ["Dulces 🎃", "Volcán 🌋", "Santa 🎅"];
+// colores de los dulces para la explosión multicolor
+const CANDY_COLORS = [
+  [0.95, 0.20, 0.25], // rojo
+  [0.97, 0.55, 0.12], // naranja
+  [0.96, 0.30, 0.62], // rosa
+  [0.30, 0.78, 0.35], // verde
+  [0.55, 0.35, 0.85], // morado
+  [0.98, 0.85, 0.25]  // amarillo
+];
+const ABOVE_RADIUS = 40; // distancia para mostrar partículas flotantes sobre la cabeza
+
 // ----------------------------- utils -----------------------------
 
 function log(msg) {
@@ -78,6 +93,22 @@ function headSize(h) {
 }
 function headFx(h) {
   return clampFx(h && h.fx !== undefined ? h.fx : 0);
+}
+function clampCeleb(n) {
+  n = Math.floor(Number(n));
+  return Number.isFinite(n) && n >= 0 && n <= 2 ? n : 0;
+}
+function defaultCeleb(skin) {
+  // invierno/navidad -> Santa(2); guerra/fuego -> Volcán(1); resto -> Dulces(0)
+  const winter = [1, 2, 3, 4, 7, 8, 9]; // Navidad, Santa, Frozen, Olaf, Reno, Muñeco, Regalo
+  const fire = [12, 13, 14];            // Master Chief, God of War, Gears of War
+  if (winter.indexOf(skin) !== -1) return 2;
+  if (fire.indexOf(skin) !== -1) return 1;
+  return 0;
+}
+function headCeleb(h) {
+  if (h && h.celeb !== undefined) return clampCeleb(h.celeb);
+  return defaultCeleb(clampSkin(h ? h.skin : 0));
 }
 function headRGB(h) {
   if (h && Array.isArray(h.pcolor) && h.pcolor.length === 3) return h.pcolor;
@@ -175,6 +206,13 @@ function getFx(player) {
 function setFx(player, f) {
   player.setDynamicProperty("wings:fx", clampFx(f));
 }
+function getCeleb(player) {
+  const v = player.getDynamicProperty("wings:celeb");
+  return clampCeleb(typeof v === "number" ? v : 0);
+}
+function setCeleb(player, c) {
+  player.setDynamicProperty("wings:celeb", clampCeleb(c));
+}
 
 // ----------------------------- title / actionbar -----------------------------
 
@@ -215,13 +253,20 @@ function buildCtx(s, h, foundCount, total, playerName) {
 function center(h) {
   return { x: h.x + 0.5, y: h.y, z: h.z + 0.5 };
 }
+// punto justo encima de la cabeza (según tamaño) para partículas y animaciones
+function aboveHeadPos(h) {
+  const c = center(h);
+  const sz = headSize(h);
+  const extra = sz === 0 ? 0.55 : sz === 1 ? 0.9 : sz === 2 ? 1.3 : 1.9;
+  return { x: c.x, y: h.y + extra, z: c.z };
+}
 
 function holoLines(search, h, index, total) {
   const cat = HEAD_CATALOG[clampSkin(h.skin)];
   const c = colorCode(cat.color);
   return [
     `§8§l✦ §r§${c}§l${headName(h)}§r §8§l✦`,
-    h.found ? "§a§l✔ Encontrada" : "§7▶ §e[Interactuar] §7◀",
+    h.found ? "§a§l✔ Encontrada" : "§7▶ §e[Romper / Interactuar] §7◀",
     `§8${search.name} · §7${index + 1}/${total}`
   ];
 }
@@ -341,6 +386,113 @@ function selectBurst(player, skin) {
   } catch (e) {}
 }
 
+// ----------------------------- partículas flotantes SOBRE la cabeza -----------------------------
+
+function spawnP(dim, id, pos, rgb) {
+  try {
+    if (rgb) {
+      const m = new MolangVariableMap();
+      try {
+        m.setColorRGB("variable.color", { red: rgb[0], green: rgb[1], blue: rgb[2] });
+      } catch (e) {}
+      dim.spawnParticle(id, pos, m);
+    } else {
+      dim.spawnParticle(id, pos);
+    }
+  } catch (e) {}
+}
+
+// Emite partículas flotantes encima de cada cabeza NO encontrada cercana a un jugador.
+function ambientAbove() {
+  const players = world.getAllPlayers();
+  if (players.length === 0) return;
+  const db = loadDB();
+  for (const s of searchList(db)) {
+    for (let i = 0; i < s.heads.length; i++) {
+      const h = s.heads[i];
+      if (h.found) continue;
+      const dimId = h.dim || "minecraft:overworld";
+      const pos = aboveHeadPos(h);
+      let near = false;
+      for (const p of players) {
+        if (p.dimension.id !== dimId) continue;
+        const pl = p.location;
+        const dx = pl.x - pos.x, dy = pl.y - pos.y, dz = pl.z - pos.z;
+        if (dx * dx + dy * dy + dz * dz <= ABOVE_RADIUS * ABOVE_RADIUS) {
+          near = true;
+          break;
+        }
+      }
+      if (!near) continue;
+      let dim;
+      try {
+        dim = world.getDimension(dimId);
+      } catch (e) {
+        continue;
+      }
+      spawnP(dim, "wings:above", pos, headRGB(h));
+    }
+  }
+}
+
+// ----------------------------- 3 animaciones 3D (al encontrar) -----------------------------
+
+function playCelebration(dimension, base, type) {
+  const t = clampCeleb(type);
+  if (t === 0) {
+    // DULCES: explosión de caramelos multicolor + candy corn
+    for (const c of CANDY_COLORS) spawnP(dimension, "wings:candy", base, c);
+    spawnP(dimension, "wings:candy_corn", base);
+    spawnP(dimension, "wings:bell", { x: base.x, y: base.y + 0.2, z: base.z });
+    try {
+      dimension.spawnParticle("minecraft:totem_particle", base);
+    } catch (e) {}
+    system.runTimeout(() => {
+      for (const c of CANDY_COLORS) spawnP(dimension, "wings:candy", base, c);
+      spawnP(dimension, "wings:candy_corn", base);
+    }, 7);
+  } else if (t === 1) {
+    // VOLCÁN: erupción en oleadas (lava + brasas + rocas) y columna de humo
+    const erupt = (i) => {
+      spawnP(dimension, "wings:lava", base);
+      spawnP(dimension, "wings:ember", base);
+      if (i % 2 === 0) spawnP(dimension, "wings:rock", base);
+      spawnP(dimension, "wings:ash", { x: base.x, y: base.y + 0.1, z: base.z });
+    };
+    erupt(0);
+    system.runTimeout(() => erupt(1), 6);
+    system.runTimeout(() => erupt(2), 12);
+    system.runTimeout(() => erupt(3), 18);
+    system.runTimeout(() => spawnP(dimension, "wings:ash", { x: base.x, y: base.y + 0.3, z: base.z }), 26);
+  } else {
+    // SANTA: regalos + gorros + campanas + nevada
+    spawnP(dimension, "wings:gift", base);
+    spawnP(dimension, "wings:santahat", base);
+    spawnP(dimension, "wings:bell", { x: base.x, y: base.y + 0.3, z: base.z });
+    spawnP(dimension, "wings:snowfall", base);
+    system.runTimeout(() => {
+      spawnP(dimension, "wings:gift", base);
+      spawnP(dimension, "wings:snowfall", base);
+    }, 10);
+    system.runTimeout(() => spawnP(dimension, "wings:snowfall", base), 24);
+  }
+}
+
+function celebrationSound(player, type) {
+  try {
+    if (type === 1) {
+      player.playSound("random.explode", { pitch: 0.9 });
+      player.playSound("fire.fire", { pitch: 0.8 });
+    } else if (type === 2) {
+      player.playSound("note.bell", { pitch: 1.1 });
+      player.playSound("note.bell", { pitch: 1.5 });
+    } else {
+      player.playSound("note.pling", { pitch: 1.4 });
+      player.playSound("random.pop", { pitch: 1.2 });
+    }
+  } catch (e) {}
+}
+
 // ----------------------------- hallazgo (interactuar) -----------------------------
 
 function findHeadAt(loc, dimId) {
@@ -354,6 +506,25 @@ function findHeadAt(loc, dimId) {
     }
   }
   return null;
+}
+
+// quita una cabeza de la DB (limpieza admin con shift+romper)
+function removeHeadAt(loc, dimId, player) {
+  const db = loadDB();
+  for (const s of searchList(db)) {
+    for (let i = 0; i < s.heads.length; i++) {
+      const h = s.heads[i];
+      if (h.x === loc.x && h.y === loc.y && h.z === loc.z && (h.dim || "minecraft:overworld") === dimId) {
+        removeHolos(s.id, i);
+        s.heads.splice(i, 1);
+        saveDB(db);
+        respawnSearch(s);
+        if (player) actionBar(player, "§c[Search] Cabeza retirada (limpieza admin).");
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function handleFound(player, loc, dimId) {
@@ -372,10 +543,14 @@ function handleFound(player, loc, dimId) {
 
   const c = center(h);
   foundExplosion(player.dimension, { x: c.x, y: h.y + 0.3, z: c.z }, h);
+  // animación 3D de celebración (Dulces / Volcán / Santa)
+  const celeb = headCeleb(h);
+  playCelebration(player.dimension, aboveHeadPos(h), celeb);
   try {
     player.playSound("random.levelup", { volume: 1, pitch: 1.2 });
     player.playSound("random.chestopen", { pitch: 1.1 });
   } catch (e) {}
+  celebrationSound(player, celeb);
 
   const cat = HEAD_CATALOG[clampSkin(h.skin)];
   const foundCount = s.heads.filter((x) => x.found).length;
@@ -422,7 +597,7 @@ function onPlaceHead(player, block) {
     return;
   }
   const s = db[id];
-  const h = { x: loc.x, y: loc.y, z: loc.z, dim: dim.id, found: false, skin: skin, size: size, fx: getFx(player) };
+  const h = { x: loc.x, y: loc.y, z: loc.z, dim: dim.id, found: false, skin: skin, size: size, fx: getFx(player), celeb: getCeleb(player) };
   s.heads.push(h);
   saveDB(db);
   spawnHolos(dim, s, s.heads.length - 1);
@@ -480,11 +655,13 @@ function openHeadPicker(player) {
   const cur = getSkin(player);
   const sz = getSize(player);
   const fxi = getFx(player);
+  const cl = getCeleb(player);
   const form = new ActionFormData()
     .title("Galería de Cabezas")
     .body(
       `§7Activa: §f${activeLabel(player)}\n` +
-        `§7Cabeza: §f${HEAD_CATALOG[cur].name}  §8| §7Tamaño: §f${SIZE_NAMES[sz]}  §8| §7Partícula: §f${FX_NAMES[fxi]}\n` +
+        `§7Cabeza: §f${HEAD_CATALOG[cur].name}  §8| §7Tamaño: §f${SIZE_NAMES[sz]}\n` +
+        `§7Partícula: §f${FX_NAMES[fxi]}  §8| §7Animación 3D: §f${CELEB_NAMES[cl]}\n` +
         `§7Elige una cabeza (te daré el bloque):`
     );
   for (let i = 0; i < HEAD_CATALOG.length; i++) {
@@ -494,9 +671,11 @@ function openHeadPicker(player) {
   }
   const iSize = HEAD_CATALOG.length;
   const iFx = HEAD_CATALOG.length + 1;
-  const iBack = HEAD_CATALOG.length + 2;
+  const iCeleb = HEAD_CATALOG.length + 2;
+  const iBack = HEAD_CATALOG.length + 3;
   form.button(`§6⚙ Tamaño: §f${SIZE_NAMES[sz]} §8»`, "textures/custom_ui/icon_reload");
   form.button(`§d✨ Partícula: §f${FX_NAMES[fxi]} §8»`, "textures/custom_ui/icon_reload");
+  form.button(`§6🎬 Animación 3D: §f${CELEB_NAMES[cl]} §8»`, "textures/custom_ui/icon_create");
   form.button("§7« Volver");
   form.show(player).then((res) => {
     if (res.canceled) return;
@@ -512,6 +691,16 @@ function openHeadPicker(player) {
     if (res.selection === iFx) {
       setFx(player, (fxi + 1) % FX_NAMES.length);
       selectBurst(player, cur);
+      openHeadPicker(player);
+      return;
+    }
+    if (res.selection === iCeleb) {
+      const next = (cl + 1) % CELEB_NAMES.length;
+      setCeleb(player, next);
+      // vista previa de la animación sobre el jugador
+      const loc = player.location;
+      playCelebration(player.dimension, { x: loc.x, y: loc.y + 1.4, z: loc.z }, next);
+      celebrationSound(player, next);
       openHeadPicker(player);
       return;
     }
@@ -532,10 +721,12 @@ function openHelp(player) {
       `§e§l${TITLE}§r\n\n` +
         "§6§lCómo se juega§r\n" +
         "§7• Rango: gestionar requiere el tag §eadmin§7 (§f/tag @p add admin§7).\n" +
-        "§7• En §fCabezas§7 eliges una de las §f16§7, su §6tamaño§7 y §dpartícula§7.\n" +
+        "§7• En §fCabezas§7 eliges una de las §f16§7, su §6tamaño§7, §dpartícula§7 y §6animación 3D§7.\n" +
         "§7• §fColoca§7 el bloque-cabeza (se ve siempre, no desaparece).\n" +
-        "§7• Acércate: sale §e[Interactuar]§7 → clic derecho para hallarla.\n" +
-        "§7• Al hallar: §dpartículas§7 + §atítulo§7 + recompensa. La cabeza queda.\n" +
+        "§7• Verás §dpartículas flotando§7 encima de las cabezas sin encontrar.\n" +
+        "§7• Acércate y §eclic derecho§7 o §erómpela§7 (no se rompe) para hallarla.\n" +
+        "§7• Al hallar: §6animación 3D§7 (Dulces/Volcán/Santa) + §atítulo§7 + recompensa.\n" +
+        "§7• §8Admin + agachado + romper = retira la cabeza (limpieza).\n" +
         "§7• §fReset§7 (en Gestionar) permite volver a encontrarlas.\n"
     )
     .button1("§aRecargar todo")
@@ -690,7 +881,7 @@ function addHeadHere(player, searchId) {
   const loc = player.location;
   const h = {
     x: Math.floor(loc.x), y: Math.floor(loc.y), z: Math.floor(loc.z),
-    dim: player.dimension.id, found: false, skin: getSkin(player), size: getSize(player), fx: getFx(player)
+    dim: player.dimension.id, found: false, skin: getSkin(player), size: getSize(player), fx: getFx(player), celeb: getCeleb(player)
   };
   s.heads.push(h);
   saveDB(db);
@@ -736,6 +927,7 @@ function openHeadEdit(player, searchId, index) {
     .dropdown("Tipo de cabeza (skin)", names, clampSkin(h.skin))
     .dropdown("Tamaño", SIZE_NAMES, headSize(h))
     .dropdown("Partícula al encontrar", FX_NAMES, headFx(h))
+    .dropdown("Animación 3D al encontrar", CELEB_NAMES, headCeleb(h))
     .textField("Nombre personalizado (vacío = automático)", headName(h), h.name || "")
     .textField("Color de partícula HEX (ej. #ff8800)", curHex, curHex)
     .toggle("Eliminar esta cabeza", false);
@@ -744,7 +936,7 @@ function openHeadEdit(player, searchId, index) {
       openHeadList(player, searchId);
       return;
     }
-    const [skinIdx, sizeIdx, fxIdx, name, hex, del] = res.formValues;
+    const [skinIdx, sizeIdx, fxIdx, celebIdx, name, hex, del] = res.formValues;
     const db2 = loadDB();
     const s2 = db2[searchId];
     if (!s2 || !s2.heads[index]) return;
@@ -768,6 +960,7 @@ function openHeadEdit(player, searchId, index) {
     h2.skin = clampSkin(skinIdx);
     h2.size = clampSize(sizeIdx);
     h2.fx = clampFx(fxIdx);
+    h2.celeb = clampCeleb(celebIdx);
     const nm = String(name || "").trim();
     if (nm.length) h2.name = nm;
     else delete h2.name;
@@ -776,7 +969,7 @@ function openHeadEdit(player, searchId, index) {
     else delete h2.pcolor;
     saveDB(db2);
     refreshHead(s2, index);
-    actionBar(player, `§a[Search] Cabeza #${index + 1} actualizada (${SIZE_NAMES[h2.size]}, ${FX_NAMES[h2.fx]}).`);
+    actionBar(player, `§a[Search] Cabeza #${index + 1} actualizada (${SIZE_NAMES[h2.size]}, ${FX_NAMES[h2.fx]}, ${CELEB_NAMES[h2.celeb]}).`);
     openHeadList(player, searchId);
   });
 }
@@ -986,20 +1179,51 @@ world.afterEvents.playerInteractWithBlock.subscribe((event) => {
   handleFound(player, block.location, player.dimension.id);
 });
 
+// Encontrar al ROMPER (clic izquierdo): la cabeza NO se rompe, solo cuenta como encontrada.
+// Un admin agachado (shift) SÍ la rompe de verdad (limpieza).
+world.beforeEvents.playerBreakBlock.subscribe((event) => {
+  const { player, block } = event;
+  if (!block || block.typeId !== HEAD_ID) return;
+  const loc = { x: block.location.x, y: block.location.y, z: block.location.z };
+  const dimId = block.dimension.id;
+  if (isAdmin(player) && player.isSneaking) {
+    // se permite romper de verdad (no se cancela el evento)
+    system.run(() => {
+      try {
+        removeHeadAt(loc, dimId, player);
+      } catch (e) {}
+    });
+    return;
+  }
+  event.cancel = true; // la cabeza NO se rompe
+  system.run(() => {
+    try {
+      handleFound(player, loc, dimId);
+    } catch (e) {}
+  });
+});
+
 world.afterEvents.worldInitialize.subscribe(() => {
   system.runTimeout(() => {
     try {
       reloadAll();
     } catch (e) {}
   }, 40);
-  log("v7.1.1 cargado: " + HEAD_CATALOG.length + " cabezas (bloques) + " + FX_NAMES.length + " partículas. Usa /tag @p add admin para gestionar.");
+  log("v7.2.1 cargado: " + HEAD_CATALOG.length + " cabezas (bloques) + " + FX_NAMES.length + " partículas + 3 animaciones 3D (" + CELEB_NAMES.join(", ") + "). Usa /tag @p add admin para gestionar.");
 });
 
-// Aviso [Interactuar] al acercarse (SIN partículas ambientales)
+// Aviso [Interactuar] al acercarse
 system.runInterval(() => {
   try {
     proximityHints();
   } catch (e) {}
 }, 6);
+
+// Partículas flotantes SOBRE las cabezas no encontradas (cerca de jugadores)
+system.runInterval(() => {
+  try {
+    ambientAbove();
+  } catch (e) {}
+}, 8);
 
 log("script inicializado.");
