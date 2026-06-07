@@ -19,12 +19,16 @@
           8,
           9,
           10,
-          11
+          11,
+          12,
+          13,
+          14,
+          15
         ]
       }
     },
     "components": {
-      "minecraft:geometry": "geometry.wings_head_block",
+      "minecraft:geometry": "geometry.wings_head",
       "minecraft:collision_box": {
         "origin": [
           -4,
@@ -63,7 +67,7 @@
       "minecraft:destructible_by_explosion": {
         "explosion_resistance": 5
       },
-      "minecraft:light_emission": 4,
+      "minecraft:light_emission": 5,
       "minecraft:light_dampening": 0,
       "minecraft:placement_filter": {
         "conditions": [
@@ -217,6 +221,58 @@
           "minecraft:material_instances": {
             "*": {
               "texture": "wings_head11",
+              "render_method": "alpha_test",
+              "ambient_occlusion": true,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('wings:skin') == 12",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "wings_head12",
+              "render_method": "alpha_test",
+              "ambient_occlusion": true,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('wings:skin') == 13",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "wings_head13",
+              "render_method": "alpha_test",
+              "ambient_occlusion": true,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('wings:skin') == 14",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "wings_head14",
+              "render_method": "alpha_test",
+              "ambient_occlusion": true,
+              "face_dimming": true
+            }
+          }
+        }
+      },
+      {
+        "condition": "query.block_state('wings:skin') == 15",
+        "components": {
+          "minecraft:material_instances": {
+            "*": {
+              "texture": "wings_head15",
               "render_method": "alpha_test",
               "ambient_occlusion": true,
               "face_dimming": true

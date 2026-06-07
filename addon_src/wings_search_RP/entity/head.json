@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "wings:head",
+      "materials": { "default": "entity_alphatest" },
+      "textures": {
+        "default": "textures/entity/heads/h0",
+        "h0": "textures/entity/heads/h0",
+        "h1": "textures/entity/heads/h1",
+        "h2": "textures/entity/heads/h2",
+        "h3": "textures/entity/heads/h3",
+        "h4": "textures/entity/heads/h4",
+        "h5": "textures/entity/heads/h5",
+        "h6": "textures/entity/heads/h6",
+        "h7": "textures/entity/heads/h7",
+        "h8": "textures/entity/heads/h8",
+        "h9": "textures/entity/heads/h9",
+        "h10": "textures/entity/heads/h10",
+        "h11": "textures/entity/heads/h11",
+        "h12": "textures/entity/heads/h12",
+        "h13": "textures/entity/heads/h13",
+        "h14": "textures/entity/heads/h14",
+        "h15": "textures/entity/heads/h15"
+      },
+      "geometry": { "default": "geometry.wings_head" },
+      "render_controllers": ["controller.render.wings_head"],
+      "scale": 1.0
+    }
+  }
+}

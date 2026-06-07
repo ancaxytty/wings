@@ -15,6 +15,10 @@
     "wings_head8": { "textures": "textures/entity/heads/h8" },
     "wings_head9": { "textures": "textures/entity/heads/h9" },
     "wings_head10": { "textures": "textures/entity/heads/h10" },
-    "wings_head11": { "textures": "textures/entity/heads/h11" }
+    "wings_head11": { "textures": "textures/entity/heads/h11" },
+    "wings_head12": { "textures": "textures/entity/heads/h12" },
+    "wings_head13": { "textures": "textures/entity/heads/h13" },
+    "wings_head14": { "textures": "textures/entity/heads/h14" },
+    "wings_head15": { "textures": "textures/entity/heads/h15" }
   }
 }
