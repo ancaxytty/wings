@@ -5,11 +5,26 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v7 (actual):** `dist/wings_search_v7.mcaddon`
-- v6 · v5 · v4 · v3 · v2 · v1
+- **v7.1.0 (actual):** `dist/wings_search_v7.1.0.mcaddon`
+- v7 · v6 · v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v7.1.0
+- **ARREGLO DEFINITIVO de visibilidad:** las cabezas vuelven a ser **BLOQUES**
+  (estilo cabeza de Minecraft, 8px) con texturas custom. Los bloques **siempre se ven**
+  (el problema era la entidad de geometría custom, que no renderizaba en algunos clientes).
+- **Las cabezas NO desaparecen** al encontrarlas: quedan colocadas; solo cambia su holograma
+  a §a✔ Encontrada§r. Se quitaron las **partículas ambientales** (ya no flota nada);
+  las partículas solo salen al encontrar.
+- **Botón RESET** (admin) en Gestionar: vuelve a marcar todas como no encontradas para
+  poder buscarlas otra vez.
+- **Sistema de rango (tag admin):** gestionar/colocar requiere el tag §eadmin§r
+  (§f/tag @p add admin§r). Encontrar es para todos. Hay **mensajes en consola** (content log)
+  al cargar, crear, resetear, eliminar y cuando alguien sin permiso intenta abrir el menú.
+- **Tamaños** Pequeña/Normal/Grande/Gigante (estado de bloque + transformation) y
+  **12 partículas custom** seleccionables por cabeza. Menú principal pulido.
 
 ## Novedades v7
 - **ARREGLADO: las cabezas ahora SE VEN.** En la v6 la geometría con UV por cara las dejaba
