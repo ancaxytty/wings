@@ -5,11 +5,21 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v4 (actual):** `dist/wings_search_v4.mcaddon`
-- v3: `dist/wings_search_v3.mcaddon` · v2 · v1
+- **v5 (actual):** `dist/wings_search_v5.mcaddon`
+- v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v5
+- **Aviso de proximidad**: al acercarte mucho a una cabeza (≈3 bloques) aparece en la
+  barra de acción §e❖ Interactúa para recoger {Cabeza} (x/total)§r.
+- **Título con conteo**: al encontrar muestra "¡Encontraste {found} de {total} cabezas!".
+- **Title y subtitle EDITABLES por búsqueda** (menú → Gestionar → §3Editar title/subtitle§r),
+  con placeholders: `{found} {total} {head} {search} {player}` y colores `§{hc}` (cabeza) y `§{sc}` (búsqueda).
+  Incluye vista previa al guardar.
+- **Cabezas rediseñadas**: caras pixel-art más detalladas y **bloque sombreado por cara**
+  (techo más claro, laterales y parte trasera más oscuros) para dar volumen real.
 
 ## Novedades v4
 - **Encontrar = INTERACTUAR** (clic derecho), como abrir un cofre. Ya **no hay que romper** el bloque.

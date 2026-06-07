@@ -133,42 +133,42 @@ PAL = {
 }
 
 HEADS = [
-    ("halloween", "Halloween", (228, 132, 32), (182, 96, 18), [
-        "........", ".K....K.", ".KK..KK.", "........",
-        "...KK...", ".K.KK.K.", ".KKKKKK.", "..K..K.."]),
-    ("navidad", "Navidad", (44, 112, 54), (44, 112, 54), [
-        "...GG...", "..GGGG..", ".GRGGYG.", "..GGGG..",
-        ".GGRGGG.", "GGGGGYGG", "...NN...", "...NN..."]),
-    ("santa", "Santa", (227, 182, 142), (201, 42, 47), [
-        "RRRRRRRR", "RRRRRRRW", "WWWWWWWW", "..K..K..",
-        "...SS...", ".WWWWWW.", "WWWWWWWW", ".WWWWWW."]),
-    ("frozen", "Frozen", (172, 222, 242), (120, 182, 236), [
-        "..BBBB..", ".BBBBBB.", "BBCCCCBB", "B.K..K.B",
-        "BBCCCCBB", ".BC..CB.", "..BCCB..", "...BB..."]),
-    ("olaf", "Olaf", (236, 239, 246), (236, 239, 246), [
-        "...WW...", ".WWWWWW.", "WWWWWWWW", "W.K..K.W",
-        "WWWOOWWW", "W.K..K.W", ".WKKKKW.", "..WWWW.."]),
-    ("fantasma", "Fantasma", (236, 239, 246), (236, 239, 246), [
+    ("halloween", "Halloween", (230, 126, 28), (150, 84, 16), [
+        "..oooo..", ".oKKKKo.", "oKKooKKo", "ooKooKoo",
+        "oo.oo.oo", "oKKKKKKo", "oKoKKoKo", ".oKKKKo."]),
+    ("navidad", "Arbol", (38, 104, 50), (32, 86, 42), [
+        "...Y....", "...G....", "..GGG...", ".GGRGG..",
+        ".GRGGG..", "GGGGGYG.", "GGYGGGG.", "...NN..."]),
+    ("santa", "Santa", (228, 184, 146), (190, 36, 42), [
+        "RRRRRRRR", "rRRRRRRW", "WWWWWWWW", "SSKSSKSS",
+        "SSSSSSSS", "SWWWWWWS", ".WWWWWW.", "..WWWW.."]),
+    ("frozen", "Frozen", (150, 210, 240), (96, 168, 226), [
+        "..bBBb..", ".BCCCCB.", "BCCCCCCB", "BCKCCKCB",
+        "BCCCCCCB", ".BCCCCB.", "..BCCB..", "...BB..."]),
+    ("olaf", "Olaf", (238, 241, 248), (210, 220, 232), [
+        "..WWWW..", ".WWWWWW.", "WWKWWKWW", "WWWOOWWW",
+        "WWWWWWWW", "W.KKKK.W", "WWWWWWWW", ".WWWWWW."]),
+    ("fantasma", "Fantasma", (232, 236, 245), (200, 208, 224), [
         "..WWWW..", ".WWWWWW.", "WWWWWWWW", "WKKWWKKW",
-        "WWWWWWWW", "WWWWWWWW", "WWWWWWWW", "W.WW.WW."]),
-    ("esqueleto", "Esqueleto", (236, 239, 246), (236, 239, 246), [
+        "WWWWWWWW", "WWKKKKWW", "WWWWWWWW", "W.WW.WW."]),
+    ("esqueleto", "Esqueleto", (226, 230, 238), (188, 196, 212), [
         ".WWWWWW.", "WWWWWWWW", "WKKWWKKW", "WKKWWKKW",
         "WWWKKWWW", "WWWWWWWW", "WKWKWKWW", ".WWWWWW."]),
-    ("reno", "Reno", (120, 80, 45), (82, 52, 28), [
-        "n..nn..n", ".n.nn.n.", "..NNNN..", ".NNNNNN.",
-        "NK.NN.KN", "NNNRRNNN", ".NNNNNN.", "..NNNN.."]),
-    ("munieco", "Muneco de Nieve", (236, 239, 246), (24, 20, 26), [
-        "KKKKKKKK", "..KKKK..", "..KKKK..", ".WWWWWW.",
-        "W.K..K.W", "WWWOWWWW", "W.KKKK.W", ".WWWWWW."]),
-    ("regalo", "Regalo", (201, 42, 47), (242, 212, 82), [
+    ("reno", "Reno", (126, 84, 46), (88, 56, 30), [
+        "n.n..n.n", ".nNNNNn.", "..NNNN..", ".NKNNKN.",
+        ".NNNNNN.", "..NNNN..", "..NRRN..", "...NN..."]),
+    ("munieco", "Munieco", (240, 243, 250), (24, 22, 30), [
+        "KKKKKKKK", ".KKKKKK.", "WWWWWWWW", "WKWWWKWW",
+        "WWWOWWWW", "WWWWWWWW", "W.KKKK.W", ".WWWWWW."]),
+    ("regalo", "Regalo", (206, 44, 50), (236, 206, 78), [
         "RRRYYRRR", "RRRYYRRR", "YYYYYYYY", "RRRYYRRR",
-        "RRRYYRRR", "RRRYYRRR", "RRRYYRRR", "RRRYYRRR"]),
-    ("zombie", "Zombie", (74, 168, 86), (44, 112, 54), [
+        "RRRYYRRR", "RRRYYRRR", "YYYYYYYY", "RRRYYRRR"]),
+    ("zombie", "Zombie", (78, 162, 80), (50, 110, 56), [
         ".gggggg.", "gggggggg", "gKKggKKg", "gggggggg",
-        "ggKggKgg", "gggggggg", "gKgKgKgg", ".gggggg."]),
-    ("bruja", "Bruja", (74, 168, 86), (146, 84, 184), [
+        "ggKKKKgg", "gggggggg", "gKgggKgg", ".gggggg."]),
+    ("bruja", "Bruja", (88, 158, 92), (140, 80, 178), [
         "...PP...", "..PPPP..", ".PPPPPP.", "PPPPPPPP",
-        ".GK..KG.", ".GGGGGG.", ".GGKKGG.", "..GGGG.."]),
+        ".GKGGKG.", ".GGGGGG.", ".GGNNGG.", "..GGGG.."]),
 ]
 
 def paint_face_scaled(img, size, base, rows, shadow=True):
@@ -325,22 +325,45 @@ def make_pack_icon():
 
 # ------------------------------------------------------------------ block skins (pixel, 64px)
 def make_head_skin(theme):
+    # Pinta el "net" completo del cubo (box-uv en [0,0]) con sombreado por cara
+    # para que la cabeza se vea con volumen desde todos los angulos.
     _key, _name, base, top, rows = theme
     w = h = 64
     img = blank(w, h)
-    draw_rect(img, 0, 0, 32, 16, (base[0], base[1], base[2], 255))
-    draw_rect(img, 8, 0, 16, 8, (top[0], top[1], top[2], 255))
-    # sombreado simple por columna para dar volumen
-    for y in range(0, 16):
-        for x in range(0, 32):
-            shade = 1.0 - 0.06 * ((x % 8) // 4) - 0.05 * (y / 16.0)
+
+    def fill(x0, y0, x1, y1, col):
+        draw_rect(img, x0, y0, x1, y1, (clamp(col[0]), clamp(col[1]), clamp(col[2]), 255))
+
+    topc = lighten(top, 0.14)
+    botc = darken(base, 0.42)
+    rightc = darken(base, 0.08)
+    frontc = base
+    leftc = darken(base, 0.16)
+    backc = darken(base, 0.28)
+    # layout box-uv para cubo 8x8x8 en uv [0,0]
+    fill(8, 0, 16, 8, topc)      # top
+    fill(16, 0, 24, 8, botc)     # bottom
+    fill(0, 8, 8, 16, rightc)    # right
+    fill(8, 8, 16, 16, frontc)   # front
+    fill(16, 8, 24, 16, leftc)   # left
+    fill(24, 8, 32, 16, backc)   # back
+    # sombreado vertical suave en la cara frontal
+    for y in range(8, 16):
+        for x in range(8, 16):
+            sh = 1.0 - 0.045 * (y - 8)
             px = img[y][x]
-            img[y][x] = [clamp(px[0] * shade), clamp(px[1] * shade), clamp(px[2] * shade), 255]
+            img[y][x] = [clamp(px[0] * sh), clamp(px[1] * sh), clamp(px[2] * sh), 255]
+    # rasgos de la cara frontal ('.'/' ' = deja el fondo sombreado)
     for gy in range(8):
         for gx in range(8):
             ch = rows[gy][gx]
-            col = PAL.get(ch) or base
+            col = PAL.get(ch)
+            if col is None:
+                continue
             img[8 + gy][8 + gx] = [col[0], col[1], col[2], 255]
+    # brillo en el borde superior del techo
+    for x in range(8, 16):
+        blend(img, x, 0, (255, 255, 255), 0.14)
     return w, h, img
 
 def make_holo():
