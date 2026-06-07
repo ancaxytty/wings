@@ -130,6 +130,9 @@ PAL = {
     'G': (74, 168, 86), 'g': (44, 112, 54), 'O': (228, 132, 32), 'o': (182, 96, 18),
     'B': (120, 182, 236), 'b': (70, 122, 192), 'P': (146, 84, 184), 'Y': (242, 212, 82),
     'S': (227, 182, 142), 'N': (120, 80, 45), 'n': (82, 52, 28), 'C': (172, 222, 242),
+    'A': (96, 122, 80), 'V': (240, 196, 80), 'L': (200, 198, 196), 'D': (70, 70, 74),
+    'E': (216, 200, 188), 'h': (120, 30, 30), 'Q': (250, 222, 70), 'q': (208, 168, 40),
+    'i': (90, 150, 210),
 }
 
 HEADS = [
@@ -169,6 +172,18 @@ HEADS = [
     ("bruja", "Bruja", (88, 158, 92), (140, 80, 178), [
         "...PP...", "..PPPP..", ".PPPPPP.", "PPPPPPPP",
         ".GKGGKG.", ".GGGGGG.", ".GGNNGG.", "..GGGG.."]),
+    ("masterchief", "Master Chief", (84, 110, 70), (60, 84, 50), [
+        "..AAAA..", ".AAAAAA.", "AAAAAAAA", "AVVVVVVA",
+        "AVKKKKVA", "AAAAAAAA", ".AAAAAA.", "..AAAA.."]),
+    ("godofwar", "God of War", (216, 200, 188), (150, 36, 36), [
+        "EEEEEEEE", "RREEEEEE", "ERREKEEE", "EERREEEE",
+        "EEEEEEEE", "EKKKKKKE", "KKKKKKKK", "EKKKKKKE"]),
+    ("gearsofwar", "Gears of War", (120, 30, 30), (90, 20, 20), [
+        "hhWWWWhh", "hWWWWWWh", "WWKWWKWW", "WWWWWWWW",
+        "WWKKKKWW", "hWWWWWWh", "hhWKKWhh", "hhhWWhhh"]),
+    ("bobesponja", "Bob Esponja", (250, 222, 70), (208, 168, 40), [
+        "QQQQQQQQ", "QWWQQWWQ", "QWiQQiWQ", "QQqQQqQQ",
+        "QKKKKKKQ", "QKWWWWKQ", "QKKKKKKQ", "QQQQQQQQ"]),
 ]
 
 def paint_face_scaled(img, size, base, rows, shadow=True):
@@ -324,47 +339,51 @@ def make_pack_icon():
     return size, size, img
 
 # ------------------------------------------------------------------ block skins (pixel, 64px)
-def make_head_skin(theme):
-    # Pinta el "net" completo del cubo (box-uv en [0,0]) con sombreado por cara
-    # para que la cabeza se vea con volumen desde todos los angulos.
+def make_head_skin_hd(theme):
+    # Textura HD 128x128 con layout por caras (up/face/down) para geometria con UV por cara.
+    # La cara se renderiza desde el arte 8x8 escalado x2 con sombreado y contorno (AO).
     _key, _name, base, top, rows = theme
-    w = h = 64
-    img = blank(w, h)
-
-    def fill(x0, y0, x1, y1, col):
-        draw_rect(img, x0, y0, x1, y1, (clamp(col[0]), clamp(col[1]), clamp(col[2]), 255))
-
-    topc = lighten(top, 0.14)
-    botc = darken(base, 0.42)
-    rightc = darken(base, 0.08)
-    frontc = base
-    leftc = darken(base, 0.16)
-    backc = darken(base, 0.28)
-    # layout box-uv para cubo 8x8x8 en uv [0,0]
-    fill(8, 0, 16, 8, topc)      # top
-    fill(16, 0, 24, 8, botc)     # bottom
-    fill(0, 8, 8, 16, rightc)    # right
-    fill(8, 8, 16, 16, frontc)   # front
-    fill(16, 8, 24, 16, leftc)   # left
-    fill(24, 8, 32, 16, backc)   # back
-    # sombreado vertical suave en la cara frontal
-    for y in range(8, 16):
-        for x in range(8, 16):
-            sh = 1.0 - 0.045 * (y - 8)
-            px = img[y][x]
-            img[y][x] = [clamp(px[0] * sh), clamp(px[1] * sh), clamp(px[2] * sh), 255]
-    # rasgos de la cara frontal ('.'/' ' = deja el fondo sombreado)
-    for gy in range(8):
-        for gx in range(8):
-            ch = rows[gy][gx]
+    W = H = 128
+    img = blank(W, H, (0, 0, 0, 0))
+    topc = lighten(top, 0.18); topc2 = lighten(top, 0.02)
+    botc = darken(base, 0.46)
+    # UP tile en (0,0)
+    for y in range(16):
+        for x in range(16):
+            c = mix(topc, topc2, y / 15.0)
+            img[y][x] = [clamp(c[0]), clamp(c[1]), clamp(c[2]), 255]
+    for x in range(16):
+        blend(img, x, 0, (255, 255, 255), 0.20)
+    # DOWN tile en (32,0)
+    for y in range(16):
+        for x in range(16):
+            img[y][32 + x] = [clamp(botc[0]), clamp(botc[1]), clamp(botc[2]), 255]
+    # FACE tile en (16,16)
+    ox, oy = 16, 16
+    for ty in range(16):
+        for tx in range(16):
+            sx = tx // 2; sy = ty // 2
+            ch = rows[sy][sx]
             col = PAL.get(ch)
-            if col is None:
-                continue
-            img[8 + gy][8 + gx] = [col[0], col[1], col[2], 255]
-    # brillo en el borde superior del techo
-    for x in range(8, 16):
-        blend(img, x, 0, (255, 255, 255), 0.14)
-    return w, h, img
+            bgmode = col is None
+            if bgmode:
+                col = base
+            sh = 1.0 - 0.05 * sy
+            r, g, b = col[0] * sh, col[1] * sh, col[2] * sh
+            if bgmode and sy < 2:
+                r += 22; g += 22; b += 22
+            if tx % 2 == 1 and sx + 1 < 8 and rows[sy][sx + 1] != ch:
+                r *= 0.78; g *= 0.78; b *= 0.78
+            if ty % 2 == 1 and sy + 1 < 8 and rows[sy + 1][sx] != ch:
+                r *= 0.82; g *= 0.82; b *= 0.82
+            img[oy + ty][ox + tx] = [clamp(r), clamp(g), clamp(b), 255]
+    # marco sutil de la cara
+    for i in range(16):
+        blend(img, ox + i, oy, (0, 0, 0), 0.12)
+        blend(img, ox + i, oy + 15, (0, 0, 0), 0.20)
+        blend(img, ox, oy + i, (0, 0, 0), 0.12)
+        blend(img, ox + 15, oy + i, (0, 0, 0), 0.20)
+    return W, H, img
 
 def make_holo():
     return 8, 8, blank(8, 8, (0, 0, 0, 0))
@@ -423,8 +442,8 @@ for n, theme in enumerate(HEADS):
     sym = (lambda b, r: (lambda img, size: paint_face_scaled(img, size, b, r)))(base, rows)
     tile = compose_tile(96, c1, c2, bd, symbol=sym, plate=True)
     write_png(f"{RP}/textures/custom_ui/heads/h{n}.png", 96, 96, tile)
-    # skin pixel del bloque
-    sw, sh, si = make_head_skin(theme)
+    # skin pixel del bloque/entidad (HD 128)
+    sw, sh, si = make_head_skin_hd(theme)
     write_png(f"{RP}/textures/entity/heads/h{n}.png", sw, sh, si)
 
 # Paneles / close / pack
@@ -436,7 +455,7 @@ iw, ih, ii = make_pack_icon();  write_png(f"{RP}/pack_icon.png", iw, ih, ii)
 write_png(f"{BP}/pack_icon.png", iw, ih, ii)
 
 # Entidad/particula
-sw, sh, si = make_head_skin(HEADS[0]); write_png(f"{RP}/textures/entity/wings_head.png", sw, sh, si)
+sw, sh, si = make_head_skin_hd(HEADS[0]); write_png(f"{RP}/textures/entity/wings_head.png", sw, sh, si)
 hw, hh, hi = make_holo(); write_png(f"{RP}/textures/entity/wings_hologram.png", hw, hh, hi)
 aw, ah, ai = make_particle_atlas(); write_png(f"{RP}/textures/particle/wings_particles.png", aw, ah, ai)
 

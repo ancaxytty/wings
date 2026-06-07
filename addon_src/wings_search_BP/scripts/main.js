@@ -2,16 +2,18 @@ import { world, system, BlockPermutation, MolangVariableMap } from "@minecraft/s
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * The Search MCPE v4
- * - 12 CABEZAS como BLOQUES custom (wings:head, estado wings:skin 0..11).
- * - SIN varita: el jugador COLOCA el bloque él mismo; toma la cabeza seleccionada.
- * - Se ENCUENTRA al INTERACTUAR (como abrir un cofre) -> recompensa + partículas + TITLE/SUBTITLE.
- * - Holograma de 3 líneas encima de cada cabeza + llama de antorcha si no está hallada.
- * - GUI oscura profesional (estilo CubeCraft). Menú con la brújula.
+ * The Search MCPE v6
+ * - 16 CABEZAS como ENTIDADES interactivas (wings:head, propiedad wings:skin 0..15).
+ *   -> muestran el botón nativo "Interactuar" (minecraft:interact) como un NPC.
+ * - El jugador COLOCA el bloque-cabeza (wings:head block); al colocarlo se convierte
+ *   en la entidad con la cabeza seleccionada y se registra en la búsqueda activa.
+ * - Encontrar = INTERACTUAR. Recompensa + partículas del color de la cabeza + TITLE/SUBTITLE.
+ * - Edición POR CABEZA: skin, nombre, color de partícula, eliminar.
+ * - Title/subtitle editables por búsqueda. Hologramas + llama de antorcha. GUI pro.
  */
 
 const DB_KEY = "wings:searches";
-const HEAD_BLOCK = "wings:head";
+const HEAD_ID = "wings:head";          // mismo id para bloque (placer) y entidad
 const HOLO_ID = "wings:hologram";
 const TITLE = "The Search MCPE";
 const DIM_IDS = ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"];
@@ -28,7 +30,11 @@ const HEAD_CATALOG = [
   { name: "Muñeco de Nieve", color: "b", rgb: [0.72, 0.82, 0.96] },
   { name: "Regalo", color: "c", rgb: [0.85, 0.20, 0.24] },
   { name: "Zombie", color: "2", rgb: [0.32, 0.68, 0.36] },
-  { name: "Bruja", color: "5", rgb: [0.58, 0.34, 0.74] }
+  { name: "Bruja", color: "5", rgb: [0.58, 0.34, 0.74] },
+  { name: "Master Chief", color: "2", rgb: [0.32, 0.45, 0.28] },
+  { name: "God of War", color: "c", rgb: [0.72, 0.20, 0.18] },
+  { name: "Gears of War", color: "4", rgb: [0.55, 0.12, 0.12] },
+  { name: "Bob Esponja", color: "e", rgb: [0.96, 0.86, 0.28] }
 ];
 
 function headIcon(skin) {
@@ -40,13 +46,31 @@ function clampSkin(n) {
   if (n > HEAD_CATALOG.length - 1) return HEAD_CATALOG.length - 1;
   return n;
 }
-function colorMap(skin) {
-  const rgb = HEAD_CATALOG[clampSkin(skin)].rgb;
+function headName(h) {
+  if (h && typeof h.name === "string" && h.name.length) return h.name;
+  return HEAD_CATALOG[clampSkin(h ? h.skin : 0)].name;
+}
+function headRGB(h) {
+  if (h && Array.isArray(h.pcolor) && h.pcolor.length === 3) return h.pcolor;
+  return HEAD_CATALOG[clampSkin(h ? h.skin : 0)].rgb;
+}
+function colorMapFor(h) {
+  const rgb = headRGB(h);
   const m = new MolangVariableMap();
   try {
     m.setColorRGB("variable.color", { red: rgb[0], green: rgb[1], blue: rgb[2] });
   } catch (e) {}
   return m;
+}
+function parseHex(s) {
+  if (typeof s !== "string") return null;
+  const m = s.trim().replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(m)) return null;
+  return [parseInt(m.slice(0, 2), 16) / 255, parseInt(m.slice(2, 4), 16) / 255, parseInt(m.slice(4, 6), 16) / 255];
+}
+function rgbToHex(rgb) {
+  const h = (v) => ("0" + Math.round(v * 255).toString(16)).slice(-2);
+  return "#" + h(rgb[0]) + h(rgb[1]) + h(rgb[2]);
 }
 
 // ----------------------------- Base de datos -----------------------------
@@ -110,10 +134,9 @@ function actionBar(player, text) {
   } catch (e) {}
 }
 
-// Plantillas editables de title/subtitle (con placeholders)
 const DEFAULT_TITLE = "§a¡Encontraste {found} de {total} cabezas!";
 const DEFAULT_SUBTITLE = "§{hc}{head} §7en §{sc}{search}";
-const HINT_RADIUS = 3.2;
+const HINT_RADIUS = 4.5;
 
 function applyTemplate(tpl, ctx) {
   return String(tpl)
@@ -126,40 +149,49 @@ function applyTemplate(tpl, ctx) {
     .replace(/\{sc\}/g, ctx.sc);
 }
 function buildCtx(s, h, foundCount, total, playerName) {
-  const cat = HEAD_CATALOG[clampSkin(h.skin)];
   return {
     found: foundCount,
     total: total,
-    head: cat.name,
+    head: headName(h),
     search: s.name,
     player: playerName,
-    hc: colorCode(cat.color),
+    hc: colorCode(HEAD_CATALOG[clampSkin(h.skin)].color),
     sc: colorCode(s.color)
   };
 }
 
-// ----------------------------- Hologramas -----------------------------
+// ----------------------------- Entidades: cabezas + hologramas -----------------------------
 
-function holoLines(search, headData, index, total) {
-  const cat = HEAD_CATALOG[clampSkin(headData.skin)];
-  const c = colorCode(cat.color);
-  return [
-    `§8§l✦ §r§${c}§l${cat.name}§r §8§l✦`,
-    `§7▶ §f¡Interactúa! §7◀`,
-    `§8${search.name} · §7${index + 1}/${total}`
-  ];
-}
 function center(h) {
   return { x: h.x + 0.5, y: h.y, z: h.z + 0.5 };
 }
 
-function spawnHolos(dimension, search, index) {
+function holoLines(search, h, index, total) {
+  const cat = HEAD_CATALOG[clampSkin(h.skin)];
+  const c = colorCode(cat.color);
+  return [
+    `§8§l✦ §r§${c}§l${headName(h)}§r §8§l✦`,
+    `§7▶ §f¡Interactúa! §7◀`,
+    `§8${search.name} · §7${index + 1}/${total}`
+  ];
+}
+
+function spawnHead(dimension, search, index) {
   const h = search.heads[index];
   const c = center(h);
+  try {
+    const ent = dimension.spawnEntity(HEAD_ID, { x: c.x, y: h.y, z: c.z });
+    ent.setDynamicProperty("wings:search", search.id);
+    ent.setDynamicProperty("wings:index", index);
+    ent.addTag("wings_head");
+    try {
+      ent.setProperty("wings:skin", clampSkin(h.skin));
+    } catch (e) {}
+  } catch (e) {}
   const lines = holoLines(search, h, index, search.heads.length);
   for (let i = 0; i < 3; i++) {
     try {
-      const holo = dimension.spawnEntity(HOLO_ID, { x: c.x, y: h.y + 0.85 + i * 0.27, z: c.z });
+      const holo = dimension.spawnEntity(HOLO_ID, { x: c.x, y: h.y + 0.95 + i * 0.27, z: c.z });
       holo.setDynamicProperty("wings:search", search.id);
       holo.setDynamicProperty("wings:index", index);
       holo.addTag("wings_holo");
@@ -168,18 +200,7 @@ function spawnHolos(dimension, search, index) {
   }
 }
 
-function applySkin(dimension, h) {
-  try {
-    const block = dimension.getBlock({ x: h.x, y: h.y, z: h.z });
-    if (!block) return false;
-    block.setPermutation(BlockPermutation.resolve(HEAD_BLOCK, { "wings:skin": clampSkin(h.skin) }));
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-function getHolos(searchId) {
+function getWingsEntities(typeId, searchId) {
   const out = [];
   for (const dimId of DIM_IDS) {
     let dim;
@@ -190,7 +211,7 @@ function getHolos(searchId) {
     }
     let list;
     try {
-      list = dim.getEntities({ type: HOLO_ID });
+      list = dim.getEntities({ type: typeId });
     } catch (e) {
       continue;
     }
@@ -200,8 +221,10 @@ function getHolos(searchId) {
   }
   return out;
 }
-function removeHolos(searchId, index) {
-  for (const e of getHolos(searchId)) {
+
+function removeHead(searchId, index) {
+  const ents = getWingsEntities(HEAD_ID, searchId).concat(getWingsEntities(HOLO_ID, searchId));
+  for (const e of ents) {
     if (index === null || e.getDynamicProperty("wings:index") === index) {
       try {
         e.remove();
@@ -209,16 +232,9 @@ function removeHolos(searchId, index) {
     }
   }
 }
-function clearHeadBlock(h) {
-  try {
-    const dim = world.getDimension(h.dim || "minecraft:overworld");
-    const block = dim.getBlock({ x: h.x, y: h.y, z: h.z });
-    if (block && block.typeId === HEAD_BLOCK) block.setType("minecraft:air");
-  } catch (e) {}
-}
 
 function respawnSearch(search) {
-  removeHolos(search.id, null);
+  removeHead(search.id, null);
   let count = 0;
   for (let i = 0; i < search.heads.length; i++) {
     const h = search.heads[i];
@@ -229,15 +245,16 @@ function respawnSearch(search) {
     } catch (e) {
       d = world.getDimension("minecraft:overworld");
     }
-    applySkin(d, h);
-    spawnHolos(d, search, i);
+    spawnHead(d, search, i);
     count++;
   }
   return count;
 }
+
 function reloadAll() {
   const db = loadDB();
-  removeHolos(null, null);
+  // limpia TODO antes de recrear (evita duplicados)
+  removeHead(null, null);
   let total = 0;
   for (const s of searchList(db)) total += respawnSearch(s);
   return total;
@@ -266,7 +283,7 @@ function torchOnUnfoundHeads() {
       try {
         world.getDimension(h.dim || "minecraft:overworld").spawnParticle("wings:torch", {
           x: c.x,
-          y: h.y + 0.9,
+          y: h.y + 0.95,
           z: c.z
         });
       } catch (e) {}
@@ -274,7 +291,6 @@ function torchOnUnfoundHeads() {
   }
 }
 
-// Aviso "Interactúa" cuando el jugador está MUY cerca de una cabeza no hallada
 function proximityHints() {
   const db = loadDB();
   const players = world.getAllPlayers();
@@ -291,7 +307,7 @@ function proximityHints() {
         if (h.found) continue;
         if ((h.dim || "minecraft:overworld") !== dim) continue;
         const c = center(h);
-        const dx = pl.x - c.x, dy = pl.y - (h.y + 0.5), dz = pl.z - c.z;
+        const dx = pl.x - c.x, dy = pl.y - (h.y + 0.4), dz = pl.z - c.z;
         const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (d < bestd) {
           bestd = d;
@@ -303,13 +319,13 @@ function proximityHints() {
       const cat = HEAD_CATALOG[clampSkin(best.h.skin)];
       actionBar(
         p,
-        `§e❖ §fInteractúa §7para recoger §${colorCode(cat.color)}§l${cat.name}§r §8(§a${best.found}§8/§f${best.total}§8)`
+        `§e❖ §f[Interactuar] §7para recoger §${colorCode(cat.color)}§l${headName(best.h)}§r §8(§a${best.found}§8/§f${best.total}§8)`
       );
     }
   }
 }
 
-function foundExplosion(dimension, loc, skin) {
+function foundExplosion(dimension, loc, h) {
   const pts = [
     { x: loc.x, y: loc.y + 0.4, z: loc.z },
     { x: loc.x, y: loc.y + 0.8, z: loc.z },
@@ -317,7 +333,7 @@ function foundExplosion(dimension, loc, skin) {
   ];
   for (const p of pts) {
     try {
-      dimension.spawnParticle("wings:found", p, colorMap(skin));
+      dimension.spawnParticle("wings:found", p, colorMapFor(h));
     } catch (e) {}
   }
   try {
@@ -327,41 +343,41 @@ function foundExplosion(dimension, loc, skin) {
 function selectBurst(player, skin) {
   const loc = player.location;
   try {
-    player.dimension.spawnParticle("wings:found", { x: loc.x, y: loc.y + 1.2, z: loc.z }, colorMap(skin));
+    player.dimension.spawnParticle("wings:found", { x: loc.x, y: loc.y + 1.2, z: loc.z }, colorMapFor({ skin }));
   } catch (e) {}
   try {
     player.playSound("random.orb", { pitch: 1.5 });
   } catch (e) {}
 }
 
-// ----------------------------- Hallazgo (interactuar como un cofre) -----------------------------
+// ----------------------------- Hallazgo (interactuar) -----------------------------
 
-function findHeadAt(loc, dimId) {
-  const db = loadDB();
-  for (const s of searchList(db)) {
-    for (let i = 0; i < s.heads.length; i++) {
-      const h = s.heads[i];
-      if (h.found) continue;
-      if (h.x === loc.x && h.y === loc.y && h.z === loc.z && (h.dim || "minecraft:overworld") === dimId) {
-        return { db, s, i, h };
-      }
-    }
+function handleFoundEntity(player, entity) {
+  const id = entity.getDynamicProperty("wings:search");
+  const index = entity.getDynamicProperty("wings:index");
+  const loc = entity.location;
+  if (typeof id !== "string" || typeof index !== "number") {
+    // cabeza decorativa (no registrada)
+    try {
+      player.dimension.spawnParticle("wings:found", { x: loc.x, y: loc.y + 0.6, z: loc.z });
+      player.playSound("random.orb", { pitch: 1.2 });
+    } catch (e) {}
+    return;
   }
-  return null;
-}
-
-function handleFound(player, loc, dimId, removeBlock) {
-  const match = findHeadAt(loc, dimId);
-  if (!match) return false;
-  const { db, s, i, h } = match;
+  const db = loadDB();
+  const s = db[id];
+  if (!s || !s.heads[index]) {
+    try { entity.remove(); } catch (e) {}
+    return;
+  }
+  const h = s.heads[index];
+  if (h.found) return;
   h.found = true;
   h.foundBy = player.name;
   saveDB(db);
-  removeHolos(s.id, i);
-  if (removeBlock) clearHeadBlock(h);
+  removeHead(id, index);
 
-  const c = center(h);
-  foundExplosion(player.dimension, { x: c.x, y: h.y + 0.3, z: c.z }, h.skin);
+  foundExplosion(player.dimension, { x: loc.x, y: loc.y + 0.3, z: loc.z }, h);
   try {
     player.playSound("random.levelup", { volume: 1, pitch: 1.2 });
     player.playSound("random.chestopen", { pitch: 1.1 });
@@ -371,12 +387,8 @@ function handleFound(player, loc, dimId, removeBlock) {
   const foundCount = s.heads.filter((x) => x.found).length;
   const total = s.heads.length;
   const ctx = buildCtx(s, h, foundCount, total, player.name);
-  showTitle(
-    player,
-    applyTemplate(s.title || DEFAULT_TITLE, ctx),
-    applyTemplate(s.subtitle || DEFAULT_SUBTITLE, ctx)
-  );
-  player.sendMessage(`§a¡Encontraste §${colorCode(cat.color)}${cat.name}§a! §7(${foundCount}/${total})`);
+  showTitle(player, applyTemplate(s.title || DEFAULT_TITLE, ctx), applyTemplate(s.subtitle || DEFAULT_SUBTITLE, ctx));
+  player.sendMessage(`§a¡Encontraste §${colorCode(cat.color)}${headName(h)}§a! §7(${foundCount}/${total})`);
 
   if (s.reward && String(s.reward).trim().length > 0) {
     try {
@@ -384,31 +396,40 @@ function handleFound(player, loc, dimId, removeBlock) {
     } catch (e) {}
   }
   if (foundCount >= total && total > 0) {
-    showTitle(player, `§6§l¡COMPLETADA!`, `§e${s.name} §7· ¡todas las cabezas!`);
+    showTitle(player, "§6§l¡COMPLETADA!", `§e${s.name} §7· ¡todas las cabezas!`);
     world.sendMessage(`§6§l[${TITLE}] §r§e${player.name} §acompletó §${colorCode(s.color)}${s.name}§a!`);
   }
-  return true;
 }
 
-// ----------------------------- Colocar el bloque (tú mismo) -----------------------------
+// ----------------------------- Colocar el bloque (se convierte en entidad) -----------------------------
 
 function onPlaceHead(player, block) {
-  const skin = getSkin(player);
   const loc = block.location;
-  const h = { x: loc.x, y: loc.y, z: loc.z, dim: player.dimension.id, found: false, skin: skin };
-  applySkin(player.dimension, h);
+  const skin = getSkin(player);
+  const dim = player.dimension;
+  // quita el bloque y coloca la entidad-cabeza
+  try {
+    if (block.typeId === HEAD_ID) block.setType("minecraft:air");
+  } catch (e) {}
 
   const id = getActiveSearch(player);
   const db = loadDB();
   const cat = HEAD_CATALOG[skin];
+
   if (!id || !db[id]) {
+    // decorativa (sin registrar)
+    try {
+      const ent = dim.spawnEntity(HEAD_ID, { x: loc.x + 0.5, y: loc.y, z: loc.z + 0.5 });
+      ent.setProperty("wings:skin", skin);
+    } catch (e) {}
     actionBar(player, `§e[Search] §${colorCode(cat.color)}${cat.name}§7 colocada (sin búsqueda activa). §8Brújula → Crear/activar.`);
     return;
   }
   const s = db[id];
+  const h = { x: loc.x, y: loc.y, z: loc.z, dim: dim.id, found: false, skin: skin };
   s.heads.push(h);
   saveDB(db);
-  spawnHolos(player.dimension, s, s.heads.length - 1);
+  spawnHead(dim, s, s.heads.length - 1);
   try {
     player.playSound("random.orb", { pitch: 1.3 });
   } catch (e) {}
@@ -447,18 +468,10 @@ function openMain(player) {
   form.show(player).then((res) => {
     if (res.canceled) return;
     switch (res.selection) {
-      case 0:
-        openCreate(player);
-        break;
-      case 1:
-        openReview(player);
-        break;
-      case 2:
-        openHeadPicker(player);
-        break;
-      case 3:
-        openHelp(player);
-        break;
+      case 0: openCreate(player); break;
+      case 1: openReview(player); break;
+      case 2: openHeadPicker(player); break;
+      case 3: openHelp(player); break;
     }
   });
 }
@@ -498,12 +511,10 @@ function openHelp(player) {
       `§e§l${TITLE}§r\n\n` +
         "§6§lCómo se juega§r\n" +
         "§7• Abre el menú con una §fbrújula§7.\n" +
-        "§7• En §fCabezas§7 eliges una de las 12 (recibes el bloque).\n" +
-        "§7• §fColoca tú mismo§7 el bloque-cabeza donde quieras;\n  tomará la cabeza seleccionada y se añade a la activa.\n" +
-        "§7• Las cabezas sin hallar tienen una §6llama§7 encima.\n" +
-        "§7• Al acercarte verás §e❖ Interactúa§7 en la barra.\n" +
-        "§7• §fINTERACTÚA§7 (como abrir un cofre) para encontrarla:\n  §dpartículas§7, §atítulo§7 y recompensa.\n" +
-        "§7• El §3title/subtitle§7 es editable por búsqueda (con placeholders).\n"
+        "§7• En §fCabezas§7 eliges una de las §f16§7 (recibes el bloque).\n" +
+        "§7• §fColoca§7 el bloque: se vuelve una cabeza con botón\n  §e[Interactuar]§7 y se añade a la búsqueda activa.\n" +
+        "§7• Acércate y pulsa §e[Interactuar]§7 (como un NPC) para hallarla:\n  §dpartículas§7, §atítulo§7 y recompensa.\n" +
+        "§7• Edita cada cabeza (nombre, partículas) en\n  §fRevisar → Gestionar → Editar cabezas§7.\n"
     )
     .button1("§aRecargar todo")
     .button2("Cerrar");
@@ -588,6 +599,7 @@ function openManage(player, searchId) {
     )
     .button(isActive ? "§a● Búsqueda activa" : "§eMarcar como activa", "textures/custom_ui/icon_place")
     .button("§aAñadir cabeza aquí (tu pos.)", "textures/custom_ui/icon_place")
+    .button("§5Editar cabezas (nombre/partícula)", "textures/custom_ui/icon_review")
     .button("§bInfo de la búsqueda", "textures/custom_ui/icon_help")
     .button("§eEditar (nombre/color/recompensa)", "textures/custom_ui/icon_review")
     .button("§3Editar title / subtitle", "textures/custom_ui/icon_review")
@@ -604,33 +616,20 @@ function openManage(player, searchId) {
         actionBar(player, `§a[Search] §f${s.name}§a es ahora la búsqueda activa.`);
         openManage(player, searchId);
         break;
-      case 1:
-        addHeadHere(player, searchId);
-        break;
-      case 2:
-        openInfo(player, searchId);
-        break;
-      case 3:
-        openEdit(player, searchId);
-        break;
-      case 4:
-        openMessages(player, searchId);
-        break;
-      case 5: {
+      case 1: addHeadHere(player, searchId); break;
+      case 2: openHeadList(player, searchId); break;
+      case 3: openInfo(player, searchId); break;
+      case 4: openEdit(player, searchId); break;
+      case 5: openMessages(player, searchId); break;
+      case 6: {
         const n = respawnSearch(s);
         actionBar(player, `§a[Search] Reaparecidas §f${n}§a cabezas.`);
         openManage(player, searchId);
         break;
       }
-      case 6:
-        openTeleport(player, searchId);
-        break;
-      case 7:
-        openDelete(player, searchId);
-        break;
-      case 8:
-        openReview(player);
-        break;
+      case 7: openTeleport(player, searchId); break;
+      case 8: openDelete(player, searchId); break;
+      case 9: openReview(player); break;
     }
   });
 }
@@ -649,13 +648,92 @@ function addHeadHere(player, searchId) {
     found: false,
     skin: skin
   };
-  applySkin(player.dimension, h);
   s.heads.push(h);
   saveDB(db);
-  spawnHolos(player.dimension, s, s.heads.length - 1);
+  spawnHead(player.dimension, s, s.heads.length - 1);
   const cat = HEAD_CATALOG[skin];
   player.sendMessage(`§a[Search] §${colorCode(cat.color)}${cat.name}§a añadida a §f${s.name}§a.`);
   openManage(player, searchId);
+}
+
+// ---- Edición POR CABEZA ----
+
+function openHeadList(player, searchId) {
+  const db = loadDB();
+  const s = db[searchId];
+  if (!s) return;
+  const form = new ActionFormData().title(`Cabezas de ${s.name}`);
+  if (s.heads.length === 0) {
+    form.body("§7Esta búsqueda no tiene cabezas todavía.");
+  } else {
+    form.body("§7Selecciona una cabeza para editarla:");
+  }
+  s.heads.forEach((h, i) => {
+    const cat = HEAD_CATALOG[clampSkin(h.skin)];
+    form.button(`§${colorCode(cat.color)}${headName(h)} §7#${i + 1}\n§8${h.x},${h.y},${h.z}` + (h.found ? " §a✔" : ""), headIcon(clampSkin(h.skin)));
+  });
+  form.button("§7« Volver");
+  form.show(player).then((res) => {
+    if (res.canceled) return;
+    if (res.selection === s.heads.length) {
+      openManage(player, searchId);
+      return;
+    }
+    openHeadEdit(player, searchId, res.selection);
+  });
+}
+
+function openHeadEdit(player, searchId, index) {
+  const db = loadDB();
+  const s = db[searchId];
+  if (!s || !s.heads[index]) {
+    openHeadList(player, searchId);
+    return;
+  }
+  const h = s.heads[index];
+  const names = HEAD_CATALOG.map((c) => c.name);
+  const curHex = Array.isArray(h.pcolor) ? rgbToHex(h.pcolor) : rgbToHex(HEAD_CATALOG[clampSkin(h.skin)].rgb);
+  const form = new ModalFormData()
+    .title(`Editar cabeza #${index + 1}`)
+    .dropdown("Tipo de cabeza (skin)", names, clampSkin(h.skin))
+    .textField("Nombre personalizado (vacío = automático)", headName(h), h.name || "")
+    .textField("Color de partícula HEX (ej. #ff8800)", curHex, curHex)
+    .toggle("Eliminar esta cabeza", false);
+  form.show(player).then((res) => {
+    if (res.canceled) {
+      openHeadList(player, searchId);
+      return;
+    }
+    const [skinIdx, name, hex, del] = res.formValues;
+    const db2 = loadDB();
+    const s2 = db2[searchId];
+    if (!s2 || !s2.heads[index]) return;
+    const h2 = s2.heads[index];
+    if (del) {
+      removeHead(searchId, index);
+      h2.found = true;
+      h2.foundBy = "(eliminada)";
+      saveDB(db2);
+      actionBar(player, "§c[Search] Cabeza eliminada.");
+      openHeadList(player, searchId);
+      return;
+    }
+    h2.skin = clampSkin(skinIdx);
+    const nm = String(name || "").trim();
+    if (nm.length) h2.name = nm;
+    else delete h2.name;
+    const pc = parseHex(hex);
+    if (pc) h2.pcolor = pc;
+    else delete h2.pcolor;
+    saveDB(db2);
+    // re-aplica la cabeza (entidad + holos)
+    if (!h2.found) {
+      removeHead(searchId, index);
+      spawnHead(world.getDimension(h2.dim || "minecraft:overworld"), s2, index);
+    }
+    actionBar(player, `§a[Search] Cabeza #${index + 1} actualizada.`);
+    openHeadList(player, searchId);
+  });
 }
 
 function openInfo(player, searchId) {
@@ -670,7 +748,7 @@ function openInfo(player, searchId) {
   s.heads.forEach((h, i) => {
     const cat = HEAD_CATALOG[clampSkin(h.skin)];
     body +=
-      `§7#${i + 1} §${colorCode(cat.color)}${cat.name}§7: §f${h.x}, ${h.y}, ${h.z} ` +
+      `§7#${i + 1} §${colorCode(cat.color)}${headName(h)}§7: §f${h.x}, ${h.y}, ${h.z} ` +
       (h.found ? `§a(✔ ${h.foundBy || ""})` : "§c(pendiente)") + "\n";
   });
   const form = new MessageFormData().title("Info").body(body).button1("Volver").button2("Cerrar");
@@ -731,7 +809,6 @@ function openMessages(player, searchId) {
     s2.title = nt !== undefined && String(nt).length ? String(nt) : DEFAULT_TITLE;
     s2.subtitle = nsub !== undefined ? String(nsub) : DEFAULT_SUBTITLE;
     saveDB(db2);
-    // vista previa con datos de ejemplo
     const exTotal = s2.heads.length || 20;
     const ctx = {
       found: 1, total: exTotal, head: HEAD_CATALOG[0].name, search: s2.name,
@@ -749,14 +826,13 @@ function openDelete(player, searchId) {
   if (!s) return;
   const form = new MessageFormData()
     .title("Eliminar búsqueda")
-    .body(`§c¿Eliminar §f${s.name}§c?\n§7Se borrarán sus bloques-cabeza y hologramas.`)
+    .body(`§c¿Eliminar §f${s.name}§c?\n§7Se borrarán sus cabezas y hologramas.`)
     .button1("§cSí, eliminar")
     .button2("Cancelar");
   form.show(player).then((res) => {
     if (res.canceled) return;
     if (res.selection === 0) {
-      removeHolos(searchId, null);
-      for (const h of s.heads) if (!h.found) clearHeadBlock(h);
+      removeHead(searchId, null);
       const db2 = loadDB();
       delete db2[searchId];
       saveDB(db2);
@@ -780,7 +856,7 @@ function openTeleport(player, searchId) {
   const form = new ActionFormData().title("Teletransportar").body("Elige una cabeza:");
   s.heads.forEach((h, i) => {
     const cat = HEAD_CATALOG[clampSkin(h.skin)];
-    form.button(`§${colorCode(cat.color)}${cat.name} §7#${i + 1}\n§f${h.x}, ${h.y}, ${h.z}` + (h.found ? " §a✔" : ""));
+    form.button(`§${colorCode(cat.color)}${headName(h)} §7#${i + 1}\n§f${h.x}, ${h.y}, ${h.z}` + (h.found ? " §a✔" : ""));
   });
   form.button("§7« Volver");
   form.show(player).then((res) => {
@@ -802,7 +878,6 @@ function openTeleport(player, searchId) {
 
 // ----------------------------- Eventos -----------------------------
 
-// Abrir menú con la brújula
 world.afterEvents.itemUse.subscribe((event) => {
   const { source, itemStack } = event;
   if (itemStack && itemStack.typeId === "minecraft:compass") {
@@ -810,10 +885,9 @@ world.afterEvents.itemUse.subscribe((event) => {
   }
 });
 
-// Colocar el bloque-cabeza uno mismo
 world.afterEvents.playerPlaceBlock.subscribe((event) => {
   const { player, block } = event;
-  if (block && block.typeId === HEAD_BLOCK) {
+  if (block && block.typeId === HEAD_ID) {
     system.run(() => {
       try {
         onPlaceHead(player, block);
@@ -822,30 +896,11 @@ world.afterEvents.playerPlaceBlock.subscribe((event) => {
   }
 });
 
-// Encontrar al INTERACTUAR (como abrir un cofre)
-world.afterEvents.playerInteractWithBlock.subscribe((event) => {
-  const { player, block, itemStack } = event;
-  if (!block || block.typeId !== HEAD_BLOCK) return;
-  // si lleva el bloque-cabeza en la mano está construyendo, no buscando
-  if (itemStack && itemStack.typeId === HEAD_BLOCK) return;
-  if (player.isSneaking) return;
-  handleFound(player, block.location, player.dimension.id, true);
-});
-
-// Romper la cabeza = limpieza (sin recompensa)
-world.afterEvents.playerBreakBlock.subscribe((event) => {
-  const { player, brokenBlockPermutation, block } = event;
-  try {
-    if (brokenBlockPermutation && brokenBlockPermutation.type.id === HEAD_BLOCK) {
-      const match = findHeadAt(block.location, player.dimension.id);
-      if (match) {
-        match.h.found = true;
-        match.h.foundBy = player.name + " (roto)";
-        saveDB(match.db);
-        removeHolos(match.s.id, match.i);
-      }
-    }
-  } catch (e) {}
+// Encontrar al INTERACTUAR con la entidad (botón "Interactuar")
+world.afterEvents.playerInteractWithEntity.subscribe((event) => {
+  const { player, target } = event;
+  if (!target || target.typeId !== HEAD_ID) return;
+  handleFoundEntity(player, target);
 });
 
 world.afterEvents.worldInitialize.subscribe(() => {
@@ -856,18 +911,16 @@ world.afterEvents.worldInitialize.subscribe(() => {
   }, 40);
 });
 
-// Llama de antorcha sobre las cabezas no encontradas
 system.runInterval(() => {
   try {
     torchOnUnfoundHeads();
   } catch (e) {}
 }, 10);
 
-// Aviso "Interactúa" al estar muy cerca
 system.runInterval(() => {
   try {
     proximityHints();
   } catch (e) {}
 }, 6);
 
-console.warn("[The Search MCPE] v5 cargado con " + HEAD_CATALOG.length + " cabezas-bloque.");
+console.warn("[The Search MCPE] v6 cargado con " + HEAD_CATALOG.length + " cabezas (entidades interactivas).");

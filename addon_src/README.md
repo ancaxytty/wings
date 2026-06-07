@@ -5,11 +5,27 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v5 (actual):** `dist/wings_search_v5.mcaddon`
-- v4 · v3 · v2 · v1
+- **v6 (actual):** `dist/wings_search_v6.mcaddon`
+- v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v6
+- **Botón "Interactuar" estilo NPC**: las cabezas ahora son **entidades interactivas**
+  (`minecraft:interact`), así aparece el botón nativo §e[Interactuar]§r al acercarte/apuntar,
+  igual que con un NPC. Encontrar = pulsar Interactuar.
+- **+4 cabezas nuevas** (total **16**): §2Master Chief§r (Halo), §cGod of War§r,
+  §4Gears of War§r y §eBob Esponja§r.
+- **Texturas de cabezas mejoradas (HD 128px)**: layout por caras, escala x2 con sombreado
+  y contorno (AO), techo iluminado y caras visibles desde todos los ángulos.
+- **Sistema de edición POR CABEZA** (Revisar → Gestionar → §5Editar cabezas§r): cambiar
+  el §ftipo (skin)§r, poner un §fnombre personalizado§r y elegir el §fcolor de partícula§r (HEX),
+  o eliminar esa cabeza.
+- Sigue: title/subtitle editables, aviso de proximidad, hologramas y partículas por color.
+
+> Las cabezas se colocan poniendo el bloque-cabeza tú mismo; al colocarlo se convierte
+> en la entidad interactiva con la cabeza seleccionada y se registra en la búsqueda activa.
 
 ## Novedades v5
 - **Aviso de proximidad**: al acercarte mucho a una cabeza (≈3 bloques) aparece en la
