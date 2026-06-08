@@ -2,11 +2,11 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search MCPE §7RP",
-    "description": "§e10 animaciones 3D (Dulces/Volcan/Santa/Regalo/Bats/Ruleta/Chief/Rayo/Tornado/Magia).\n§7Resource Pack v8.1.0",
+    "description": "§eMenu profesional + 10 animaciones 3D + recompensa por cofre.\n§7Resource Pack v8.2.0",
     "uuid": "43fea397-89bb-4568-8b3e-4f2e8813211c",
     "version": [
       8,
-      1,
+      2,
       0
     ],
     "min_engine_version": [
@@ -21,7 +21,7 @@
       "uuid": "d18e488f-c778-41e2-9e7d-13124a9b3387",
       "version": [
         8,
-        1,
+        2,
         0
       ]
     }
@@ -31,7 +31,7 @@
       "uuid": "af9a6c3e-6c87-49bf-bad6-c258612ed211",
       "version": [
         8,
-        1,
+        2,
         0
       ]
     }

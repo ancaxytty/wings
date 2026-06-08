@@ -5,11 +5,23 @@ custom como BLOQUES**, **hologramas**, **partículas custom por cabeza**, **titl
 y una **interfaz oscura profesional estilo CubeCraft**.
 
 ## Descargar
-- **v8.1.0 (actual):** `dist/wings_search_v8.1.0.mcaddon`
-- v7.2.1 · v7.1.1 · v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
+- **v8.2.0 (actual):** `dist/wings_search_v8.2.0.mcaddon`
+- v8.1.0 · v7.2.1 · v7.1.1 · v7.1.0 · v7 · v6 · v5 · v4 · v3 · v2 · v1
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP).
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v8.2.0
+- **Menú principal rediseñado** (estilo más profesional): cabecera "THE SEARCH",
+  lema *Explora · Descubre · Viaja*, estadísticas en panel y botones temáticos
+  (Crear Aventura / Buscar / Aventuras / Guía y Tips) con iconos.
+- **Encontrar funciona en Survival, Creativo y Aventura** (no en espectador):
+  - Clic derecho (interactuar) **o golpear** la cabeza la encuentra; **no se rompe**.
+  - En **Aventura** no se pueden romper bloques, pero **sí golpearlos**: por eso ahora
+    se usa el evento de golpe (`entityHitBlock`) además del de interactuar, así que
+    las cabezas se pueden hallar también en Aventura.
+  - En Survival/Creativo, además, intentar romperla cuenta como encontrada (el bloque
+    se conserva). **Admin + agachado + romper** retira la cabeza (limpieza).
 
 ## Novedades v8.1.0
 - **7 animaciones 3D nuevas** (ya son **10** en total), partículas custom volumétricas:

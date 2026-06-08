@@ -1,16 +1,15 @@
-import { world, system, BlockPermutation, MolangVariableMap, ItemStack } from "@minecraft/server";
+import { world, system, BlockPermutation, MolangVariableMap, ItemStack, GameMode } from "@minecraft/server";
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * The Search MCPE v8.1.0
+ * The Search MCPE v8.2.0
+ * - Menú principal rediseñado (estilo profesional).
  * - 16 CABEZAS como BLOQUES (siempre visibles). NO desaparecen al encontrarlas.
- * - Tamaños: Pequeña / Normal / Grande / Gigante.
- * - Encontrar = INTERACTUAR (clic derecho) o ROMPER (clic izq): la cabeza NO se rompe.
- *   Admin + agachado (shift) rompe de verdad (limpieza).
+ * - Encontrar funciona en SURVIVAL, CREATIVO y AVENTURA (no en espectador):
+ *   clic derecho (interactuar) o GOLPEAR la cabeza (entityHitBlock). NO se rompe.
+ *   En Survival/Creativo además puedes intentar romperla (se cancela). Admin+shift = limpieza.
  * - Partículas FLOTANTES sobre cada cabeza no encontrada (del color de la cabeza).
- * - 10 ANIMACIONES 3D al encontrar: Dulces 🎃 / Volcán 🌋 / Santa 🎅 / Regalo Gigante 🎁 /
- *   Murciélagos 🦇 / Ruleta 🎡 / Master Chief 🪖 / Relámpago ⚡ / Tornado 🌪 / Magia ✨.
- * - RECOMPENSA POR COFRE: vincula un cofre; los items dentro se guardan y se entregan.
+ * - 10 ANIMACIONES 3D al encontrar. RECOMPENSA POR COFRE (items guardados).
  * - Botón RESET (admin) para volver a encontrarlas.
  * - Sistema de rango: el menú/edición requieren el tag "admin" (/tag @p add admin).
  * - Mensajes en consola (content log).
@@ -156,6 +155,27 @@ function requireAdmin(player) {
   player.sendMessage("§7Pide a un operador que ejecute: §f/tag @p add admin");
   log(`${player.name} intentó abrir el menú de administración SIN el tag '${ADMIN_TAG}'.`);
   return false;
+}
+
+// ----------------------------- modo de juego -----------------------------
+
+const ALL_MODES = [GameMode.survival, GameMode.creative, GameMode.adventure, GameMode.spectator];
+// Detecta el modo de juego de forma robusta entre versiones del API.
+function playerMode(player) {
+  try {
+    if (typeof player.getGameMode === "function") return player.getGameMode();
+  } catch (e) {}
+  for (const m of ALL_MODES) {
+    try {
+      const arr = player.dimension.getPlayers({ gameMode: m });
+      for (const p of arr) if (p.id === player.id) return m;
+    } catch (e) {}
+  }
+  return GameMode.survival;
+}
+// Puede encontrar/romper la cabeza en Survival, Creativo y Aventura (NO en espectador).
+function canBreakHead(player) {
+  return playerMode(player) !== GameMode.spectator;
 }
 
 // ----------------------------- DB -----------------------------
@@ -801,21 +821,24 @@ function openMain(player) {
   const totalFound = list.reduce((a, s) => a + s.heads.filter((h) => h.found).length, 0);
   const skin = getSkin(player);
   const cat = HEAD_CATALOG[skin];
+  const bar = "§3§l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
 
   const form = new ActionFormData()
-    .title(TITLE)
+    .title("§l§bTHE §3SEARCH")
     .body(
-      `§8§l━━━━━━━━━━━━━━━━━━━━━\n` +
-        `§6§l✦ §r§eThe Search§r §6§l✦  §8(admin)\n` +
-        `§8§l━━━━━━━━━━━━━━━━━━━━━\n` +
-        `§7Búsquedas §8»§f ${list.length}   §7Cabezas §8»§f ${totalHeads}   §aHalladas §8»§f ${totalFound}\n` +
-        `§7Activa §8»§f ${activeLabel(player)}\n` +
-        `§7Tu cabeza §8»§${colorCode(cat.color)} ${cat.name} §8(§7${SIZE_NAMES[getSize(player)]}§8, §7${FX_NAMES[getFx(player)]}§8)\n`
+      `${bar}\n` +
+        `§b   ✦ §3§lE X P L O R A §r§8· §3§lD E S C U B R E §r§8· §3§lV I A J A§r §b✦\n` +
+        `${bar}\n\n` +
+        `§7▎ §bBúsquedas §8» §f${list.length}\n` +
+        `§7▎ §6Cabezas §8» §f${totalHeads}   §7Halladas §8» §a${totalFound}\n` +
+        `§7▎ §dActiva §8» §f${activeLabel(player)}\n` +
+        `§7▎ §eTu cabeza §8» §${colorCode(cat.color)}${cat.name} §8(§7${SIZE_NAMES[getSize(player)]}§8, §7${FX_NAMES[getFx(player)]}§8)\n\n` +
+        `§8» Selecciona una opción:`
     )
-    .button("§l§aCREAR\n§r§7nueva búsqueda", "textures/custom_ui/icon_create")
-    .button(`§l§bREVISAR\n§r§7${list.length} búsqueda(s)`, "textures/custom_ui/icon_review")
-    .button(`§l§eCABEZAS\n§r§7${cat.name}`, headIcon(skin))
-    .button("§l§dAYUDA\n§r§7cómo se juega", "textures/custom_ui/icon_help");
+    .button("§a§lCREAR AVENTURA\n§r§8Nueva búsqueda", "textures/custom_ui/icon_create")
+    .button(`§b§lBUSCAR\n§r§8Revisar (${list.length})`, "textures/custom_ui/icon_review")
+    .button("§6§lAVENTURAS\n§r§8Galería de cabezas", headIcon(skin))
+    .button("§d§lGUÍA Y TIPS\n§r§8Cómo se juega", "textures/custom_ui/icon_help");
 
   form.show(player).then((res) => {
     if (res.canceled) return;
@@ -903,7 +926,8 @@ function openHelp(player) {
         "§7  Ruleta, Master Chief, Relámpago, Tornado y Magia.\n" +
         "§7• §fColoca§7 el bloque-cabeza (se ve siempre, no desaparece).\n" +
         "§7• Verás §dpartículas flotando§7 encima de las cabezas sin encontrar.\n" +
-        "§7• Acércate y §eclic derecho§7 o §erómpela§7 (no se rompe) para hallarla.\n" +
+        "§7• Acércate y §eclic derecho§7 o §egolpea§7 la cabeza para hallarla (no se rompe).\n" +
+        "§7• Funciona en §aSurvival§7, §aCreativo§7 y §aAventura§7 (en aventura: golpéala).\n" +
         "§7• §6Recompensa por cofre§7: en Gestionar, vincula un cofre con items y\n" +
         "§7  se entregan al encontrar cada cabeza (se guardan).\n" +
         "§7• §8Admin + agachado + romper = retira la cabeza (limpieza).\n" +
@@ -1462,7 +1486,7 @@ world.afterEvents.playerInteractWithBlock.subscribe((event) => {
   handleFound(player, block.location, player.dimension.id);
 });
 
-// Encontrar al ROMPER (clic izquierdo): la cabeza NO se rompe, solo cuenta como encontrada.
+// Encontrar al ROMPER (clic izquierdo) en Survival/Creativo: la cabeza NO se rompe.
 // Un admin agachado (shift) SÍ la rompe de verdad (limpieza).
 world.beforeEvents.playerBreakBlock.subscribe((event) => {
   const { player, block } = event;
@@ -1481,9 +1505,25 @@ world.beforeEvents.playerBreakBlock.subscribe((event) => {
   event.cancel = true; // la cabeza NO se rompe
   system.run(() => {
     try {
+      if (!canBreakHead(player)) return; // espectador no cuenta
       handleFound(player, loc, dimId);
     } catch (e) {}
   });
+});
+
+// Encontrar al GOLPEAR (clic izq / atacar) la cabeza. ESTO funciona en
+// Survival, Creativo y AVENTURA (en aventura no se pueden romper bloques,
+// pero sí golpearlos). La cabeza NO se rompe.
+world.afterEvents.entityHitBlock.subscribe((event) => {
+  const player = event.damagingEntity;
+  const block = event.hitBlock;
+  if (!player || player.typeId !== "minecraft:player") return;
+  if (!block || block.typeId !== HEAD_ID) return;
+  if (player.isSneaking && isAdmin(player)) return; // admin shift = limpieza por romper
+  if (!canBreakHead(player)) return;
+  try {
+    handleFound(player, block.location, block.dimension.id);
+  } catch (e) {}
 });
 
 world.afterEvents.worldInitialize.subscribe(() => {
@@ -1492,7 +1532,7 @@ world.afterEvents.worldInitialize.subscribe(() => {
       reloadAll();
     } catch (e) {}
   }, 40);
-  log("v8.1.0 cargado: " + HEAD_CATALOG.length + " cabezas + " + CELEB_NAMES.length + " animaciones 3D + recompensa por cofre. Usa /tag @p add admin para gestionar.");
+  log("v8.2.0 cargado: " + HEAD_CATALOG.length + " cabezas + " + CELEB_NAMES.length + " animaciones 3D + recompensa por cofre. Encontrar funciona en Survival/Creativo/Aventura. Usa /tag @p add admin.");
 });
 
 // Aviso [Interactuar] al acercarse
