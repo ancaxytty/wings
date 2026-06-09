@@ -1,0 +1,97 @@
+{
+	"namespace": "server_form",
+
+	"long_form": {
+		"type": "panel",
+		"size": [ "100%", "100%" ],
+		"controls": [
+			{
+				"dim@common.dialog_background_dimmer": { "size": [ "100%", "100%" ] }
+			},
+			{
+				"window": {
+					"type": "panel",
+					"size": [ "90%", "86%" ],
+					"controls": [
+						{ "bg@common.dialog_background_hollow": { "size": [ "100%", "100%" ] } },
+						{
+							"layout": {
+								"type": "stack_panel",
+								"orientation": "vertical",
+								"size": [ "100% - 18px", "100% - 18px" ],
+								"controls": [
+									{
+										"title": {
+											"type": "label",
+											"size": [ "100%", 22 ],
+											"text": "#title_text",
+											"color": [ 1, 1, 1 ],
+											"shadow": true,
+											"bindings": [ { "binding_name": "#title_text" } ]
+										}
+									},
+									{ "sep@common.standard_divider_line": { "size": [ "100%", 6 ] } },
+									{
+										"scroll@common.scrolling_panel": {
+											"size": [ "100%", "fill" ],
+											"$scrolling_content": "server_form.holo_grid",
+											"$show_background": false
+										}
+									}
+								]
+							}
+						},
+						{
+							"close@common.close_button": {
+								"anchor_from": "top_right",
+								"anchor_to": "top_right",
+								"offset": [ -6, 6 ]
+							}
+						}
+					]
+				}
+			}
+		]
+	},
+
+	"holo_grid": {
+		"type": "grid",
+		"grid_dimensions": [ 2, 60 ],
+		"collection_name": "form_buttons",
+		"size": [ "100%", "100%c" ],
+		"grid_item_template": "server_form.holo_button"
+	},
+
+	"holo_button@common.light_content_button": {
+		"size": [ "50% - 4px", 38 ],
+		"$pressed_button_name": "button.form_button_click",
+		"controls": [
+			{
+				"content": {
+					"type": "stack_panel",
+					"orientation": "horizontal",
+					"size": [ "100% - 8px", "100%" ],
+					"controls": [
+						{
+							"icon": {
+								"type": "image",
+								"size": [ 28, 28 ],
+								"texture": "#form_button_texture",
+								"bindings": [ { "binding_name": "#form_button_texture" } ]
+							}
+						},
+						{ "pad": { "type": "panel", "size": [ 6, 0 ] } },
+						{
+							"label": {
+								"type": "label",
+								"size": [ "fill", "default" ],
+								"text": "#form_button_text",
+								"bindings": [ { "binding_name": "#form_button_text" } ]
+							}
+						}
+					]
+				}
+			}
+		]
+	}
+}

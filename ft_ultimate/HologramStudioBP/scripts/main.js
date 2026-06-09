@@ -1,6 +1,6 @@
 // ============================================================================
-//  Hologram Studio  v6.4.0
-//  Hologramas de texto, items flotantes y botones clickables. 100% Script API.
+//  Hologram Studio  v6.5.0
+//  Hologramas de texto, items flotantes (no recogibles) y botones clickables. 100% Script API.
 //  MC 1.21.50+ / API 2.x.  Codigo y assets originales.
 // ============================================================================
 import * as mc from "@minecraft/server";
@@ -68,6 +68,14 @@ function front(player, dist) {
   const d = player.getViewDirection();
   return { x: h.x + d.x * dist, y: h.y + d.y * dist, z: h.z + d.z * dist };
 }
+// Punto al frente SOLO horizontal (ignora la inclinacion) a la altura de los ojos.
+// Asi el item flotante queda lejos del jugador y NO se puede recoger al crearlo.
+function frontFlat(player, dist) {
+  const h = player.getHeadLocation();
+  const d = player.getViewDirection();
+  const len = Math.hypot(d.x, d.z) || 1;
+  return { x: h.x + (d.x / len) * dist, y: h.y, z: h.z + (d.z / len) * dist };
+}
 
 function wait(ticks) { return new Promise((r) => system.runTimeout(r, ticks)); }
 async function showForm(form, player) {
@@ -124,13 +132,13 @@ function tickLoop() {
       if (pid) { try { e.dimension.spawnParticle(pid, loc); } catch (_) {} }
     }
   }
-  if (tick % 4 === 0) {
+  if (tick % 2 === 0) {
     const reg = getItemReg();
     for (const it of reg) {
       let dim; try { dim = world.getDimension(it.dim); } catch (e) { continue; }
       let found;
       try {
-        const ents = dim.getEntities({ type: "minecraft:item", location: { x: it.x, y: it.y, z: it.z }, maxDistance: 5 });
+        const ents = dim.getEntities({ type: "minecraft:item", location: { x: it.x, y: it.y, z: it.z }, maxDistance: 6 });
         for (const e of ents) { if (e.getDynamicProperty("fti") === it.uid) { found = e; break; } }
       } catch (e) { continue; }
       if (found) { try { found.clearVelocity(); found.teleport({ x: it.x, y: it.y, z: it.z }); } catch (_) {} }
@@ -208,7 +216,7 @@ async function createItemForm(player) {
   if (r.canceled) return;
   const [itemIdx, customId, label] = r.formValues;
   const itemId = (customId && String(customId).trim()) ? String(customId).trim() : ITEM_OPTIONS[itemIdx].id;
-  const loc = front(player, 3);
+  const loc = frontFlat(player, 3);
   let stack; try { stack = new ItemStack(itemId, 1); } catch (e) { player.sendMessage(PREFIX + "§cID invalido: §f" + itemId); return; }
   let ent; try { ent = player.dimension.spawnItem(stack, loc); } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo crear el item."); return; }
   const uid = "i" + Date.now() + "_" + Math.floor(Math.random() * 9999);
@@ -392,11 +400,12 @@ function runHoloCmd(player, e) {
   let cmd; try { cmd = e.getDynamicProperty("cmd"); } catch (_) { return false; }
   if (!cmd || !String(cmd).trim()) return false;
   cmd = String(cmd).replace(/^\//, "");
-  try { player.runCommand(cmd); return true; }
-  catch (err) {
-    try { e.dimension.runCommand(cmd); return true; }
-    catch (e2) { player.sendMessage(PREFIX + "§cNo se pudo ejecutar el comando (¿trucos activados?)."); return true; }
-  }
+  let ok = false;
+  try { player.runCommand(cmd); ok = true; }
+  catch (err) { try { e.dimension.runCommand(cmd); ok = true; } catch (e2) { ok = false; } }
+  try { player.playSound(ok ? "random.orb" : "note.bass"); } catch (_) {}
+  if (!ok) player.sendMessage(PREFIX + "§cNo se pudo ejecutar el comando (activa Trucos/cheats en el mundo).");
+  return true;
 }
 
 function giveWand(player) {
@@ -422,12 +431,12 @@ safe("itemUse", () => world.afterEvents.itemUse.subscribe((ev) => {
   if (ev.itemStack && ev.itemStack.typeId === WAND) openMain(ev.source);
 }));
 
-// Clic en holograma -> ejecuta su comando (si tiene); con varita abre Administrar de ese holo
+// Clic en holograma -> ejecuta su comando (si tiene). Con varita NO hace nada aqui
+// (la varita abre el menu via itemUse) para evitar doble menu.
 safe("interactEntity", () => world.afterEvents.playerInteractWithEntity.subscribe((ev) => {
   const e = ev.target;
   if (!e || e.typeId !== ENT) return;
-  const holdingWand = ev.itemStack && ev.itemStack.typeId === WAND;
-  if (holdingWand) { system.run(() => manageText(ev.player, e)); return; }
+  if (ev.itemStack && ev.itemStack.typeId === WAND) return;
   runHoloCmd(ev.player, e);
 }));
 
@@ -460,4 +469,4 @@ safe("playerSpawn", () => world.afterEvents.playerSpawn.subscribe((ev) => { if (
 
 safe("startupMsg", () => system.runTimeout(() => { try { for (const p of world.getAllPlayers()) ensureWelcome(p); } catch (_) {} }, 40));
 
-try { console.warn("[Hologram Studio] cargado v6.4.0 (API 2.x)"); } catch (_) {}
+try { console.warn("[Hologram Studio] cargado v6.5.0 (API 2.x)"); } catch (_) {}

@@ -10,7 +10,7 @@
 		"components": {
 			"minecraft:type_family": { "family": ["hologram", "inanimate"] },
 			"minecraft:health": { "value": 999999, "max": 999999 },
-			"minecraft:collision_box": { "width": 0.7, "height": 1.0 },
+			"minecraft:collision_box": { "width": 0.8, "height": 1.6 },
 			"minecraft:nameable": { "alwaysShow": true, "allowNameTagRenaming": true },
 			"minecraft:damage_sensor": {
 				"triggers": { "cause": "all", "deals_damage": false }
@@ -20,9 +20,20 @@
 			"minecraft:knockback_resistance": { "value": 1 },
 			"minecraft:physics": { "has_gravity": false, "has_collision": false },
 			"minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": false },
-			"minecraft:persistent": {}
+			"minecraft:persistent": {},
+			"minecraft:interact": {
+				"interactions": [
+					{
+						"on_interact": { "event": "holo:on_click", "target": "self" },
+						"interact_text": "Activar",
+						"swing": true
+					}
+				]
+			}
 		},
 		"component_groups": {},
-		"events": {}
+		"events": {
+			"holo:on_click": {}
+		}
 	}
 }
