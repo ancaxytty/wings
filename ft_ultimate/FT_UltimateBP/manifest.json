@@ -4,8 +4,8 @@
 		"name": "§l§bFloating §eText §6Ultimate §7[BP]",
 		"description": "§fHologramas de texto e items con menu (Scripts API).\n§7Texto + Items + Particulas + Rotacion + Flotar\n§aBase: addon de Death_Aruban — §6Ultimate v6.0.0",
 		"uuid": "c44eb99d-d788-4aff-90ee-44a6e5a5d76b",
-		"version": [6, 0, 0],
-		"min_engine_version": [1, 21, 0]
+		"version": [6, 0, 1],
+		"min_engine_version": [1, 21, 50]
 	},
 	"modules": [
 		{
@@ -24,15 +24,15 @@
 	"dependencies": [
 		{
 			"module_name": "@minecraft/server",
-			"version": "1.11.0"
+			"version": "2.0.0"
 		},
 		{
 			"module_name": "@minecraft/server-ui",
-			"version": "1.2.0"
+			"version": "2.0.0"
 		},
 		{
 			"uuid": "774439fd-6425-40fa-ae85-896509ad2772",
-			"version": [6, 0, 0]
+			"version": [6, 0, 1]
 		}
 	]
 }

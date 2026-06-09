@@ -421,13 +421,27 @@ world.beforeEvents.chatSend.subscribe((ev) => {
 
 world.afterEvents.playerSpawn.subscribe((ev) => {
   if (!ev.initialSpawn) return;
-  const p = ev.player;
-  try {
-    if (p.getDynamicProperty("ft_got")) return;
-    p.setDynamicProperty("ft_got", true);
-  } catch (_) {}
-  giveWand(p);
-  p.sendMessage(PREFIX + "§fUsa la §bVarita §fo escribe §a!ft §fpara abrir el menu de hologramas.");
+  ensureWand(ev.player);
 });
 
-console.warn("[Floating Text Ultimate] cargado v6.0.0");
+// Reparto/confirmacion para jugadores ya presentes (al activar el pack o /reload)
+function ensureWand(p) {
+  try {
+    if (!p.getDynamicProperty("ft_got")) {
+      p.setDynamicProperty("ft_got", true);
+      giveWand(p);
+    }
+  } catch (_) {}
+  try {
+    p.sendMessage(PREFIX + "§aListo. §fUsa la §bVarita §fo escribe §a!ft§f. (varita: §a!ftwand§f)");
+  } catch (_) {}
+}
+
+// Confirmacion visible de que el script SI cargo + asegura varita a todos
+system.runTimeout(() => {
+  try {
+    for (const p of world.getAllPlayers()) ensureWand(p);
+  } catch (_) {}
+}, 40);
+
+console.warn("[Floating Text Ultimate] cargado v6.0.1 (API 2.x)");
