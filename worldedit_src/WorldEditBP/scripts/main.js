@@ -39,7 +39,9 @@ import {
 // y simplemente no registramos los comandos (el menú y /scriptevent siguen).
 import * as mc from "@minecraft/server";
 const CustomCommandParamType = mc.CustomCommandParamType;
-const CustomCommandPermissionLevel = mc.CustomCommandPermissionLevel;
+// OJO: el enum de permisos se llama CommandPermissionLevel (NO CustomCommand...).
+// registerCommand REQUIERE permissionLevel, así que usamos este o 0 de respaldo.
+const CommandPermissionLevel = mc.CommandPermissionLevel;
 const CustomCommandStatus = mc.CustomCommandStatus;
 import {
   ActionFormData,
@@ -2495,10 +2497,11 @@ function executeCommand(player, raw) {
 /*  obligatorio en la API oficial, p.ej:  /we:set stone               */
 /* ------------------------------------------------------------------ */
 
-// Resultado de comando (solo si el enum existe; si no, undefined es válido).
+// Resultado de comando, igual que en Hologramas (status con respaldo 0).
 function weResult(ok) {
-  if (!CustomCommandStatus) return undefined;
-  return { status: ok ? CustomCommandStatus.Success : CustomCommandStatus.Failure };
+  const OK = CustomCommandStatus ? CustomCommandStatus.Success : 0;
+  const FAIL = CustomCommandStatus ? CustomCommandStatus.Failure : 0;
+  return { status: ok ? OK : FAIL };
 }
 
 // Ejecuta un comando WorldEdit desde el callback (read-only) de forma diferida.
@@ -2526,12 +2529,12 @@ function joinCmd(parts) {
 function registerWorldEditCommands(registry) {
   const P = CustomCommandParamType; // puede faltar en algunas versiones
   const hasParams = !!(P && P.String !== undefined);
-  // permissionLevel es OPCIONAL: si el enum no existe, no lo incluimos
-  // (así registramos igual, como hace el addon de Hologramas con /holo:menu).
+  // permissionLevel es OBLIGATORIO en registerCommand. Usamos el enum correcto
+  // CommandPermissionLevel.Any, o 0 como respaldo (igual que el addon Hologramas).
   const perm =
-    CustomCommandPermissionLevel && CustomCommandPermissionLevel.Any !== undefined
-      ? CustomCommandPermissionLevel.Any
-      : undefined;
+    CommandPermissionLevel && CommandPermissionLevel.Any !== undefined
+      ? CommandPermissionLevel.Any
+      : 0;
 
   // Enum de direcciones (autocompletado) — solo si hay soporte de parámetros.
   if (hasParams) {
@@ -2549,8 +2552,7 @@ function registerWorldEditCommands(registry) {
   let okCount = 0;
   // reg(name, description, callback, mandatory[], optional[])
   function reg(name, description, cb, mandatory, optional) {
-    const def = { name: name, description: description };
-    if (perm !== undefined) def.permissionLevel = perm;
+    const def = { name: name, description: description, permissionLevel: perm };
     if (hasParams && mandatory) {
       const m = mandatory.filter(Boolean);
       if (m.length) def.mandatoryParameters = m;
@@ -2624,7 +2626,7 @@ function registerWorldEditCommands(registry) {
 
   console.warn(
     "[WorldEdit] Comandos oficiales /we: registrados: " + okCount +
-      " (argumentos=" + hasParams + ", permiso=" + (perm !== undefined) + ")."
+      " (argumentos=" + hasParams + ", permiso=" + perm + ")."
   );
 }
 
@@ -2886,7 +2888,7 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.4) cargado. " +
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.5) cargado. " +
       "Comandos /we:<cmd> (como /holo:), VARITA, MENÚ y /scriptevent. Actívalo con: /we:wand"
   );
 });
