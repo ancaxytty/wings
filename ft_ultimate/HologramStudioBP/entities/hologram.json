@@ -20,20 +20,9 @@
 			"minecraft:knockback_resistance": { "value": 1 },
 			"minecraft:physics": { "has_gravity": false, "has_collision": false },
 			"minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": false },
-			"minecraft:persistent": {},
-			"minecraft:interact": {
-				"interactions": [
-					{
-						"on_interact": { "event": "holo:on_click", "target": "self" },
-						"interact_text": "Activar",
-						"swing": true
-					}
-				]
-			}
+			"minecraft:persistent": {}
 		},
 		"component_groups": {},
-		"events": {
-			"holo:on_click": {}
-		}
+		"events": {}
 	}
 }

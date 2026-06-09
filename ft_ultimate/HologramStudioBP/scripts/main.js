@@ -1,6 +1,6 @@
 // ============================================================================
-//  Hologram Studio  v6.5.0
-//  Hologramas de texto, items flotantes (no recogibles) y botones clickables. 100% Script API.
+//  Hologram Studio  v6.5.1
+//  Hologramas de texto, items flotantes (no recogibles) y botones clickables (al golpear).
 //  MC 1.21.50+ / API 2.x.  Codigo y assets originales.
 // ============================================================================
 import * as mc from "@minecraft/server";
@@ -388,7 +388,7 @@ function helpForm(player) {
       "§e- Abrir menu: §fvarita (clic der.) o §a/holo:menu§f.\n" +
       "§e- Varita: §a/holo:wand§f.\n" +
       "§e- Crear Texto / Item / Boton clickable §fdesde el menu.\n" +
-      "§e- Boton clickable: §fhaz clic derecho en el holograma para ejecutar su comando (requiere trucos).\n" +
+      "§e- Boton clickable: §fgolpea (clic izquierdo / atacar) el holograma de cerca para ejecutar su comando (requiere trucos).\n" +
       "§e- Administrar: §fedita, mueve, duplica, teleporta o borra §lsin mirar§r§f, eligiendo de la lista.\n" +
       "§e- Velocidad: §f0=quieto, 1-4=orbita, 5=reversa."
     )
@@ -431,13 +431,18 @@ safe("itemUse", () => world.afterEvents.itemUse.subscribe((ev) => {
   if (ev.itemStack && ev.itemStack.typeId === WAND) openMain(ev.source);
 }));
 
-// Clic en holograma -> ejecuta su comando (si tiene). Con varita NO hace nada aqui
-// (la varita abre el menu via itemUse) para evitar doble menu.
-safe("interactEntity", () => world.afterEvents.playerInteractWithEntity.subscribe((ev) => {
-  const e = ev.target;
+// Golpear (clic izquierdo / atacar) un holograma cerca -> ejecuta su comando.
+const _hitCd = new Map();
+safe("entityHit", () => world.afterEvents.entityHitEntity.subscribe((ev) => {
+  const e = ev.hitEntity;
   if (!e || e.typeId !== ENT) return;
-  if (ev.itemStack && ev.itemStack.typeId === WAND) return;
-  runHoloCmd(ev.player, e);
+  const player = ev.damagingEntity;
+  if (!player || player.typeId !== "minecraft:player") return;
+  const now = Date.now();
+  const last = _hitCd.get(e.id) || 0;
+  if (now - last < 350) return; // anti-rebote
+  _hitCd.set(e.id, now);
+  runHoloCmd(player, e);
 }));
 
 safe("chatSend", () => {
@@ -469,4 +474,4 @@ safe("playerSpawn", () => world.afterEvents.playerSpawn.subscribe((ev) => { if (
 
 safe("startupMsg", () => system.runTimeout(() => { try { for (const p of world.getAllPlayers()) ensureWelcome(p); } catch (_) {} }, 40));
 
-try { console.warn("[Hologram Studio] cargado v6.5.0 (API 2.x)"); } catch (_) {}
+try { console.warn("[Hologram Studio] cargado v6.5.1 (API 2.x)"); } catch (_) {}
