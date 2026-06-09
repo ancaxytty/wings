@@ -12,8 +12,7 @@
 			"minecraft:icon": { "texture": "ft_wand" },
 			"minecraft:display_name": {
 				"value": "§l§bVarita de Hologramas §r§7(usar = menu)"
-			},
-			"minecraft:creative_category": { "parent": "itemGroup.name.miscellaneous" }
+			}
 		}
 	}
 }
