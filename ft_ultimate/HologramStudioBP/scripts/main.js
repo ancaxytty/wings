@@ -189,10 +189,10 @@ async function openMain(player) {
 async function createTextForm(player) {
   const f = new ModalFormData().title("§l§aCrear Texto Flotante")
     .textField("Texto §7(usa | o \\n para varias lineas)", "Hola mundo")
-    .dropdown("Color base", COLORS.map((c) => c.name), 0)
-    .dropdown("Particula", PARTICLE_NAMES, 0)
-    .slider("Velocidad orbita §7(0=quieto, 5=reversa)", 0, 5, 1, 0)
-    .toggle("Animacion flotar", false);
+    .dropdown("Color base", COLORS.map((c) => c.name))
+    .dropdown("Particula", PARTICLE_NAMES)
+    .slider("Velocidad orbita §7(0=quieto, 5=reversa)", 0, 5, { valueStep: 1, defaultValue: 0 })
+    .toggle("Animacion flotar");
   const r = await showForm(f, player);
   if (r.canceled) return;
   const [text, colorIdx, partIdx, speed, bob] = r.formValues;
@@ -219,11 +219,11 @@ async function editTextForm(player) {
   const curSpeed = e.getDynamicProperty("s") ?? 0;
   const curBob = e.getDynamicProperty("b") ?? false;
   const f = new ModalFormData().title("§l§bEditar Texto")
-    .textField("Texto §7(| o \\n = lineas)", "texto", curText)
-    .dropdown("Color base", COLORS.map((c) => c.name), curColor)
-    .dropdown("Particula", PARTICLE_NAMES, curPart)
-    .slider("Velocidad orbita", 0, 5, 1, curSpeed)
-    .toggle("Animacion flotar", !!curBob);
+    .textField("Texto §7(| o \\n = lineas)", "texto", { defaultValue: curText })
+    .dropdown("Color base", COLORS.map((c) => c.name), { defaultValueIndex: curColor })
+    .dropdown("Particula", PARTICLE_NAMES, { defaultValueIndex: curPart })
+    .slider("Velocidad orbita", 0, 5, { valueStep: 1, defaultValue: curSpeed })
+    .toggle("Animacion flotar", { defaultValue: !!curBob });
   const r = await showForm(f, player);
   if (r.canceled) return;
   const [text, colorIdx, partIdx, speed, bob] = r.formValues;
@@ -238,7 +238,7 @@ async function editTextForm(player) {
 
 async function createItemForm(player) {
   const f = new ModalFormData().title("§l§eCrear Item Flotante")
-    .dropdown("Item", ITEM_NAMES, 0)
+    .dropdown("Item", ITEM_NAMES)
     .textField("ID personalizado §7(opcional, ej: minecraft:tnt)", "")
     .textField("Etiqueta de texto §7(opcional)", "");
   const r = await showForm(f, player);
