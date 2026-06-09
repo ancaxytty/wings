@@ -1026,7 +1026,7 @@ function listFlags(player) {
   const names = keys.map((k) => "§e" + FIFA_FLAGS[k].name);
   msg(player, "§6§l[FIFA 2026] §r§7Países disponibles (§f" + names.length + "§7):");
   msg(player, names.join("§7, "));
-  msg(player, "§7Construye con: §e/we:flag <país> [escala 1-3]");
+  msg(player, "§7Construye con: §e;flag <país> [escala 1-3]");
 }
 
 // Construye la bandera como un muro frente al jugador.
@@ -2279,32 +2279,30 @@ async function helpForm(player) {
 }
 
 const HELP_TEXT = [
-  "§7Comandos §foficiales§7 (con autocompletado en el chat):",
+  "§7Tres formas de usar comandos (elige la que funcione en tu versión):",
+  "§7• §fChat:§7 §e;set stone§7  (o §e//set stone§7)  ← funciona casi siempre",
+  "§7• §fOficial:§7 §e/we:set stone§7  ← solo 1.21.90+ / APIs Beta",
+  "§7• §fScriptevent:§7 §e/scriptevent we:set stone§7",
   "",
   "§eItem de menú: §fBrújula §7→ úsala para abrir el menú.",
   "§eVarita: §fHacha §7→ tocar=§aPOS1§7, romper=§bPOS2§7, agacharse+usar=menú.",
   "",
-  "§b/we:wand §7- entrega la varita · §b/we:menu §7- abrir menú",
-  "§b/we:set <bloque>",
-  "§b/we:walls <bloque> §7· §b/we:outline <bloque>",
-  "§b/we:replace <de> <a>",
-  "§b/we:sphere <bloque> [radio] [hueca]",
-  "§b/we:hsphere <bloque> [radio]",
-  "§b/we:cyl <bloque> [radio] [altura] [hueco]",
-  "§b/we:cone <bloque> [radio] [altura] [hueco]",
-  "§b/we:pyramid <bloque> [tamaño]",
-  "§b/we:line <bloque> §7(entre POS1 y POS2)",
-  "§b/we:hollow §7· §b/we:clear",
-  "§a/we:naturalize §7· §a/we:smooth [iter] §7· §a/we:drain [radio]",
-  "§6/we:fifa §7- menú FIFA World Cup 2026",
-  "§6/we:flag <país> [escala] §7· §6/we:flags",
-  "§b/we:copy §7· §b/we:paste §7· §b/we:undo",
-  "§b/we:stack <n> [dir] §7· §b/we:move <n> [dir]",
-  "§b/we:rotate [90|180|270]",
-  "§b/we:expand <n> [dir] §7· §b/we:contract <n> [dir]",
-  "§b/we:up [n] §7· §b/we:box §7· §b/we:size",
+  "§7(Abajo se muestran con §f;§7 pero valen para las 3 formas)",
+  "§b;wand §7- entrega la varita · §b;menu §7- abrir menú",
+  "§b;set <bloque> §7· §b;walls <bloque> §7· §b;outline <bloque>",
+  "§b;replace <de> <a>",
+  "§b;sphere <bloque> [radio] [hueca] §7· §b;hsphere <bloque> [radio]",
+  "§b;cyl <bloque> [radio] [altura] [hueco]",
+  "§b;cone <bloque> [radio] [altura] [hueco]",
+  "§b;pyramid <bloque> [tamaño] §7· §b;line <bloque>",
+  "§b;hollow §7· §b;clear",
+  "§a;naturalize §7· §a;smooth [iter] §7· §a;drain [radio]",
+  "§6;fifa §7- menú FIFA 2026 · §6;flag <país> [escala] §7· §6;flags",
+  "§b;copy §7· §b;paste §7· §b;undo",
+  "§b;stack <n> [dir] §7· §b;move <n> [dir] §7· §b;rotate [90|180|270]",
+  "§b;expand <n> [dir] §7· §b;contract <n> [dir]",
+  "§b;up [n] §7· §b;box §7· §b;size",
   "",
-  "§8(También funcionan vía §7/scriptevent we:<cmd>§8.)",
   "§7dir = north/south/east/west/up/down (o vacío = hacia donde miras)",
 ].join("\n");
 
@@ -2884,8 +2882,75 @@ if (CustomCommandParamType && CustomCommandPermissionLevel && CustomCommandStatu
   );
 } else {
   console.warn(
-    "[WorldEdit] Esta versión de Minecraft no soporta comandos oficiales " +
-      "(requiere 1.21.80+). Usa el menú o /scriptevent we:<cmd>."
+    "[WorldEdit] Esta versión de Minecraft no soporta comandos oficiales /we: " +
+      "(requieren 1.21.90+ o el experimento 'APIs Beta'). " +
+      "Usa los comandos de chat (;set, //set) o /scriptevent we:<cmd>."
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Comandos por CHAT (compatibles con CASI TODAS las versiones)        */
+/*  Escribe en el chat con uno de estos prefijos:                       */
+/*      //set stone     ;set stone     .set stone                       */
+/*  Funciona aunque la versión no soporte los comandos oficiales /we:.  */
+/* ------------------------------------------------------------------ */
+
+// Devuelve el comando "crudo" (sin prefijo) o null si el mensaje no es nuestro.
+function parseChatCommand(message) {
+  let m = String(message || "").trim();
+  if (!m) return null;
+  let raw = null;
+  if (m.startsWith("//")) raw = m.slice(2);
+  else if (m.startsWith(";")) raw = m.slice(1);
+  else if (m.startsWith(".")) raw = m.slice(1);
+  else return null;
+  raw = raw.trim();
+  if (!raw) return null;
+  // Permite también escribir el namespace: ";we:set stone".
+  if (raw.toLowerCase().startsWith("we:")) raw = raw.slice(3).trim();
+  if (raw.toLowerCase().startsWith("worldedit:")) raw = raw.slice(10).trim();
+  return raw || null;
+}
+
+function runChatCommand(player, raw) {
+  if (!player || player.typeId !== "minecraft:player") return;
+  system.run(() => {
+    try {
+      if (!player.hasTag(TAG)) player.addTag(TAG);
+      executeCommand(player, raw);
+    } catch (e) {
+      console.warn("[WorldEdit] Error en comando de chat '" + raw + "': " + e);
+    }
+  });
+}
+
+// 1) Preferimos el evento ANTES del chat para poder OCULTAR el mensaje.
+const chatBeforeOk = safeSub(
+  () => world.beforeEvents.chatSend,
+  (ev) => {
+    try {
+      const raw = parseChatCommand(ev.message);
+      if (raw === null) return;
+      ev.cancel = true; // no mostrar el "comando" en el chat
+      runChatCommand(ev.sender, raw);
+    } catch (e) {}
+  },
+  "beforeEvents.chatSend"
+);
+
+// 2) Si no existe (algunas versiones lo quitaron), usamos el evento DESPUÉS.
+//    En ese caso el mensaje se verá en el chat, pero el comando se ejecuta.
+if (!chatBeforeOk) {
+  safeSub(
+    () => world.afterEvents.chatSend,
+    (ev) => {
+      try {
+        const raw = parseChatCommand(ev.message);
+        if (raw === null) return;
+        runChatCommand(ev.sender, raw);
+      } catch (e) {}
+    },
+    "afterEvents.chatSend"
   );
 }
 
@@ -3005,7 +3070,8 @@ system.runInterval(() => {
       msg(player, "§b§l========== §r§b§lWorldEdit §6\u26bd§r §b§l==========");
       msg(player, "§a\u2714 Activado correctamente.");
       msg(player, "§7Abre el menú con la §ebrújula§7, o §eagáchate + usa la varita§7.");
-      msg(player, "§7Comandos oficiales: §e/we:menu§7, §e/we:set§7, §e/we:wand§7... (escribe §e/we:§7 y verás la lista).");
+      msg(player, "§7Comandos por chat: §e;set <bloque>§7, §e;wand§7, §e;sphere§7... (también §e//set§7).");
+      msg(player, "§8Si tu versión es 1.21.90+ también tienes §e/we:set§8, §e/we:wand§8...");
       msg(player, "§7Te entregué la §evarita §7(hacha) y el §emenú §7(brújula). §8Los bloques los pones tú.");
       system.run(() => giveKit(player));
     } else if (!has && activated.has(id)) {
@@ -3019,8 +3085,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.1) cargado. " +
-      "Comandos oficiales /we:<cmd> disponibles. Actívalo con: /we:wand"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.2) cargado. " +
+      "Comandos: chat (;set, //set), /we:<cmd> (1.21.90+) y /scriptevent. Actívalo con: ;wand"
   );
 });
 
@@ -3030,9 +3096,9 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
   system.runTimeout(() => {
     msg(player, "§b§l== WorldEdit §6\u26bd FIFA World Cup 2026 Edition §b==");
     if (player.hasTag(TAG)) {
-      msg(player, "§aActivado. Usa la §ebrújula§a o los comandos §e/we:menu§a, §e/we:set§a...");
+      msg(player, "§aActivado. Usa la §ebrújula§a o comandos de chat: §e;menu§a, §e;set <bloque>§a...");
     } else {
-      msg(player, "§7Para activar escribe §e/we:wand§7 (o §e/tag @p add worldedit§7).");
+      msg(player, "§7Para activar escribe en el chat §e;wand§7 (o §e/scriptevent we:wand§7).");
     }
   }, 40);
 });
