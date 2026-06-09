@@ -1,0 +1,24 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "§b§lWorldEdit§r §6\u26bd UI Pack (FIFA WC 2026)",
+    "description": "§7UI personalizada para los menús de §bWorldEdit§7.\n§7Solo cambia el aspecto de los menús de WorldEdit (no afecta otros menús).\n§8Si algo se ve raro en tu versión, desactiva este paquete de recursos.",
+    "uuid": "c5851a00-fca9-4819-9eb3-26b6a58a30db",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "11a30d6a-6013-4f67-9a8c-c4a746003bd7",
+      "version": [1, 0, 0]
+    }
+  ],
+  "metadata": {
+    "authors": ["wings"],
+    "license": "MIT",
+    "generated_with": {
+      "kiro": ["0.1.0"]
+    }
+  }
+}
