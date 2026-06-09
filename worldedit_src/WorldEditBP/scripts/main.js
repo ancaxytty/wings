@@ -109,6 +109,7 @@ const selections = new Map(); // id -> { pos1, pos2 }
 const clipboards = new Map(); // id -> { sizeX, sizeY, sizeZ, originX/Y/Z, blocks:[{dx,dy,dz,perm}] }
 const undoStacks = new Map(); // id -> [ [{x,y,z,perm,dim}] ]
 const activated = new Set(); // ids ya activados
+const patternSeeds = new Map(); // id -> semilla de ruido para patterns
 const boxHidden = new Set(); // ids que ocultaron la caja de partículas
 const busy = new Set(); // ids con un trabajo pesado en curso
 const builderConfig = new Map(); // id -> { shape, block, radius, height, hollow }
@@ -2303,8 +2304,330 @@ const HELP_TEXT = [
   "§b/we:expand <n> [dir] §7· §b/we:contract <n> [dir]",
   "§b/we:up [n] §7· §b/we:box §7· §b/we:size",
   "",
+  "§d§lPATTERNS (sobre la selección):",
+  "§d/we:voronoi <escala> <bloques> §7· §d/we:perlin §7· §d/we:simplex §7· §d/we:rmf",
+  "§d/we:pattern <bloques> §7(azar) · §d/we:linear §7· §d/we:linear2d",
+  "§d/we:spread <dx> <dy> <dz> <bloques> §7· §d/we:solidspread §7· §d/we:surfacespread <d> <bloques>",
+  "§d/we:color <color> §7· §d/we:clipboard §7· §d/we:existing §7· §d/we:offset <dx> <dy> <dz> <bloque>",
+  "§d/we:mask <air|solid|bloque> <si> [no]",
+  "§d/we:darken §7· §d/we:lighten §7· §d/we:desaturate <%> §7· §d/we:saturate <r> <g> <b> §7· §d/we:averagecolor <r> <g> <b>",
+  "§7bloques = lista separada por comas, con peso opcional: §f3*stone,dirt,glass",
+  "",
   "§7dir = north/south/east/west/up/down (o vacío = hacia donde miras)",
 ].join("\n");
+
+/* ================================================================== */
+/*  MOTOR DE PATTERNS (estilo FAWE)                                    */
+/*  Un "pattern" se aplica a la selección (POS1/POS2) usando           */
+/*  fillRegion: predicate(x,y,z,block) -> permutación | null.          */
+/*  Lista de bloques: "stone,dirt,glass" o con peso "3*stone,dirt".    */
+/* ================================================================== */
+
+function isAirBlock(block) {
+  try {
+    if (typeof block.isAir === "boolean") return block.isAir;
+  } catch (_) {}
+  return !block || block.typeId === "minecraft:air";
+}
+
+// Paleta de bloques "de color" con su RGB aproximado (para #color, darken, etc.)
+const COLOR_PALETTE = [
+  { id: "minecraft:white_concrete", r: 207, g: 213, b: 214 },
+  { id: "minecraft:light_gray_concrete", r: 125, g: 125, b: 115 },
+  { id: "minecraft:gray_concrete", r: 54, g: 57, b: 61 },
+  { id: "minecraft:black_concrete", r: 8, g: 10, b: 15 },
+  { id: "minecraft:red_concrete", r: 142, g: 32, b: 32 },
+  { id: "minecraft:orange_concrete", r: 224, g: 97, b: 0 },
+  { id: "minecraft:yellow_concrete", r: 240, g: 175, b: 21 },
+  { id: "minecraft:lime_concrete", r: 94, g: 168, b: 24 },
+  { id: "minecraft:green_concrete", r: 73, g: 91, b: 36 },
+  { id: "minecraft:cyan_concrete", r: 21, g: 119, b: 136 },
+  { id: "minecraft:light_blue_concrete", r: 36, g: 137, b: 199 },
+  { id: "minecraft:blue_concrete", r: 45, g: 47, b: 143 },
+  { id: "minecraft:purple_concrete", r: 100, g: 32, b: 156 },
+  { id: "minecraft:magenta_concrete", r: 169, g: 48, b: 159 },
+  { id: "minecraft:pink_concrete", r: 213, g: 101, b: 142 },
+  { id: "minecraft:brown_concrete", r: 96, g: 60, b: 32 },
+];
+const BLOCK_RGB = {};
+for (const c of COLOR_PALETTE) BLOCK_RGB[c.id] = [c.r, c.g, c.b];
+
+const NAMED_COLORS = {
+  white: [236, 236, 236], black: [25, 25, 25], gray: [80, 80, 80], grey: [80, 80, 80],
+  red: [200, 40, 40], green: [40, 160, 40], blue: [40, 60, 200], yellow: [240, 220, 40],
+  orange: [230, 120, 20], purple: [130, 40, 170], pink: [230, 140, 180], cyan: [40, 180, 200],
+  lime: [120, 210, 40], magenta: [210, 60, 190], brown: [110, 70, 40], gold: [240, 200, 60],
+};
+
+function clamp255(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+function parseColor(str) {
+  if (!str) return null;
+  const s = String(str).trim().toLowerCase();
+  if (NAMED_COLORS[s]) return NAMED_COLORS[s].slice();
+  const hex = s.replace(/^#/, "");
+  if (/^[0-9a-f]{6}$/.test(hex)) {
+    return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+  }
+  const m = s.split(/[, ]+/).map(Number);
+  if (m.length === 3 && m.every((n) => !isNaN(n))) return m.map(clamp255);
+  return null;
+}
+function nearestColorPerm(rgb) {
+  let best = null, bd = Infinity;
+  for (const c of COLOR_PALETTE) {
+    const dr = c.r - rgb[0], dg = c.g - rgb[1], db = c.b - rgb[2];
+    const d = dr * dr + dg * dg + db * db;
+    if (d < bd) { bd = d; best = c; }
+  }
+  if (!best) return null;
+  return resolvePerm(best.id);
+}
+
+// Lista de bloques con peso opcional: "3*stone,dirt", "50%stone,50%dirt"
+function parseBlockList(str) {
+  if (!str) return null;
+  const out = [];
+  for (let p of String(str).split(",").map((s) => s.trim()).filter(Boolean)) {
+    let weight = 1;
+    let m = p.match(/^(\d+(?:\.\d+)?)\*(.+)$/);
+    if (m) { weight = parseFloat(m[1]); p = m[2]; }
+    else { m = p.match(/^(\d+(?:\.\d+)?)%(.+)$/); if (m) { weight = parseFloat(m[1]); p = m[2]; } }
+    const perm = resolvePerm(p);
+    if (perm) out.push({ perm, weight: weight > 0 ? weight : 1 });
+  }
+  return out.length ? out : null;
+}
+function pickWeighted(list, t) {
+  let total = 0;
+  for (const e of list) total += e.weight;
+  let r = (t < 0 ? 0 : t >= 1 ? 0.9999 : t) * total, acc = 0;
+  for (const e of list) { acc += e.weight; if (r < acc) return e.perm; }
+  return list[list.length - 1].perm;
+}
+
+/* ---- Ruido determinista ---- */
+function hash01(x, y, z, seed) {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(z | 0, 2147483647) + Math.imul(seed | 0, 0x9e3779b1)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177) | 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+function smooth(t) { return t * t * (3 - 2 * t); }
+function valueNoise(x, y, z, seed) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const u = smooth(x - xi), v = smooth(y - yi), w = smooth(z - zi);
+  const c = (dx, dy, dz) => hash01(xi + dx, yi + dy, zi + dz, seed);
+  const x00 = lerp(c(0, 0, 0), c(1, 0, 0), u);
+  const x10 = lerp(c(0, 1, 0), c(1, 1, 0), u);
+  const x01 = lerp(c(0, 0, 1), c(1, 0, 1), u);
+  const x11 = lerp(c(0, 1, 1), c(1, 1, 1), u);
+  return lerp(lerp(x00, x10, v), lerp(x01, x11, v), w);
+}
+function fbm(x, y, z, seed, oct, ridged) {
+  let amp = 0.5, freq = 1, sum = 0, norm = 0;
+  for (let i = 0; i < oct; i++) {
+    let n = valueNoise(x * freq, y * freq, z * freq, seed + i);
+    if (ridged) n = 1 - Math.abs(2 * n - 1);
+    sum += amp * n; norm += amp; amp *= 0.5; freq *= 2;
+  }
+  return sum / norm;
+}
+function voronoi01(x, y, z, seed) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  let best = Infinity, id = 0;
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+    const cx = xi + dx, cy = yi + dy, cz = zi + dz;
+    const px = cx + hash01(cx, cy, cz, seed);
+    const py = cy + hash01(cx, cy, cz, seed + 17);
+    const pz = cz + hash01(cx, cy, cz, seed + 31);
+    const d = (px - x) ** 2 + (py - y) ** 2 + (pz - z) ** 2;
+    if (d < best) { best = d; id = hash01(cx, cy, cz, seed + 101); }
+  }
+  return id;
+}
+
+function patternSeed(player) {
+  // semilla estable por jugador para que el ruido sea coherente
+  let s = patternSeeds.get(player.id);
+  if (s === undefined) { s = (Math.random() * 1e9) | 0; patternSeeds.set(player.id, s); }
+  return s;
+}
+
+/* ---- Operaciones de pattern (todas sobre la selección) ---- */
+function withSelection(player, picker, label, onlySolid) {
+  if (!bothPos(player)) return needSel(player);
+  const s = getSel(player);
+  fillRegion(
+    player,
+    minMax(s.pos1, s.pos2),
+    (x, y, z, block) => {
+      if (onlySolid && isAirBlock(block)) return null;
+      return picker(x, y, z, block);
+    },
+    label
+  );
+}
+
+function opPattern(player, listStr) {
+  const list = parseBlockList(listStr);
+  if (!list) return badBlock(player, listStr);
+  withSelection(player, () => pickWeighted(list, Math.random()), "Pattern");
+}
+function opLinear(player, listStr) {
+  const list = parseBlockList(listStr);
+  if (!list) return badBlock(player, listStr);
+  withSelection(player, (x, y, z) => list[(((x + y + z) % list.length) + list.length) % list.length].perm, "Linear");
+}
+function opLinear2D(player, listStr) {
+  const list = parseBlockList(listStr);
+  if (!list) return badBlock(player, listStr);
+  withSelection(player, (x, y, z) => list[(((x + z) % list.length) + list.length) % list.length].perm, "Linear2D");
+}
+function opNoise(player, kind, scaleStr, listStr) {
+  const list = parseBlockList(listStr);
+  if (!list) return badBlock(player, listStr);
+  const scale = Math.max(1, parseFloat(scaleStr) || 10);
+  const seed = patternSeed(player);
+  const sampler =
+    kind === "voronoi" ? (x, y, z) => voronoi01(x / scale, y / scale, z / scale, seed)
+    : kind === "rmf" ? (x, y, z) => fbm(x / scale, y / scale, z / scale, seed, 5, true)
+    : kind === "perlin" ? (x, y, z) => fbm(x / scale, y / scale, z / scale, seed, 4, false)
+    : (x, y, z) => valueNoise(x / scale, y / scale, z / scale, seed); // simplex (aprox.)
+  withSelection(player, (x, y, z) => pickWeighted(list, sampler(x, y, z)), kind);
+}
+function opSpread(player, dx, dy, dz, listStr, onlySolid) {
+  const list = parseBlockList(listStr);
+  if (!list) return badBlock(player, listStr);
+  const sx = Math.max(0, dx | 0) + 1, sy = Math.max(0, dy | 0) + 1, sz = Math.max(0, dz | 0) + 1;
+  const seed = patternSeed(player);
+  withSelection(
+    player,
+    (x, y, z) => pickWeighted(list, hash01(Math.floor(x / sx), Math.floor(y / sy), Math.floor(z / sz), seed)),
+    onlySolid ? "SolidSpread" : "Spread",
+    onlySolid
+  );
+}
+function opSurfaceSpread(player, distStr, listStr) {
+  const list = parseBlockList(listStr);
+  if (!list) return badBlock(player, listStr);
+  const seed = patternSeed(player);
+  withSelection(
+    player,
+    (x, y, z, block) => {
+      if (isAirBlock(block)) return null;
+      let above; try { above = block.above(1); } catch (_) { above = null; }
+      if (above && !isAirBlock(above)) return null; // no es superficie
+      return pickWeighted(list, hash01(x, y, z, seed));
+    },
+    "SurfaceSpread"
+  );
+}
+function opColor(player, colorStr) {
+  const rgb = parseColor(colorStr);
+  if (!rgb) return msg(player, "§cColor inválido. Usa nombre (red), hex (#ff0000) o R G B.");
+  const perm = nearestColorPerm(rgb);
+  if (!perm) return msg(player, "§cNo encontré un bloque para ese color.");
+  withSelection(player, () => perm, "Color");
+}
+function opExisting(player) {
+  withSelection(player, (x, y, z, block) => block.permutation, "Existing");
+}
+function opClipboardPattern(player) {
+  const clip = clipboards.get(player.id);
+  if (!clip || !clip.blocks.length) return msg(player, "§cPortapapeles vacío. Usa §eCopy§c primero.");
+  // construye una lista ponderada con los bloques del portapapeles
+  const counts = {};
+  const permById = {};
+  for (const b of clip.blocks) {
+    let id; try { id = b.perm.type.id; } catch (_) { id = null; }
+    if (!id) continue;
+    counts[id] = (counts[id] || 0) + 1;
+    permById[id] = b.perm;
+  }
+  const list = Object.keys(counts).map((id) => ({ perm: permById[id], weight: counts[id] }));
+  if (!list.length) return msg(player, "§cPortapapeles sin bloques válidos.");
+  withSelection(player, () => pickWeighted(list, Math.random()), "Clipboard");
+}
+function opMask(player, maskStr, trueStr, falseStr) {
+  const tList = parseBlockList(trueStr);
+  if (!tList) return badBlock(player, trueStr);
+  const fList = falseStr ? parseBlockList(falseStr) : null;
+  const mask = String(maskStr || "").trim().toLowerCase();
+  const maskId = mask && mask !== "solid" && mask !== "air" && mask !== "#existing" ? normalizeBlock(mask) : null;
+  const matches = (block) => {
+    if (mask === "air") return isAirBlock(block);
+    if (mask === "solid" || mask === "#existing") return !isAirBlock(block);
+    if (maskId) return block.typeId === maskId;
+    return !isAirBlock(block);
+  };
+  withSelection(
+    player,
+    (x, y, z, block) => {
+      if (matches(block)) return pickWeighted(tList, Math.random());
+      return fList ? pickWeighted(fList, Math.random()) : null;
+    },
+    "Mask"
+  );
+}
+function adjustRGB(rgb, mode, params) {
+  let [r, g, b] = rgb;
+  if (mode === "darken") { r *= 0.8; g *= 0.8; b *= 0.8; }
+  else if (mode === "lighten") { r = lerp(r, 255, 0.2); g = lerp(g, 255, 0.2); b = lerp(b, 255, 0.2); }
+  else if (mode === "desaturate") {
+    const pct = Math.max(0, Math.min(1, (parseFloat(params[0]) || 50) / 100));
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    r = lerp(r, gray, pct); g = lerp(g, gray, pct); b = lerp(b, gray, pct);
+  } else if (mode === "saturate" || mode === "averagecolor") {
+    const cr = clamp255(params[0]), cg = clamp255(params[1]), cb = clamp255(params[2]);
+    r = (r + cr) / 2; g = (g + cg) / 2; b = (b + cb) / 2;
+  }
+  return [clamp255(r), clamp255(g), clamp255(b)];
+}
+function opColorAdjust(player, mode, params) {
+  if ((mode === "saturate" || mode === "averagecolor") && params.slice(0, 3).some((v) => isNaN(parseFloat(v)))) {
+    return msg(player, "§cUso: we:" + mode + " <r> <g> <b>");
+  }
+  withSelection(
+    player,
+    (x, y, z, block) => {
+      const rgb = BLOCK_RGB[block.typeId];
+      if (!rgb) return null; // solo afecta bloques de la paleta de color
+      return nearestColorPerm(adjustRGB(rgb, mode, params));
+    },
+    mode
+  );
+}
+function opOffset(player, dx, dy, dz, listOrBlock) {
+  if (!bothPos(player)) return needSel(player);
+  if (isBusy(player)) return;
+  const s = getSel(player);
+  const b = minMax(s.pos1, s.pos2);
+  if (boxVolume(b) > MAX_BLOCKS) return msg(player, "§cSelección demasiado grande.");
+  const dim = player.dimension;
+  // snapshot de las permutaciones actuales
+  const snap = new Map();
+  for (let x = b.minX; x <= b.maxX; x++)
+    for (let y = b.minY; y <= b.maxY; y++)
+      for (let z = b.minZ; z <= b.maxZ; z++) {
+        try { const bl = dim.getBlock({ x, y, z }); if (bl) snap.set(x + "," + y + "," + z, bl.permutation); } catch (_) {}
+      }
+  const list = parseBlockList(listOrBlock);
+  withSelection(
+    player,
+    (x, y, z) => {
+      const src = snap.get((x - dx) + "," + (y - dy) + "," + (z - dz));
+      if (src) return src;
+      return list ? pickWeighted(list, Math.random()) : null;
+    },
+    "Offset"
+  );
+}
+function opPatternUnsupported(player, name) {
+  msg(player, "§e[Pattern] §f#" + name + " §7no está disponible en Bedrock (limitación del juego).");
+  msg(player, "§7Patterns que SÍ funcionan: §bvoronoi, perlin, simplex, rmf, spread, solidspread,");
+  msg(player, "§blinear, linear2d, pattern, color, clipboard, existing, mask, offset, surfacespread,");
+  msg(player, "§bdarken, lighten, desaturate, saturate, averagecolor§7.");
+}
 
 /* ------------------------------------------------------------------ */
 /*  Despacho de comandos (solo /scriptevent we:<cmd>)                  */
@@ -2481,6 +2804,87 @@ function executeCommand(player, raw) {
       case "info":
         opSize(player);
         break;
+
+      /* ===== PATTERNS (estilo FAWE) ===== */
+      case "pattern":
+        if (!args[0]) return msg(player, "§cUso: we:pattern <bloques> (ej: stone,dirt,glass)");
+        opPattern(player, args[0]);
+        break;
+      case "linear":
+        if (!args[0]) return msg(player, "§cUso: we:linear <bloques>");
+        opLinear(player, args[0]);
+        break;
+      case "linear2d":
+        if (!args[0]) return msg(player, "§cUso: we:linear2d <bloques>");
+        opLinear2D(player, args[0]);
+        break;
+      case "linear3d":
+        if (!args[0]) return msg(player, "§cUso: we:linear3d <bloques>");
+        opLinear(player, args[0]); // 3D = índice por x+y+z
+        break;
+      case "simplex":
+      case "perlin":
+      case "rmf":
+      case "voronoi":
+        if (!args[1]) return msg(player, `§cUso: we:${cmd} <escala> <bloques>  (ej: we:${cmd} 10 stone,dirt)`);
+        opNoise(player, cmd, args[0], args[1]);
+        break;
+      case "spread":
+        if (!args[3]) return msg(player, "§cUso: we:spread <dx> <dy> <dz> <bloques>");
+        opSpread(player, parseInt(args[0]) || 0, parseInt(args[1]) || 0, parseInt(args[2]) || 0, args[3], false);
+        break;
+      case "solidspread":
+        if (!args[3]) return msg(player, "§cUso: we:solidspread <dx> <dy> <dz> <bloques>");
+        opSpread(player, parseInt(args[0]) || 0, parseInt(args[1]) || 0, parseInt(args[2]) || 0, args[3], true);
+        break;
+      case "surfacespread":
+        if (!args[1]) return msg(player, "§cUso: we:surfacespread <distancia> <bloques>");
+        opSurfaceSpread(player, args[0], args[1]);
+        break;
+      case "color":
+        if (!args[0]) return msg(player, "§cUso: we:color <color> (red, #ff0000 o R G B)");
+        opColor(player, args.join(" "));
+        break;
+      case "existing":
+        opExisting(player);
+        break;
+      case "clipboard":
+        opClipboardPattern(player);
+        break;
+      case "mask":
+        if (!args[1]) return msg(player, "§cUso: we:mask <mask> <patrón-si> [patrón-no]  (mask: air|solid|<bloque>)");
+        opMask(player, args[0], args[1], args[2]);
+        break;
+      case "offset":
+        if (!args[3]) return msg(player, "§cUso: we:offset <dx> <dy> <dz> <bloque>");
+        opOffset(player, parseInt(args[0]) || 0, parseInt(args[1]) || 0, parseInt(args[2]) || 0, args[3]);
+        break;
+      case "darken":
+      case "lighten":
+        opColorAdjust(player, cmd, []);
+        break;
+      case "desaturate":
+        opColorAdjust(player, "desaturate", [args[0]]);
+        break;
+      case "saturate":
+      case "averagecolor":
+        opColorAdjust(player, cmd, [args[0], args[1], args[2]]);
+        break;
+      /* Patterns de FAWE no soportables en Bedrock (avisan con alternativa) */
+      case "biome":
+      case "buffer":
+      case "buffer2d":
+      case "fullcopy":
+      case "relative":
+      case "angledata":
+      case "anglecolor":
+      case "expression":
+      case "!x":
+      case "!y":
+      case "!z":
+        opPatternUnsupported(player, cmd);
+        break;
+
       default:
         msg(player, `§cComando desconocido: §fwe:${cmd}§c. Usa §ewe:help§c.`);
     }
@@ -2608,6 +3012,29 @@ function registerWorldEditCommands(registry) {
     reg("we:contract", "Contrae la selección", (o, n, d) => runWE(o, joinCmd(["contract", n, d])), [INT("n")], [DIR]);
     reg("we:rotate", "Rota el portapapeles (90/180/270)", (o, g) => runWE(o, joinCmd(["rotate", g])), null, [INT("grados")]);
     reg("we:flag", "Construye la bandera de un país", (o, p, e) => runWE(o, joinCmd(["flag", p, e])), [STR("pais")], [INT("escala")]);
+
+    /* ---- PATTERNS estilo FAWE ---- */
+    reg("we:pattern", "Rellena con bloques al azar (lista: stone,dirt)", (o, l) => runWE(o, joinCmd(["pattern", l])), [STR("bloques")]);
+    reg("we:linear", "Bloques en secuencia (x+y+z)", (o, l) => runWE(o, joinCmd(["linear", l])), [STR("bloques")]);
+    reg("we:linear2d", "Bloques en secuencia (x+z)", (o, l) => runWE(o, joinCmd(["linear2d", l])), [STR("bloques")]);
+    reg("we:linear3d", "Bloques en secuencia (x+y+z)", (o, l) => runWE(o, joinCmd(["linear3d", l])), [STR("bloques")]);
+    reg("we:simplex", "Ruido simplex para variar bloques", (o, s, l) => runWE(o, joinCmd(["simplex", s, l])), [INT("escala"), STR("bloques")]);
+    reg("we:perlin", "Ruido perlin para variar bloques", (o, s, l) => runWE(o, joinCmd(["perlin", s, l])), [INT("escala"), STR("bloques")]);
+    reg("we:rmf", "Ruido multifractal (ridged)", (o, s, l) => runWE(o, joinCmd(["rmf", s, l])), [INT("escala"), STR("bloques")]);
+    reg("we:voronoi", "Ruido voronoi (parches)", (o, s, l) => runWE(o, joinCmd(["voronoi", s, l])), [INT("escala"), STR("bloques")]);
+    reg("we:spread", "Esparce bloques al azar", (o, dx, dy, dz, l) => runWE(o, joinCmd(["spread", dx, dy, dz, l])), [INT("dx"), INT("dy"), INT("dz"), STR("bloques")]);
+    reg("we:solidspread", "Esparce solo sobre bloques sólidos", (o, dx, dy, dz, l) => runWE(o, joinCmd(["solidspread", dx, dy, dz, l])), [INT("dx"), INT("dy"), INT("dz"), STR("bloques")]);
+    reg("we:surfacespread", "Aplica solo en superficies", (o, d, l) => runWE(o, joinCmd(["surfacespread", d, l])), [INT("distancia"), STR("bloques")]);
+    reg("we:color", "Bloque más cercano a un color (nombre/hex)", (o, c) => runWE(o, joinCmd(["color", c])), [STR("color")]);
+    reg("we:existing", "Mantiene el bloque que ya está", (o) => runWE(o, "existing"));
+    reg("we:clipboard", "Usa los bloques del portapapeles como patrón", (o) => runWE(o, "clipboard"));
+    reg("we:mask", "Patrón según una máscara (air|solid|<bloque>)", (o, m, t, f) => runWE(o, joinCmd(["mask", m, t, f])), [STR("mascara"), STR("patron_si")], [STR("patron_no")]);
+    reg("we:offset", "Desplaza el terreno por (dx,dy,dz)", (o, dx, dy, dz, b) => runWE(o, joinCmd(["offset", dx, dy, dz, b])), [INT("dx"), INT("dy"), INT("dz"), STR("bloque")]);
+    reg("we:darken", "Oscurece los bloques de color", (o) => runWE(o, "darken"));
+    reg("we:lighten", "Aclara los bloques de color", (o) => runWE(o, "lighten"));
+    reg("we:desaturate", "Quita saturación (0-100)", (o, p) => runWE(o, joinCmd(["desaturate", p])), null, [INT("porcentaje")]);
+    reg("we:saturate", "Mezcla con un color r g b", (o, r, g, b) => runWE(o, joinCmd(["saturate", r, g, b])), [INT("r"), INT("g"), INT("b")]);
+    reg("we:averagecolor", "Promedia con un color r g b", (o, r, g, b) => runWE(o, joinCmd(["averagecolor", r, g, b])), [INT("r"), INT("g"), INT("b")]);
   } else {
     // Sin soporte de argumentos: registramos avisos que redirigen a /scriptevent.
     const argCmds = ["set", "walls", "outline", "replace", "line", "sphere", "hsphere", "cyl", "pyramid", "cone", "smooth", "drain", "up", "stack", "move", "expand", "contract", "rotate", "flag"];
@@ -2888,8 +3315,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.5) cargado. " +
-      "Comandos /we:<cmd> (como /holo:), VARITA, MENÚ y /scriptevent. Actívalo con: /we:wand"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.8.0) cargado. " +
+      "Comandos /we:<cmd> + PATTERNS (voronoi/perlin/spread/color...). Actívalo con: /we:wand"
   );
 });
 
