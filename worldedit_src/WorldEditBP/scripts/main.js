@@ -31,10 +31,16 @@ import {
   system,
   BlockPermutation,
   ItemStack,
-  CustomCommandParamType,
-  CustomCommandPermissionLevel,
-  CustomCommandStatus,
 } from "@minecraft/server";
+// Import de namespace para los símbolos de la Custom Command API.
+// IMPORTANTE: con `import { Nombre }`, si UN export no existe en la versión
+// del juego, falla TODO el script. El import de namespace nunca rompe: si la
+// versión no soporta comandos personalizados, estos símbolos quedan undefined
+// y simplemente no registramos los comandos (el menú y /scriptevent siguen).
+import * as mc from "@minecraft/server";
+const CustomCommandParamType = mc.CustomCommandParamType;
+const CustomCommandPermissionLevel = mc.CustomCommandPermissionLevel;
+const CustomCommandStatus = mc.CustomCommandStatus;
 import {
   ActionFormData,
   ModalFormData,
@@ -2858,18 +2864,30 @@ safeSub(
   "scriptEventReceive"
 );
 
-/* Comandos OFICIALES /we:<cmd> — registro en el arranque del sistema. */
-safeSub(
-  () => system.beforeEvents.startup,
-  (ev) => {
-    try {
-      registerWorldEditCommands(ev.customCommandRegistry);
-    } catch (e) {
-      console.warn("[WorldEdit] No se pudieron registrar los comandos oficiales: " + e);
-    }
-  },
-  "system.beforeEvents.startup"
-);
+/* Comandos OFICIALES /we:<cmd> — registro en el arranque del sistema.
+ * Solo se registran si la versión del juego soporta la Custom Command API
+ * (Minecraft 1.21.80+ / @minecraft/server 2.1.0+). En versiones antiguas se
+ * omite sin error y el addon sigue funcionando por menú y /scriptevent. */
+if (CustomCommandParamType && CustomCommandPermissionLevel && CustomCommandStatus) {
+  safeSub(
+    () => system.beforeEvents.startup,
+    (ev) => {
+      try {
+        if (ev && ev.customCommandRegistry) {
+          registerWorldEditCommands(ev.customCommandRegistry);
+        }
+      } catch (e) {
+        console.warn("[WorldEdit] No se pudieron registrar los comandos oficiales: " + e);
+      }
+    },
+    "system.beforeEvents.startup"
+  );
+} else {
+  console.warn(
+    "[WorldEdit] Esta versión de Minecraft no soporta comandos oficiales " +
+      "(requiere 1.21.80+). Usa el menú o /scriptevent we:<cmd>."
+  );
+}
 
 /* Varita -> POS1 (interactuar / tocar / quitar corteza) */
 const interactBeforeOk = safeSub(
@@ -3001,7 +3019,7 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7) cargado. " +
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.1) cargado. " +
       "Comandos oficiales /we:<cmd> disponibles. Actívalo con: /we:wand"
   );
 });
