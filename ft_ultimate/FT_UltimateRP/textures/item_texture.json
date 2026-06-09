@@ -1,9 +1,0 @@
-{
-	"resource_pack_name": "ft_ultimate",
-	"texture_name": "atlas.items",
-	"texture_data": {
-		"ft_wand": {
-			"textures": "textures/items/ft_wand"
-		}
-	}
-}

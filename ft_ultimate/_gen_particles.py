@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Genera particulas custom (burst) para Floating Text Ultimate.
+"""Genera particulas custom (burst) para Hologram Studio.
 Todas usan el atlas vanilla textures/particle/particles, asi que NO requieren PNG propio
 y se pueden invocar de forma fiable desde la Script API con dimension.spawnParticle().
-Basadas en la estructura probada de rainbow.particle.json (addon original de Death_Aruban).
 """
 import json, os
 
-OUT = os.path.join(os.path.dirname(__file__), "FT_UltimateRP", "particles")
+OUT = os.path.join(os.path.dirname(__file__), "HologramStudioRP", "particles")
 
 # id -> (gradiente {pos: "#aarrggbb"}, accel_y, initial_speed)
 PARTS = {

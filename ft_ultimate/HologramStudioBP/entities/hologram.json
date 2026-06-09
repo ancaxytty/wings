@@ -2,15 +2,15 @@
 	"format_version": "1.16.0",
 	"minecraft:entity": {
 		"description": {
-			"identifier": "da:floating_text",
+			"identifier": "holo:text",
 			"is_spawnable": false,
 			"is_summonable": true,
 			"is_experimental": false
 		},
 		"components": {
-			"minecraft:type_family": { "family": ["floatingtext", "inanimate"] },
+			"minecraft:type_family": { "family": ["hologram", "inanimate"] },
 			"minecraft:health": { "value": 999999, "max": 999999 },
-			"minecraft:collision_box": { "width": 0.5, "height": 0.5 },
+			"minecraft:collision_box": { "width": 0.4, "height": 0.4 },
 			"minecraft:nameable": { "alwaysShow": true, "allowNameTagRenaming": true },
 			"minecraft:damage_sensor": {
 				"triggers": { "cause": "all", "deals_damage": false }

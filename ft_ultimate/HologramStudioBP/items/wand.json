@@ -2,14 +2,14 @@
 	"format_version": "1.16.100",
 	"minecraft:item": {
 		"description": {
-			"identifier": "ft:wand",
+			"identifier": "holo:wand",
 			"category": "equipment"
 		},
 		"components": {
 			"minecraft:max_stack_size": 1,
 			"minecraft:hand_equipped": true,
 			"minecraft:foil": true,
-			"minecraft:icon": { "texture": "ft_wand" },
+			"minecraft:icon": { "texture": "holo_wand" },
 			"minecraft:display_name": {
 				"value": "§l§bVarita de Hologramas §r§7(usar = menu)"
 			}
