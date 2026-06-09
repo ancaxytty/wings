@@ -3,8 +3,6 @@
 //  Hologramas de texto e items con menu, 100% Script API (MC 1.21.50+ / 2.x).
 //  Codigo y assets originales.
 // ============================================================================
-// Import por NAMESPACE: si una version no exporta algo, queda undefined en vez
-// de romper la carga del modulo entero.
 import * as mc from "@minecraft/server";
 import * as ui from "@minecraft/server-ui";
 
@@ -16,7 +14,6 @@ const ENT = "holo:text";
 const WAND = "holo:wand";
 const PREFIX = "§l§b[Holo]§r ";
 
-// ---- Colores base -----------------------------------------------------------
 const COLORS = [
   { name: "§fBlanco", code: "§f" }, { name: "§eAmarillo", code: "§e" },
   { name: "§6Dorado", code: "§6" }, { name: "§aVerde", code: "§a" },
@@ -27,7 +24,6 @@ const COLORS = [
   { name: "§7Gris", code: "§7" }, { name: "§0Negro", code: "§0" },
 ];
 
-// ---- Particulas (0 = ninguna) ----------------------------------------------
 const PARTICLES = [
   { name: "Ninguna", id: null }, { name: "Arcoiris", id: "ft:rainbow" },
   { name: "Fuego", id: "ft:fire" }, { name: "Hielo", id: "ft:ice" },
@@ -39,7 +35,6 @@ const PARTICLES = [
 ];
 const PARTICLE_NAMES = PARTICLES.map((p) => p.name);
 
-// ---- Items para hologramas de item -----------------------------------------
 const ITEM_OPTIONS = [
   { name: "Diamante", id: "minecraft:diamond" }, { name: "Lingote de oro", id: "minecraft:gold_ingot" },
   { name: "Lingote de hierro", id: "minecraft:iron_ingot" }, { name: "Esmeralda", id: "minecraft:emerald" },
@@ -71,6 +66,22 @@ function front(player, dist) {
   const h = player.getHeadLocation();
   const d = player.getViewDirection();
   return { x: h.x + d.x * dist, y: h.y + d.y * dist, z: h.z + d.z * dist };
+}
+
+// ---- Mostrar formulario con reintento ante UserBusy -------------------------
+function wait(ticks) { return new Promise((r) => system.runTimeout(r, ticks)); }
+async function showForm(form, player) {
+  for (let i = 0; i < 30; i++) {
+    let res;
+    try { res = await form.show(player); }
+    catch (e) { return { canceled: true }; }
+    if (res && res.canceled && String(res.cancelationReason || "").includes("Busy")) {
+      await wait(8);
+      continue;
+    }
+    return res;
+  }
+  return { canceled: true };
 }
 
 function getTextHolos() {
@@ -148,9 +159,9 @@ function tickLoop() {
 }
 
 // ============================================================================
-//  MENUS
+//  MENUS  (async + showForm con reintento)
 // ============================================================================
-function openMain(player) {
+async function openMain(player) {
   if (!ActionFormData) { player.sendMessage(PREFIX + "§cUI no disponible en esta version."); return; }
   const f = new ActionFormData()
     .title("§l§bHologram §3Studio")
@@ -162,46 +173,44 @@ function openMain(player) {
     .button("§f# Lista / Teleport")
     .button("§4!! Borrar TODO")
     .button("§7? Ayuda");
-  f.show(player).then((r) => {
-    if (r.canceled) return;
-    switch (r.selection) {
-      case 0: return createTextForm(player);
-      case 1: return createItemForm(player);
-      case 2: return editTextForm(player);
-      case 3: return deleteLooking(player);
-      case 4: return listForm(player);
-      case 5: return deleteAll(player);
-      case 6: return helpForm(player);
-    }
-  }).catch(() => {});
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  switch (r.selection) {
+    case 0: return createTextForm(player);
+    case 1: return createItemForm(player);
+    case 2: return editTextForm(player);
+    case 3: return deleteLooking(player);
+    case 4: return listForm(player);
+    case 5: return deleteAll(player);
+    case 6: return helpForm(player);
+  }
 }
 
-function createTextForm(player) {
+async function createTextForm(player) {
   const f = new ModalFormData().title("§l§aCrear Texto Flotante")
     .textField("Texto §7(usa | o \\n para varias lineas)", "Hola mundo")
     .dropdown("Color base", COLORS.map((c) => c.name), 0)
     .dropdown("Particula", PARTICLE_NAMES, 0)
     .slider("Velocidad orbita §7(0=quieto, 5=reversa)", 0, 5, 1, 0)
     .toggle("Animacion flotar", false);
-  f.show(player).then((r) => {
-    if (r.canceled) return;
-    const [text, colorIdx, partIdx, speed, bob] = r.formValues;
-    if (!text || !String(text).trim()) { player.sendMessage(PREFIX + "§cEscribe algun texto."); return; }
-    const loc = front(player, 3);
-    let e; try { e = player.dimension.spawnEntity(ENT, loc); }
-    catch (err) { player.sendMessage(PREFIX + "§cNo se pudo crear aqui."); return; }
-    e.nameTag = buildNameTag(text, colorIdx);
-    e.setDynamicProperty("ft", true);
-    e.setDynamicProperty("p", partIdx);
-    e.setDynamicProperty("s", speed);
-    e.setDynamicProperty("b", bob);
-    e.setDynamicProperty("color", colorIdx);
-    e.setDynamicProperty("base", `${loc.x},${loc.y},${loc.z}`);
-    player.sendMessage(PREFIX + "§aTexto creado.");
-  }).catch(() => {});
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  const [text, colorIdx, partIdx, speed, bob] = r.formValues;
+  if (!text || !String(text).trim()) { player.sendMessage(PREFIX + "§cEscribe algun texto."); return; }
+  const loc = front(player, 3);
+  let e; try { e = player.dimension.spawnEntity(ENT, loc); }
+  catch (err) { player.sendMessage(PREFIX + "§cNo se pudo crear aqui."); return; }
+  e.nameTag = buildNameTag(text, colorIdx);
+  e.setDynamicProperty("ft", true);
+  e.setDynamicProperty("p", partIdx);
+  e.setDynamicProperty("s", speed);
+  e.setDynamicProperty("b", bob);
+  e.setDynamicProperty("color", colorIdx);
+  e.setDynamicProperty("base", `${loc.x},${loc.y},${loc.z}`);
+  player.sendMessage(PREFIX + "§aTexto creado.");
 }
 
-function editTextForm(player) {
+async function editTextForm(player) {
   const e = lookingHolo(player);
   if (!e) { player.sendMessage(PREFIX + "§cMira directamente un holograma de texto."); return; }
   const curText = stripColors(e.nameTag).replace(/\n/g, "|");
@@ -215,48 +224,46 @@ function editTextForm(player) {
     .dropdown("Particula", PARTICLE_NAMES, curPart)
     .slider("Velocidad orbita", 0, 5, 1, curSpeed)
     .toggle("Animacion flotar", !!curBob);
-  f.show(player).then((r) => {
-    if (r.canceled) return;
-    const [text, colorIdx, partIdx, speed, bob] = r.formValues;
-    e.nameTag = buildNameTag(text, colorIdx);
-    e.setDynamicProperty("color", colorIdx);
-    e.setDynamicProperty("p", partIdx);
-    e.setDynamicProperty("s", speed);
-    e.setDynamicProperty("b", bob);
-    if (!bob) { try { const bs = e.getDynamicProperty("base"); if (bs) { const a = String(bs).split(",").map(Number); e.teleport({ x: a[0], y: a[1], z: a[2] }); } } catch (_) {} }
-    player.sendMessage(PREFIX + "§aTexto actualizado.");
-  }).catch(() => {});
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  const [text, colorIdx, partIdx, speed, bob] = r.formValues;
+  e.nameTag = buildNameTag(text, colorIdx);
+  e.setDynamicProperty("color", colorIdx);
+  e.setDynamicProperty("p", partIdx);
+  e.setDynamicProperty("s", speed);
+  e.setDynamicProperty("b", bob);
+  if (!bob) { try { const bs = e.getDynamicProperty("base"); if (bs) { const a = String(bs).split(",").map(Number); e.teleport({ x: a[0], y: a[1], z: a[2] }); } } catch (_) {} }
+  player.sendMessage(PREFIX + "§aTexto actualizado.");
 }
 
-function createItemForm(player) {
+async function createItemForm(player) {
   const f = new ModalFormData().title("§l§eCrear Item Flotante")
     .dropdown("Item", ITEM_NAMES, 0)
     .textField("ID personalizado §7(opcional, ej: minecraft:tnt)", "")
     .textField("Etiqueta de texto §7(opcional)", "");
-  f.show(player).then((r) => {
-    if (r.canceled) return;
-    const [itemIdx, customId, label] = r.formValues;
-    const itemId = (customId && String(customId).trim()) ? String(customId).trim() : ITEM_OPTIONS[itemIdx].id;
-    const loc = front(player, 3);
-    let stack; try { stack = new ItemStack(itemId, 1); } catch (e) { player.sendMessage(PREFIX + "§cID invalido: §f" + itemId); return; }
-    let ent; try { ent = player.dimension.spawnItem(stack, loc); } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo crear el item."); return; }
-    const uid = "i" + Date.now() + "_" + Math.floor(Math.random() * 9999);
-    try { ent.setDynamicProperty("fti", uid); ent.clearVelocity(); } catch (_) {}
-    const reg = getItemReg();
-    reg.push({ uid, item: itemId, x: loc.x, y: loc.y, z: loc.z, dim: player.dimension.id, label: label || "" });
-    setItemReg(reg);
-    if (label && String(label).trim()) {
-      try {
-        const tl = { x: loc.x, y: loc.y + 0.9, z: loc.z };
-        const te = player.dimension.spawnEntity(ENT, tl);
-        te.nameTag = "§f" + String(label).trim();
-        te.setDynamicProperty("ft", true); te.setDynamicProperty("p", 0);
-        te.setDynamicProperty("s", 0); te.setDynamicProperty("b", false);
-        te.setDynamicProperty("base", `${tl.x},${tl.y},${tl.z}`);
-      } catch (_) {}
-    }
-    player.sendMessage(PREFIX + "§aItem flotante creado: §f" + itemId);
-  }).catch(() => {});
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  const [itemIdx, customId, label] = r.formValues;
+  const itemId = (customId && String(customId).trim()) ? String(customId).trim() : ITEM_OPTIONS[itemIdx].id;
+  const loc = front(player, 3);
+  let stack; try { stack = new ItemStack(itemId, 1); } catch (e) { player.sendMessage(PREFIX + "§cID invalido: §f" + itemId); return; }
+  let ent; try { ent = player.dimension.spawnItem(stack, loc); } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo crear el item."); return; }
+  const uid = "i" + Date.now() + "_" + Math.floor(Math.random() * 9999);
+  try { ent.setDynamicProperty("fti", uid); ent.clearVelocity(); } catch (_) {}
+  const reg = getItemReg();
+  reg.push({ uid, item: itemId, x: loc.x, y: loc.y, z: loc.z, dim: player.dimension.id, label: label || "" });
+  setItemReg(reg);
+  if (label && String(label).trim()) {
+    try {
+      const tl = { x: loc.x, y: loc.y + 0.9, z: loc.z };
+      const te = player.dimension.spawnEntity(ENT, tl);
+      te.nameTag = "§f" + String(label).trim();
+      te.setDynamicProperty("ft", true); te.setDynamicProperty("p", 0);
+      te.setDynamicProperty("s", 0); te.setDynamicProperty("b", false);
+      te.setDynamicProperty("base", `${tl.x},${tl.y},${tl.z}`);
+    } catch (_) {}
+  }
+  player.sendMessage(PREFIX + "§aItem flotante creado: §f" + itemId);
 }
 
 function deleteLooking(player) {
@@ -265,7 +272,7 @@ function deleteLooking(player) {
   try { e.remove(); player.sendMessage(PREFIX + "§aHolograma borrado."); } catch (err) { player.sendMessage(PREFIX + "§cNo se pudo borrar."); }
 }
 
-function listForm(player) {
+async function listForm(player) {
   const holos = getTextHolos();
   if (holos.length === 0) { player.sendMessage(PREFIX + "§7No hay hologramas de texto."); return; }
   const f = new ActionFormData().title("§l§fHologramas").body("§7Selecciona para teletransportarte.");
@@ -274,45 +281,44 @@ function listForm(player) {
     const l = e.location;
     f.button(`§e${label}\n§7${Math.round(l.x)}, ${Math.round(l.y)}, ${Math.round(l.z)}`);
   }
-  f.show(player).then((r) => {
-    if (r.canceled) return;
-    const e = holos[r.selection]; if (!e) return;
-    try { player.teleport(e.location, { dimension: e.dimension }); player.sendMessage(PREFIX + "§aTeletransportado."); } catch (err) {}
-  }).catch(() => {});
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  const e = holos[r.selection]; if (!e) return;
+  try { player.teleport(e.location, { dimension: e.dimension }); player.sendMessage(PREFIX + "§aTeletransportado."); } catch (err) {}
 }
 
-function deleteAll(player) {
+async function deleteAll(player) {
   const f = new ActionFormData().title("§l§4Borrar TODO")
     .body("§cBorra TODOS los hologramas de texto y los items flotantes. ¿Seguro?")
     .button("§cSi, borrar todo").button("§aCancelar");
-  f.show(player).then((r) => {
-    if (r.canceled || r.selection !== 0) return;
-    let n = 0;
-    for (const e of getTextHolos()) { try { e.remove(); n++; } catch (_) {} }
-    for (const it of getItemReg()) {
-      try {
-        const dim = world.getDimension(it.dim);
-        const ents = dim.getEntities({ type: "minecraft:item", location: { x: it.x, y: it.y, z: it.z }, maxDistance: 6 });
-        for (const e of ents) { if (e.getDynamicProperty("fti") === it.uid) { e.remove(); n++; } }
-      } catch (_) {}
-    }
-    setItemReg([]);
-    player.sendMessage(PREFIX + "§aBorrados §f" + n + "§a.");
-  }).catch(() => {});
+  const r = await showForm(f, player);
+  if (r.canceled || r.selection !== 0) return;
+  let n = 0;
+  for (const e of getTextHolos()) { try { e.remove(); n++; } catch (_) {} }
+  for (const it of getItemReg()) {
+    try {
+      const dim = world.getDimension(it.dim);
+      const ents = dim.getEntities({ type: "minecraft:item", location: { x: it.x, y: it.y, z: it.z }, maxDistance: 6 });
+      for (const e of ents) { if (e.getDynamicProperty("fti") === it.uid) { e.remove(); n++; } }
+    } catch (_) {}
+  }
+  setItemReg([]);
+  player.sendMessage(PREFIX + "§aBorrados §f" + n + "§a.");
 }
 
 function helpForm(player) {
-  new ActionFormData().title("§l§7Ayuda - Hologram Studio")
+  const f = new ActionFormData().title("§l§7Ayuda - Hologram Studio")
     .body(
       "§bHologram Studio§r\n\n" +
-      "§e- Abrir menu: §fusa la §bVarita §fo escribe §a!holo§f / §a!ft§f, o el comando §a/holo:menu§f.\n" +
-      "§e- §fConseguir varita: §a!varita§f o §a/holo:wand§f.\n" +
+      "§e- Abrir menu: §fusa la §bVarita §fo el comando §a/holo:menu§f.\n" +
+      "§e- §fConseguir varita: §a/holo:wand§f.\n" +
       "§e- Crear Texto: §fescribe (usa §7|§f o §7\\n§f para varias lineas), color, particula, velocidad y flotar.\n" +
       "§e- Editar/Borrar: §fmira el holograma y abre el menu.\n" +
       "§e- Items flotantes: §fflotan, giran y se reponen solos.\n" +
       "§e- Velocidad: §f0=quieto, 1-4=orbita, 5=reversa."
     )
-    .button("§aOK").show(player).catch(() => {});
+    .button("§aOK");
+  showForm(f, player);
 }
 
 function giveWand(player) {
@@ -320,18 +326,18 @@ function giveWand(player) {
     const inv = player.getComponent("minecraft:inventory");
     inv.container.addItem(new ItemStack(WAND, 1));
     player.sendMessage(PREFIX + "§aRecibiste la §bVarita de Hologramas§a.");
-  } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo dar la varita."); }
+  } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo dar la varita (usa el comando /holo:wand)."); }
 }
 
 function ensureWelcome(p) {
   try {
     if (!p.getDynamicProperty("holo_got")) { p.setDynamicProperty("holo_got", true); giveWand(p); }
   } catch (_) {}
-  try { p.sendMessage(PREFIX + "§aListo. §fVarita / §a!holo §f/ §a/holo:menu§f. Varita: §a!varita"); } catch (_) {}
+  try { p.sendMessage(PREFIX + "§aListo. §fUsa la §bVarita §fo el comando §a/holo:menu§f."); } catch (_) {}
 }
 
 // ============================================================================
-//  REGISTRO DE EVENTOS (cada uno protegido: si uno falla, el resto sigue)
+//  REGISTRO DE EVENTOS (cada uno protegido)
 // ============================================================================
 function safe(label, fn) { try { fn(); } catch (e) { try { console.warn("[Holo] no se pudo registrar " + label + ": " + e); } catch (_) {} } }
 
@@ -343,14 +349,18 @@ safe("itemUse", () => world.afterEvents.itemUse.subscribe((ev) => {
   if (ev.itemStack && ev.itemStack.typeId === WAND) openMain(ev.source);
 }));
 
-// 3) Comandos de chat (sin trucos)
-safe("chatSend", () => world.beforeEvents.chatSend.subscribe((ev) => {
-  const m = ev.message.trim().toLowerCase();
-  if (m === "!holo" || m === "!ft" || m === "!menu") { ev.cancel = true; system.run(() => openMain(ev.sender)); }
-  else if (m === "!varita" || m === "!ftwand" || m === "!wand") { ev.cancel = true; system.run(() => giveWand(ev.sender)); }
-}));
+// 3) Comandos de chat (solo si la version aun soporta chatSend)
+safe("chatSend", () => {
+  if (world.beforeEvents && world.beforeEvents.chatSend) {
+    world.beforeEvents.chatSend.subscribe((ev) => {
+      const m = ev.message.trim().toLowerCase();
+      if (m === "!holo" || m === "!ft" || m === "!menu") { ev.cancel = true; system.run(() => openMain(ev.sender)); }
+      else if (m === "!varita" || m === "!wand") { ev.cancel = true; system.run(() => giveWand(ev.sender)); }
+    });
+  }
+});
 
-// 4) Comandos oficiales /holo:menu y /holo:wand (requieren trucos activados)
+// 4) Comandos oficiales /holo:menu y /holo:wand
 safe("customCommands", () => {
   system.beforeEvents.startup.subscribe((init) => {
     const reg = init.customCommandRegistry;
@@ -369,7 +379,7 @@ safe("customCommands", () => {
 // 5) Bienvenida / varita al entrar
 safe("playerSpawn", () => world.afterEvents.playerSpawn.subscribe((ev) => { if (ev.initialSpawn) ensureWelcome(ev.player); }));
 
-// 6) Confirmacion visible de carga (tambien cubre jugadores ya presentes)
+// 6) Confirmacion visible de carga (cubre jugadores ya presentes)
 safe("startupMsg", () => system.runTimeout(() => {
   try { for (const p of world.getAllPlayers()) ensureWelcome(p); } catch (_) {}
 }, 40));
