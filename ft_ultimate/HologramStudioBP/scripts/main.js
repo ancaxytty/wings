@@ -1,7 +1,7 @@
 // ============================================================================
-//  Hologram Studio  v6.3.0
-//  Hologramas de texto e items con menu, 100% Script API (MC 1.21.50+ / 2.x).
-//  Codigo y assets originales.
+//  Hologram Studio  v6.4.0
+//  Hologramas de texto, items flotantes y botones clickables. 100% Script API.
+//  MC 1.21.50+ / API 2.x.  Codigo y assets originales.
 // ============================================================================
 import * as mc from "@minecraft/server";
 import * as ui from "@minecraft/server-ui";
@@ -13,6 +13,7 @@ const ModalFormData = ui.ModalFormData;
 const ENT = "holo:text";
 const WAND = "holo:wand";
 const PREFIX = "§l§b[Holo]§r ";
+const UI = "textures/ui/holo/";
 
 const COLORS = [
   { name: "§fBlanco", code: "§f" }, { name: "§eAmarillo", code: "§e" },
@@ -68,17 +69,13 @@ function front(player, dist) {
   return { x: h.x + d.x * dist, y: h.y + d.y * dist, z: h.z + d.z * dist };
 }
 
-// ---- Mostrar formulario con reintento ante UserBusy -------------------------
 function wait(ticks) { return new Promise((r) => system.runTimeout(r, ticks)); }
 async function showForm(form, player) {
   for (let i = 0; i < 30; i++) {
     let res;
     try { res = await form.show(player); }
     catch (e) { return { canceled: true }; }
-    if (res && res.canceled && String(res.cancelationReason || "").includes("Busy")) {
-      await wait(8);
-      continue;
-    }
+    if (res && res.canceled && String(res.cancelationReason || "").includes("Busy")) { await wait(8); continue; }
     return res;
   }
   return { canceled: true };
@@ -87,20 +84,10 @@ async function showForm(form, player) {
 function getTextHolos() {
   const out = [];
   for (const dim of dims()) {
-    let ents;
-    try { ents = dim.getEntities({ type: ENT }); } catch (e) { continue; }
+    let ents; try { ents = dim.getEntities({ type: ENT }); } catch (e) { continue; }
     for (const e of ents) { try { if (e.getDynamicProperty("ft")) out.push(e); } catch (_) {} }
   }
   return out;
-}
-function lookingHolo(player) {
-  let hits;
-  try { hits = player.getEntitiesFromViewDirection({ maxDistance: 16 }); } catch (e) { return undefined; }
-  for (const h of hits) {
-    const e = h.entity;
-    if (e && e.typeId === ENT) { try { if (e.getDynamicProperty("ft")) return e; } catch (_) {} }
-  }
-  return undefined;
 }
 function getItemReg() {
   try { const raw = world.getDynamicProperty("holo_items"); return raw ? JSON.parse(raw) : []; }
@@ -124,16 +111,12 @@ function tickLoop() {
       base = bs ? String(bs).split(",").map(Number) : [e.location.x, e.location.y, e.location.z];
     } catch (_) { continue; }
     let y = base[1];
-    if (b) {
-      y = base[1] + Math.sin(tick * 0.12) * 0.22;
-      try { e.teleport({ x: base[0], y, z: base[2] }); } catch (_) {}
-    }
+    if (b) { y = base[1] + Math.sin(tick * 0.12) * 0.22; try { e.teleport({ x: base[0], y, z: base[2] }); } catch (_) {} }
     if (p > 0 && tick % 4 === 0) {
       let loc;
       if (s === 0) { loc = { x: base[0], y: y + 1.05, z: base[2] }; }
       else {
-        const factor = s === 5 ? 4 : s;
-        const dir = s === 5 ? -1 : 1;
+        const factor = s === 5 ? 4 : s; const dir = s === 5 ? -1 : 1;
         const ang = tick * 0.10 * factor * dir;
         loc = { x: base[0] + Math.cos(ang) * 0.55, y: y + 1.05, z: base[2] + Math.sin(ang) * 0.55 };
       }
@@ -151,91 +134,71 @@ function tickLoop() {
         for (const e of ents) { if (e.getDynamicProperty("fti") === it.uid) { found = e; break; } }
       } catch (e) { continue; }
       if (found) { try { found.clearVelocity(); found.teleport({ x: it.x, y: it.y, z: it.z }); } catch (_) {} }
-      else {
-        try { const e2 = dim.spawnItem(new ItemStack(it.item, 1), { x: it.x, y: it.y, z: it.z }); e2.setDynamicProperty("fti", it.uid); e2.clearVelocity(); } catch (_) {}
-      }
+      else { try { const e2 = dim.spawnItem(new ItemStack(it.item, 1), { x: it.x, y: it.y, z: it.z }); e2.setDynamicProperty("fti", it.uid); e2.clearVelocity(); } catch (_) {} }
     }
   }
 }
 
 // ============================================================================
-//  MENUS  (async + showForm con reintento)
+//  MENU PRINCIPAL
 // ============================================================================
 async function openMain(player) {
   if (!ActionFormData) { player.sendMessage(PREFIX + "§cUI no disponible en esta version."); return; }
   const f = new ActionFormData()
     .title("§l§bHologram §3Studio")
-    .body("§7Crea y administra hologramas de texto e items.")
-    .button("§a+ Crear Texto", "textures/items/holo_wand")
-    .button("§e+ Crear Item Flotante")
-    .button("§b/ Editar Texto §7(mira el holo)")
-    .button("§c- Borrar Texto §7(mira el holo)")
-    .button("§f# Lista / Teleport")
-    .button("§4!! Borrar TODO")
-    .button("§7? Ayuda");
+    .body("§7Menu principal. Elige una opcion:")
+    .button("§a Crear Texto", UI + "create_text")
+    .button("§6 Crear Item Flotante", UI + "create_item")
+    .button("§b Crear Boton Clickable", UI + "create_button")
+    .button("§9 Administrar Hologramas", UI + "manage")
+    .button("§4 Borrar TODO", UI + "delete_all")
+    .button("§7 Ayuda", UI + "help");
   const r = await showForm(f, player);
   if (r.canceled) return;
   switch (r.selection) {
-    case 0: return createTextForm(player);
+    case 0: return createForm(player, false);
     case 1: return createItemForm(player);
-    case 2: return editTextForm(player);
-    case 3: return deleteLooking(player);
-    case 4: return listForm(player);
-    case 5: return deleteAll(player);
-    case 6: return helpForm(player);
+    case 2: return createForm(player, true);
+    case 3: return manageList(player);
+    case 4: return deleteAll(player);
+    case 5: return helpForm(player);
   }
 }
 
-async function createTextForm(player) {
-  const f = new ModalFormData().title("§l§aCrear Texto Flotante")
-    .textField("Texto §7(usa | o \\n para varias lineas)", "Hola mundo")
+// ---- Crear texto / boton (isButton aniade campo de comando) -----------------
+async function createForm(player, isButton) {
+  const f = new ModalFormData().title(isButton ? "§l§bCrear Boton Clickable" : "§l§aCrear Texto Flotante")
+    .textField("Texto §7(usa | o \\n para varias lineas)", isButton ? "[ CLIC AQUI ]" : "Hola mundo")
     .dropdown("Color base", COLORS.map((c) => c.name))
     .dropdown("Particula", PARTICLE_NAMES)
     .slider("Velocidad orbita §7(0=quieto, 5=reversa)", 0, 5, { valueStep: 1, defaultValue: 0 })
     .toggle("Animacion flotar");
+  if (isButton) f.textField("Comando al hacer clic §7(sin /, ej: tp @s 0 120 0)", "say Hola");
   const r = await showForm(f, player);
   if (r.canceled) return;
-  const [text, colorIdx, partIdx, speed, bob] = r.formValues;
+  const v = r.formValues;
+  const text = v[0], colorIdx = v[1], partIdx = v[2], speed = v[3], bob = v[4];
+  const cmd = isButton ? String(v[5] || "").trim() : "";
   if (!text || !String(text).trim()) { player.sendMessage(PREFIX + "§cEscribe algun texto."); return; }
   const loc = front(player, 3);
   let e; try { e = player.dimension.spawnEntity(ENT, loc); }
   catch (err) { player.sendMessage(PREFIX + "§cNo se pudo crear aqui."); return; }
+  applyHolo(e, text, colorIdx, partIdx, speed, bob, cmd, loc);
+  player.sendMessage(PREFIX + (isButton ? "§aBoton clickable creado." : "§aTexto creado."));
+}
+
+function applyHolo(e, text, colorIdx, partIdx, speed, bob, cmd, loc) {
   e.nameTag = buildNameTag(text, colorIdx);
   e.setDynamicProperty("ft", true);
   e.setDynamicProperty("p", partIdx);
   e.setDynamicProperty("s", speed);
   e.setDynamicProperty("b", bob);
   e.setDynamicProperty("color", colorIdx);
+  e.setDynamicProperty("cmd", cmd || "");
   e.setDynamicProperty("base", `${loc.x},${loc.y},${loc.z}`);
-  player.sendMessage(PREFIX + "§aTexto creado.");
 }
 
-async function editTextForm(player) {
-  const e = lookingHolo(player);
-  if (!e) { player.sendMessage(PREFIX + "§cMira directamente un holograma de texto."); return; }
-  const curText = stripColors(e.nameTag).replace(/\n/g, "|");
-  const curColor = e.getDynamicProperty("color") ?? 0;
-  const curPart = e.getDynamicProperty("p") ?? 0;
-  const curSpeed = e.getDynamicProperty("s") ?? 0;
-  const curBob = e.getDynamicProperty("b") ?? false;
-  const f = new ModalFormData().title("§l§bEditar Texto")
-    .textField("Texto §7(| o \\n = lineas)", "texto", { defaultValue: curText })
-    .dropdown("Color base", COLORS.map((c) => c.name), { defaultValueIndex: curColor })
-    .dropdown("Particula", PARTICLE_NAMES, { defaultValueIndex: curPart })
-    .slider("Velocidad orbita", 0, 5, { valueStep: 1, defaultValue: curSpeed })
-    .toggle("Animacion flotar", { defaultValue: !!curBob });
-  const r = await showForm(f, player);
-  if (r.canceled) return;
-  const [text, colorIdx, partIdx, speed, bob] = r.formValues;
-  e.nameTag = buildNameTag(text, colorIdx);
-  e.setDynamicProperty("color", colorIdx);
-  e.setDynamicProperty("p", partIdx);
-  e.setDynamicProperty("s", speed);
-  e.setDynamicProperty("b", bob);
-  if (!bob) { try { const bs = e.getDynamicProperty("base"); if (bs) { const a = String(bs).split(",").map(Number); e.teleport({ x: a[0], y: a[1], z: a[2] }); } } catch (_) {} }
-  player.sendMessage(PREFIX + "§aTexto actualizado.");
-}
-
+// ---- Crear item flotante ----------------------------------------------------
 async function createItemForm(player) {
   const f = new ModalFormData().title("§l§eCrear Item Flotante")
     .dropdown("Item", ITEM_NAMES)
@@ -257,40 +220,144 @@ async function createItemForm(player) {
     try {
       const tl = { x: loc.x, y: loc.y + 0.9, z: loc.z };
       const te = player.dimension.spawnEntity(ENT, tl);
-      te.nameTag = "§f" + String(label).trim();
-      te.setDynamicProperty("ft", true); te.setDynamicProperty("p", 0);
-      te.setDynamicProperty("s", 0); te.setDynamicProperty("b", false);
-      te.setDynamicProperty("base", `${tl.x},${tl.y},${tl.z}`);
+      applyHolo(te, String(label).trim(), 0, 0, 0, false, "", tl);
     } catch (_) {}
   }
   player.sendMessage(PREFIX + "§aItem flotante creado: §f" + itemId);
 }
 
-function deleteLooking(player) {
-  const e = lookingHolo(player);
-  if (!e) { player.sendMessage(PREFIX + "§cMira directamente un holograma."); return; }
-  try { e.remove(); player.sendMessage(PREFIX + "§aHolograma borrado."); } catch (err) { player.sendMessage(PREFIX + "§cNo se pudo borrar."); }
-}
-
-async function listForm(player) {
+// ---- Administrar (sin mirar) ------------------------------------------------
+async function manageList(player) {
   const holos = getTextHolos();
-  if (holos.length === 0) { player.sendMessage(PREFIX + "§7No hay hologramas de texto."); return; }
-  const f = new ActionFormData().title("§l§fHologramas").body("§7Selecciona para teletransportarte.");
+  const reg = getItemReg();
+  if (holos.length === 0 && reg.length === 0) { player.sendMessage(PREFIX + "§7No hay hologramas todavia."); return; }
+  const entries = [];
+  const f = new ActionFormData().title("§l§9Administrar").body("§7Selecciona un holograma:");
   for (const e of holos) {
-    const label = (stripColors(e.nameTag).split("\n")[0] || "(vacio)").slice(0, 24);
+    const isBtn = !!(e.getDynamicProperty("cmd"));
+    const label = (stripColors(e.nameTag).split("\n")[0] || "(vacio)").slice(0, 22);
     const l = e.location;
-    f.button(`§e${label}\n§7${Math.round(l.x)}, ${Math.round(l.y)}, ${Math.round(l.z)}`);
+    f.button(`${isBtn ? "§b[BTN] " : "§a[TXT] "}${label}\n§7${Math.round(l.x)}, ${Math.round(l.y)}, ${Math.round(l.z)}`,
+      isBtn ? UI + "create_button" : UI + "create_text");
+    entries.push({ kind: "text", ref: e });
+  }
+  for (const it of reg) {
+    f.button(`§6[ITEM] ${it.item.replace("minecraft:", "").slice(0, 18)}\n§7${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.z)}`, UI + "create_item");
+    entries.push({ kind: "item", ref: it });
   }
   const r = await showForm(f, player);
   if (r.canceled) return;
-  const e = holos[r.selection]; if (!e) return;
-  try { player.teleport(e.location, { dimension: e.dimension }); player.sendMessage(PREFIX + "§aTeletransportado."); } catch (err) {}
+  const sel = entries[r.selection]; if (!sel) return;
+  if (sel.kind === "text") return manageText(player, sel.ref);
+  return manageItem(player, sel.ref);
+}
+
+async function manageText(player, e) {
+  let valid = true; try { valid = e.isValid; } catch (_) { valid = false; }
+  if (valid === false) { player.sendMessage(PREFIX + "§cEse holograma ya no existe."); return; }
+  const name = stripColors(e.nameTag).split("\n")[0] || "(vacio)";
+  const f = new ActionFormData().title("§l§b" + name.slice(0, 24))
+    .body("§7¿Que quieres hacer?")
+    .button("§b Editar", UI + "edit")
+    .button("§d Comando al clic", UI + "command")
+    .button("§5 Mover aqui", UI + "move")
+    .button("§a Teletransportarme", UI + "teleport")
+    .button("§6 Duplicar", UI + "duplicate")
+    .button("§4 Borrar", UI + "delete_all")
+    .button("§7 Volver", UI + "back");
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  switch (r.selection) {
+    case 0: return editForm(player, e);
+    case 1: return cmdForm(player, e);
+    case 2: { const l = player.getHeadLocation(); try { e.teleport(l); e.setDynamicProperty("base", `${l.x},${l.y},${l.z}`); player.sendMessage(PREFIX + "§aMovido aqui."); } catch (_) {} return; }
+    case 3: { try { player.teleport(e.location, { dimension: e.dimension }); player.sendMessage(PREFIX + "§aTeletransportado."); } catch (_) {} return; }
+    case 4: return duplicateHolo(player, e);
+    case 5: { try { e.remove(); player.sendMessage(PREFIX + "§aBorrado."); } catch (_) {} return; }
+    case 6: return manageList(player);
+  }
+}
+
+async function manageItem(player, it) {
+  const f = new ActionFormData().title("§l§6Item: " + it.item.replace("minecraft:", ""))
+    .body("§7¿Que quieres hacer?")
+    .button("§5 Mover aqui", UI + "move")
+    .button("§a Teletransportarme", UI + "teleport")
+    .button("§4 Borrar", UI + "delete_all")
+    .button("§7 Volver", UI + "back");
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  if (r.selection === 0) {
+    const l = player.getHeadLocation();
+    const reg = getItemReg();
+    const x = reg.find((q) => q.uid === it.uid);
+    if (x) { x.x = l.x; x.y = l.y; x.z = l.z; x.dim = player.dimension.id; setItemReg(reg); }
+    player.sendMessage(PREFIX + "§aItem movido aqui.");
+  } else if (r.selection === 1) {
+    try { player.teleport({ x: it.x, y: it.y, z: it.z }, { dimension: world.getDimension(it.dim) }); player.sendMessage(PREFIX + "§aTeletransportado."); } catch (_) {}
+  } else if (r.selection === 2) {
+    try {
+      const dim = world.getDimension(it.dim);
+      const ents = dim.getEntities({ type: "minecraft:item", location: { x: it.x, y: it.y, z: it.z }, maxDistance: 6 });
+      for (const e of ents) { if (e.getDynamicProperty("fti") === it.uid) e.remove(); }
+    } catch (_) {}
+    setItemReg(getItemReg().filter((q) => q.uid !== it.uid));
+    player.sendMessage(PREFIX + "§aItem borrado.");
+  } else if (r.selection === 3) { return manageList(player); }
+}
+
+// ---- Editar (recibe la entidad, sin mirar) ----------------------------------
+async function editForm(player, e) {
+  const curText = stripColors(e.nameTag).replace(/\n/g, "|");
+  const curColor = e.getDynamicProperty("color") ?? 0;
+  const curPart = e.getDynamicProperty("p") ?? 0;
+  const curSpeed = e.getDynamicProperty("s") ?? 0;
+  const curBob = e.getDynamicProperty("b") ?? false;
+  const f = new ModalFormData().title("§l§bEditar")
+    .textField("Texto §7(| o \\n = lineas)", "texto", { defaultValue: curText })
+    .dropdown("Color base", COLORS.map((c) => c.name), { defaultValueIndex: curColor })
+    .dropdown("Particula", PARTICLE_NAMES, { defaultValueIndex: curPart })
+    .slider("Velocidad orbita", 0, 5, { valueStep: 1, defaultValue: curSpeed })
+    .toggle("Animacion flotar", { defaultValue: !!curBob });
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  const [text, colorIdx, partIdx, speed, bob] = r.formValues;
+  e.nameTag = buildNameTag(text, colorIdx);
+  e.setDynamicProperty("color", colorIdx);
+  e.setDynamicProperty("p", partIdx);
+  e.setDynamicProperty("s", speed);
+  e.setDynamicProperty("b", bob);
+  if (!bob) { try { const bs = e.getDynamicProperty("base"); if (bs) { const a = String(bs).split(",").map(Number); e.teleport({ x: a[0], y: a[1], z: a[2] }); } } catch (_) {} }
+  player.sendMessage(PREFIX + "§aActualizado.");
+}
+
+async function cmdForm(player, e) {
+  const cur = e.getDynamicProperty("cmd") ?? "";
+  const f = new ModalFormData().title("§l§dComando al hacer clic")
+    .textField("Comando §7(sin /, vacio = quitar)", "tp @s 0 120 0", { defaultValue: String(cur) });
+  const r = await showForm(f, player);
+  if (r.canceled) return;
+  const cmd = String(r.formValues[0] || "").trim();
+  e.setDynamicProperty("cmd", cmd);
+  player.sendMessage(PREFIX + (cmd ? "§aComando asignado: §f" + cmd : "§eComando quitado."));
+}
+
+function duplicateHolo(player, e) {
+  const loc = front(player, 3);
+  try {
+    const n = player.dimension.spawnEntity(ENT, loc);
+    n.nameTag = e.nameTag;
+    n.setDynamicProperty("ft", true);
+    for (const k of ["p", "s", "b", "color", "cmd"]) { const v = e.getDynamicProperty(k); if (v !== undefined) n.setDynamicProperty(k, v); }
+    n.setDynamicProperty("base", `${loc.x},${loc.y},${loc.z}`);
+    player.sendMessage(PREFIX + "§aDuplicado frente a ti.");
+  } catch (_) { player.sendMessage(PREFIX + "§cNo se pudo duplicar."); }
 }
 
 async function deleteAll(player) {
   const f = new ActionFormData().title("§l§4Borrar TODO")
-    .body("§cBorra TODOS los hologramas de texto y los items flotantes. ¿Seguro?")
-    .button("§cSi, borrar todo").button("§aCancelar");
+    .body("§cBorra TODOS los hologramas de texto, botones e items flotantes. ¿Seguro?")
+    .button("§cSi, borrar todo", UI + "delete_all").button("§aCancelar", UI + "back");
   const r = await showForm(f, player);
   if (r.canceled || r.selection !== 0) return;
   let n = 0;
@@ -309,16 +376,27 @@ async function deleteAll(player) {
 function helpForm(player) {
   const f = new ActionFormData().title("§l§7Ayuda - Hologram Studio")
     .body(
-      "§bHologram Studio§r\n\n" +
-      "§e- Abrir menu: §fusa la §bVarita §fo el comando §a/holo:menu§f.\n" +
-      "§e- §fConseguir varita: §a/holo:wand§f.\n" +
-      "§e- Crear Texto: §fescribe (usa §7|§f o §7\\n§f para varias lineas), color, particula, velocidad y flotar.\n" +
-      "§e- Editar/Borrar: §fmira el holograma y abre el menu.\n" +
-      "§e- Items flotantes: §fflotan, giran y se reponen solos.\n" +
+      "§bHologram Studio v6.4.0§r\n\n" +
+      "§e- Abrir menu: §fvarita (clic der.) o §a/holo:menu§f.\n" +
+      "§e- Varita: §a/holo:wand§f.\n" +
+      "§e- Crear Texto / Item / Boton clickable §fdesde el menu.\n" +
+      "§e- Boton clickable: §fhaz clic derecho en el holograma para ejecutar su comando (requiere trucos).\n" +
+      "§e- Administrar: §fedita, mueve, duplica, teleporta o borra §lsin mirar§r§f, eligiendo de la lista.\n" +
       "§e- Velocidad: §f0=quieto, 1-4=orbita, 5=reversa."
     )
-    .button("§aOK");
+    .button("§aOK", UI + "back");
   showForm(f, player);
+}
+
+function runHoloCmd(player, e) {
+  let cmd; try { cmd = e.getDynamicProperty("cmd"); } catch (_) { return false; }
+  if (!cmd || !String(cmd).trim()) return false;
+  cmd = String(cmd).replace(/^\//, "");
+  try { player.runCommand(cmd); return true; }
+  catch (err) {
+    try { e.dimension.runCommand(cmd); return true; }
+    catch (e2) { player.sendMessage(PREFIX + "§cNo se pudo ejecutar el comando (¿trucos activados?)."); return true; }
+  }
 }
 
 function giveWand(player) {
@@ -326,30 +404,33 @@ function giveWand(player) {
     const inv = player.getComponent("minecraft:inventory");
     inv.container.addItem(new ItemStack(WAND, 1));
     player.sendMessage(PREFIX + "§aRecibiste la §bVarita de Hologramas§a.");
-  } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo dar la varita (usa el comando /holo:wand)."); }
+  } catch (e) { player.sendMessage(PREFIX + "§cNo se pudo dar la varita (usa /holo:wand)."); }
 }
-
 function ensureWelcome(p) {
-  try {
-    if (!p.getDynamicProperty("holo_got")) { p.setDynamicProperty("holo_got", true); giveWand(p); }
-  } catch (_) {}
-  try { p.sendMessage(PREFIX + "§aListo. §fUsa la §bVarita §fo el comando §a/holo:menu§f."); } catch (_) {}
+  try { if (!p.getDynamicProperty("holo_got")) { p.setDynamicProperty("holo_got", true); giveWand(p); } } catch (_) {}
+  try { p.sendMessage(PREFIX + "§aListo. §fUsa la §bVarita §fo §a/holo:menu§f."); } catch (_) {}
 }
 
 // ============================================================================
-//  REGISTRO DE EVENTOS (cada uno protegido)
+//  EVENTOS (protegidos)
 // ============================================================================
 function safe(label, fn) { try { fn(); } catch (e) { try { console.warn("[Holo] no se pudo registrar " + label + ": " + e); } catch (_) {} } }
 
-// 1) Bucle principal
 safe("tick", () => system.runInterval(tickLoop, 1));
 
-// 2) Item -> menu
 safe("itemUse", () => world.afterEvents.itemUse.subscribe((ev) => {
   if (ev.itemStack && ev.itemStack.typeId === WAND) openMain(ev.source);
 }));
 
-// 3) Comandos de chat (solo si la version aun soporta chatSend)
+// Clic en holograma -> ejecuta su comando (si tiene); con varita abre Administrar de ese holo
+safe("interactEntity", () => world.afterEvents.playerInteractWithEntity.subscribe((ev) => {
+  const e = ev.target;
+  if (!e || e.typeId !== ENT) return;
+  const holdingWand = ev.itemStack && ev.itemStack.typeId === WAND;
+  if (holdingWand) { system.run(() => manageText(ev.player, e)); return; }
+  runHoloCmd(ev.player, e);
+}));
+
 safe("chatSend", () => {
   if (world.beforeEvents && world.beforeEvents.chatSend) {
     world.beforeEvents.chatSend.subscribe((ev) => {
@@ -360,7 +441,6 @@ safe("chatSend", () => {
   }
 });
 
-// 4) Comandos oficiales /holo:menu y /holo:wand
 safe("customCommands", () => {
   system.beforeEvents.startup.subscribe((init) => {
     const reg = init.customCommandRegistry;
@@ -376,12 +456,8 @@ safe("customCommands", () => {
   });
 });
 
-// 5) Bienvenida / varita al entrar
 safe("playerSpawn", () => world.afterEvents.playerSpawn.subscribe((ev) => { if (ev.initialSpawn) ensureWelcome(ev.player); }));
 
-// 6) Confirmacion visible de carga (cubre jugadores ya presentes)
-safe("startupMsg", () => system.runTimeout(() => {
-  try { for (const p of world.getAllPlayers()) ensureWelcome(p); } catch (_) {}
-}, 40));
+safe("startupMsg", () => system.runTimeout(() => { try { for (const p of world.getAllPlayers()) ensureWelcome(p); } catch (_) {} }, 40));
 
-try { console.warn("[Hologram Studio] cargado v6.3.0 (API 2.x)"); } catch (_) {}
+try { console.warn("[Hologram Studio] cargado v6.4.0 (API 2.x)"); } catch (_) {}

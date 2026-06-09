@@ -10,7 +10,7 @@
 		"components": {
 			"minecraft:type_family": { "family": ["hologram", "inanimate"] },
 			"minecraft:health": { "value": 999999, "max": 999999 },
-			"minecraft:collision_box": { "width": 0.4, "height": 0.4 },
+			"minecraft:collision_box": { "width": 0.7, "height": 1.0 },
 			"minecraft:nameable": { "alwaysShow": true, "allowNameTagRenaming": true },
 			"minecraft:damage_sensor": {
 				"triggers": { "cause": "all", "deals_damage": false }
