@@ -398,43 +398,149 @@ def draw_medal(size, base, ribbon, symfn, locked=False):
         draw_disc(img, lx, ly + 3, 2, (210, 210, 60, 255))
     return img
 
-# ------------------------------------------------------------------ fondo server_form (nineslice)
+# ------------------------------------------------------------------ fondo server_form (nineslice real)
 def make_form_bg():
-    size = 96
+    """Panel oscuro profesional, nineslice 28/30. Bordes biselados con doble
+    linea de acento y esquinas reforzadas para un look avanzado."""
+    size = 128
+    bw = 10          # grosor de marco (cabe en el nineslice de 28-30)
     img = blank(size, size)
-    top = (30, 36, 56); bot = (12, 14, 24)
-    bd = (120, 150, 220); acc = (150, 185, 250)
-    bw = 8
+    top = (34, 41, 64); mid = (22, 27, 44); bot = (12, 15, 26)
+    steel_lt = (150, 178, 235); steel_dk = (54, 70, 120)
+    acc = (122, 196, 255)
     for y in range(size):
         for x in range(size):
-            t = y / (size - 1)
-            r, g, b = mix(top, bot, t)
-            # vineta
-            dx = (x - size / 2) / (size / 2); dy = (y - size / 2) / (size / 2)
-            vig = 1 - 0.18 * (dx * dx + dy * dy)
-            r *= vig; g *= vig; b *= vig
             inb = (x < bw or x >= size - bw or y < bw or y >= size - bw)
             if inb:
+                # marco metalico con bisel diagonal
                 d = ((x + y) - size) / float(size)
-                bf = 1.2 - 0.5 * d
-                r, g, b = bd[0] * bf, bd[1] * bf, bd[2] * bf
-            img[y][x] = [clamp(r), clamp(g), clamp(b), 248]
-    # linea de acento interior
+                r, g, b = mix(steel_dk, steel_lt, max(0.0, min(1.0, 0.5 - d * 0.7)))
+                # borde mas oscuro en el contorno exterior
+                if x < 2 or y < 2 or x >= size - 2 or y >= size - 2:
+                    r, g, b = darken((r, g, b), 0.5)
+                a = 255
+            else:
+                t = y / (size - 1)
+                if t < 0.5:
+                    r, g, b = mix(top, mid, t * 2)
+                else:
+                    r, g, b = mix(mid, bot, (t - 0.5) * 2)
+                dx = (x - size / 2) / (size / 2); dy = (y - size / 2) / (size / 2)
+                vig = 1 - 0.22 * (dx * dx + dy * dy)
+                r *= vig; g *= vig; b *= vig
+                a = 250
+            img[y][x] = [clamp(r), clamp(g), clamp(b), a]
+    # doble linea de acento interior
     for x in range(bw, size - bw):
-        blend(img, x, bw + 1, acc, 0.5)
-        blend(img, x, size - bw - 2, acc, 0.35)
+        blend(img, x, bw, acc, 0.85); blend(img, x, bw + 1, acc, 0.4)
+        blend(img, x, size - bw - 1, acc, 0.7); blend(img, x, size - bw - 2, acc, 0.3)
     for y in range(bw, size - bw):
-        blend(img, bw + 1, y, acc, 0.5)
-        blend(img, size - bw - 2, y, acc, 0.35)
-    # corchetes de esquina
-    Lc = 14
-    for i in range(bw + 1, bw + Lc):
-        for (ax, ay) in ((i, bw + 1), (bw + 1, i),
-                          (size - 2 - i, bw + 1), (bw + 1, size - 2 - i),
-                          (i, size - bw - 2), (size - bw - 2, i),
-                          (size - 2 - i, size - bw - 2), (size - bw - 2, size - 2 - i)):
-            blend(img, ax, ay, acc, 0.9)
+        blend(img, bw, y, acc, 0.85); blend(img, bw + 1, y, acc, 0.4)
+        blend(img, size - bw - 1, y, acc, 0.7); blend(img, size - bw - 2, y, acc, 0.3)
+    # esquinas reforzadas (corchetes brillantes)
+    Lc = 18
+    for i in range(bw, bw + Lc):
+        for (ax, ay) in ((i, bw), (bw, i),
+                          (size - 1 - i, bw), (bw, size - 1 - i),
+                          (i, size - bw - 1), (size - bw - 1, i),
+                          (size - 1 - i, size - bw - 1), (size - bw - 1, size - 1 - i)):
+            blend(img, ax, ay, (210, 235, 255), 0.95)
     return size, size, img
+
+# ------------------------------------------------------------------ barra de cabecera (header)
+def make_form_header():
+    w, h = 256, 46
+    img = blank(w, h)
+    c_top = (58, 84, 150); c_bot = (26, 36, 70)
+    acc = (255, 206, 92)
+    for y in range(h):
+        for x in range(w):
+            t = y / (h - 1)
+            r, g, b = mix(c_top, c_bot, t)
+            # brillo central horizontal
+            cx = abs(x - w / 2) / (w / 2)
+            r += (1 - cx) * 26; g += (1 - cx) * 22; b += (1 - cx) * 14
+            img[y][x] = [clamp(r), clamp(g), clamp(b), 235]
+    # linea dorada inferior (separador de cabecera)
+    for x in range(w):
+        glow = 0.55 + 0.45 * (1 - abs(x - w / 2) / (w / 2))
+        blend(img, x, h - 2, acc, glow)
+        blend(img, x, h - 3, acc, glow * 0.5)
+        blend(img, x, h - 1, (120, 90, 30), 0.6)
+    # remaches decorativos
+    for x in (10, w - 11):
+        for yy in (10, h - 14):
+            draw_disc(img, x, yy, 2.5, (200, 215, 245, 235))
+            draw_disc(img, x, yy, 1.2, (90, 110, 160, 235))
+    return w, h, img
+
+# ------------------------------------------------------------------ glow superior (ambiente)
+def make_form_glow():
+    w, h = 128, 128
+    img = blank(w, h)
+    cx = w / 2; cy = h * 0.16
+    for y in range(h):
+        for x in range(w):
+            d = math.hypot((x - cx) / (w * 0.6), (y - cy) / (h * 0.5))
+            a = max(0.0, 1 - d)
+            if a > 0:
+                img[y][x] = [120, 170, 255, clamp(150 * a * a)]
+    return w, h, img
+
+# ------------------------------------------------------------------ boton largo horizontal (nineslice)
+def make_long_button(hover=False):
+    w, h = 200, 40
+    img = blank(w, h)
+    if hover:
+        c1 = (74, 116, 196); c2 = (40, 64, 120); bd = (150, 200, 255); acc = (255, 214, 110)
+    else:
+        c1 = (52, 64, 98); c2 = (28, 34, 56); bd = (96, 124, 188); acc = (150, 185, 250)
+    bw = 4
+    rad = 9
+    cov = get_cov_rect(w, h, 0, rad)
+    inner = get_cov_rect(w, h, bw, rad - bw)
+    for y in range(h):
+        for x in range(w):
+            a = cov[y][x]
+            if a <= 0:
+                continue
+            t = y / (h - 1)
+            r, g, b = mix(c1, c2, t)
+            if inner[y][x] < 0.55:
+                d = ((x + y) - (w + h) / 2) / float(w)
+                bf = 1.15 - 0.4 * d
+                r, g, b = bd[0] * bf, bd[1] * bf, bd[2] * bf
+            else:
+                # brillo superior
+                if y < h * 0.45:
+                    gl = (1 - y / (h * 0.45)) * 0.20
+                    r += 255 * gl; g += 255 * gl; b += 255 * gl
+            img[y][x] = [clamp(r), clamp(g), clamp(b), clamp(255 * a)]
+    # acento vertical a la izquierda (marca de seleccion)
+    for y in range(int(h * 0.18), int(h * 0.82)):
+        for x in range(bw + 2, bw + 6):
+            blend(img, x, y, acc, 0.9 if hover else 0.6)
+    return w, h, img
+
+def get_cov_rect(w, h, inset, radius, ss=3):
+    cov = [[0.0] * w for _ in range(h)]
+    x0 = inset; y0 = inset; x1 = w - inset; y1 = h - inset
+    for y in range(h):
+        for x in range(w):
+            c = 0
+            for sy in range(ss):
+                for sx in range(ss):
+                    px = x + (sx + 0.5) / ss; py = y + (sy + 0.5) / ss
+                    if px < x0 or px > x1 or py < y0 or py > y1:
+                        continue
+                    cxr = min(px - x0, x1 - px); cyr = min(py - y0, y1 - py)
+                    if cxr < radius and cyr < radius:
+                        dx = radius - cxr; dy = radius - cyr
+                        if dx * dx + dy * dy > radius * radius:
+                            continue
+                    c += 1
+            cov[y][x] = c / (ss * ss)
+    return cov
 
 # ------------------------------------------------------------------ item especial (libro de logros)
 def make_item_book():
@@ -499,6 +605,11 @@ for name, (base, sym) in BTN.items():
 
 # Fondo del server_form
 fw, fh, fi = make_form_bg(); write_png(f"{RP}/textures/ui/logros/form_bg.png", fw, fh, fi)
+# Cabecera, glow y botones largos (UI v2 avanzada)
+hw, hh, hi = make_form_header(); write_png(f"{RP}/textures/ui/logros/form_header.png", hw, hh, hi)
+gw, gh, gi = make_form_glow(); write_png(f"{RP}/textures/ui/logros/form_glow.png", gw, gh, gi)
+lw, lh, li = make_long_button(False); write_png(f"{RP}/textures/ui/logros/btn_long.png", lw, lh, li)
+lw, lh, li = make_long_button(True); write_png(f"{RP}/textures/ui/logros/btn_long_hover.png", lw, lh, li)
 
 # Item especial
 iw, ih, ii = make_item_book(); write_png(f"{RP}/textures/items/logros_book.png", iw, ih, ii)
@@ -508,4 +619,4 @@ pw, ph, pi = make_pack_icon()
 write_png(f"{RP}/pack_icon.png", pw, ph, pi)
 write_png(f"{BP}/pack_icon.png", pw, ph, pi)
 
-print("Logros: 12 medallas (+12 off), 10 botones, fondo, item y pack_icon generados.")
+print("Logros v2: 12 medallas (+12 off), 10 botones, fondo/header/glow, 2 botones largos, item y pack_icon generados.")
