@@ -1879,6 +1879,7 @@ async function openMenu(player) {
       { label: "§a§lConstruir", icon: "set", run: () => buildMenu(player) },
       { label: "§d§lFormas", icon: "sphere", run: () => shapesMenu(player) },
       { label: "§6§lTerreno", icon: "naturalize", run: () => terrainMenu(player) },
+      { label: "§d§lPatterns", icon: "smooth", run: () => patternsMenu(player) },
       { label: "§e§lPortapapeles", icon: "copy", run: () => clipboardMenu(player) },
       { label: "§b§lSelección", icon: "pos1", run: () => selectionMenu(player) },
       { label: "§3§lHerramientas", icon: "tools", run: () => toolsMenu(player) },
@@ -1992,12 +1993,12 @@ async function builderForm(player) {
   const ids = ["sphere", "hsphere", "cylinder", "cone", "pyramid"];
   const form = new ModalFormData()
     .title("§lConstructor de Formas")
-    .dropdown("Forma", shapes, 0)
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
+    .dropdown("Forma", shapes, { defaultValueIndex: 0 })
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
     .textField("…o bloque personalizado", "ej: glass")
-    .slider("Radio / tamaño", 1, 40, 1, 5)
-    .slider("Altura (cilindro/cono)", 1, 100, 1, 8)
-    .toggle("Hueco (donde aplique)", false);
+    .slider("Radio / tamaño", 1, 40, { valueStep: 1, defaultValue: 5 })
+    .slider("Altura (cilindro/cono)", 1, 100, { valueStep: 1, defaultValue: 8 })
+    .toggle("Hueco (donde aplique)", { defaultValue: false });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [shapeIdx, blkIdx, custom, radius, height, hollow] = res.formValues;
@@ -2056,7 +2057,7 @@ function buildWithTool(player) {
 async function pickBlockThen(player, title, callback) {
   const form = new ModalFormData()
     .title("§l" + title)
-    .dropdown("Bloque común", COMMON_BLOCKS, 0)
+    .dropdown("Bloque común", COMMON_BLOCKS, { defaultValueIndex: 0 })
     .textField("Bloque personalizado (opcional)", "ej: oak_log, lapis_block");
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
@@ -2088,8 +2089,104 @@ async function fifaMenu(player) {
   if (key) opFlag(player, key, 1);
 }
 
-async function replaceForm(player) {
+/* ---- Submenú de PATTERNS ---- */
+async function patternsMenu(player) {
+  await showActionMenu(player, "§d§lPatterns", "§7Patrones avanzados sobre tu selección:", [
+    { label: "§dRuido / Aleatorio", icon: "sphere", run: () => patternNoiseForm(player) },
+    { label: "§dEsparcir (spread)", icon: "naturalize", run: () => spreadForm(player) },
+    { label: "§dColor (a un color)", icon: "set", run: () => colorForm(player) },
+    { label: "§dMáscara", icon: "replace", run: () => maskForm(player) },
+    { label: "§dDesplazar terreno (offset)", icon: "move", run: () => offsetForm(player) },
+    { label: "§dPortapapeles como patrón", icon: "copy", run: () => opClipboardPattern(player) },
+    { label: "§dMantener existente", icon: "info", run: () => opExisting(player) },
+    { label: "§dAjustar color", icon: "smooth", run: () => colorAdjustMenu(player) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => openMenu(player) },
+  ]);
+}
+
+async function patternNoiseForm(player) {
+  const types = ["Aleatorio (pattern)", "Voronoi", "Perlin", "Simplex", "RMF (ridged)", "Linear", "Linear 2D"];
   const form = new ModalFormData()
+    .title("§l§dRuido / Patrón")
+    .dropdown("Tipo", types, { defaultValueIndex: 1 })
+    .textField("Bloques (separa con coma)", "stone,andesite,cobblestone")
+    .slider("Escala (solo ruido)", 1, 40, { valueStep: 1, defaultValue: 10 });
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [t, blocks, scale] = res.formValues;
+  if (!blocks || !blocks.trim()) return msg(player, "§cEscribe al menos un bloque.");
+  switch (t) {
+    case 0: opPattern(player, blocks); break;
+    case 1: opNoise(player, "voronoi", String(scale), blocks); break;
+    case 2: opNoise(player, "perlin", String(scale), blocks); break;
+    case 3: opNoise(player, "simplex", String(scale), blocks); break;
+    case 4: opNoise(player, "rmf", String(scale), blocks); break;
+    case 5: opLinear(player, blocks); break;
+    case 6: opLinear2D(player, blocks); break;
+  }
+}
+
+async function spreadForm(player) {
+  const form = new ModalFormData()
+    .title("§l§dEsparcir bloques")
+    .toggle("Solo en superficies", { defaultValue: false })
+    .toggle("Solo sobre sólidos", { defaultValue: false })
+    .textField("Bloques (separa con coma)", "poppy,dandelion,air")
+    .slider("Dispersión / distancia", 0, 16, { valueStep: 1, defaultValue: 2 });
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [surf, solid, blocks, size] = res.formValues;
+  if (!blocks || !blocks.trim()) return msg(player, "§cEscribe al menos un bloque.");
+  if (surf) opSurfaceSpread(player, String(size), blocks);
+  else opSpread(player, size, size, size, blocks, !!solid);
+}
+
+async function colorForm(player) {
+  const form = new ModalFormData()
+    .title("§l§dColor más cercano")
+    .textField("Color: nombre (red), hex (#ff8800) o R G B", "orange");
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const c = res.formValues[0];
+  if (c && c.trim()) opColor(player, c.trim());
+}
+
+async function maskForm(player) {
+  const form = new ModalFormData()
+    .title("§l§dMáscara")
+    .textField("Máscara: air | solid | <bloque>", "solid")
+    .textField("Patrón SI coincide (coma)", "stone,andesite")
+    .textField("Patrón NO coincide (opcional)", "");
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [m, t, f] = res.formValues;
+  if (!t || !t.trim()) return msg(player, "§cEscribe el patrón 'si coincide'.");
+  opMask(player, m, t, f);
+}
+
+async function offsetForm(player) {
+  const form = new ModalFormData()
+    .title("§l§dDesplazar terreno")
+    .slider("dx", -32, 32, { valueStep: 1, defaultValue: 0 })
+    .slider("dy", -32, 32, { valueStep: 1, defaultValue: 1 })
+    .slider("dz", -32, 32, { valueStep: 1, defaultValue: 0 })
+    .textField("Bloque de relleno (opcional)", "");
+  const res = await showForm(player, form);
+  if (!res || res.canceled) return;
+  const [dx, dy, dz, b] = res.formValues;
+  opOffset(player, dx, dy, dz, b && b.trim() ? b.trim() : "");
+}
+
+async function colorAdjustMenu(player) {
+  await showActionMenu(player, "§d§lAjustar color", "§7Sobre bloques de color (concreto):", [
+    { label: "§8Oscurecer", icon: "smooth", run: () => opColorAdjust(player, "darken", []) },
+    { label: "§fAclarar", icon: "smooth", run: () => opColorAdjust(player, "lighten", []) },
+    { label: "§7Desaturar 50%", icon: "smooth", run: () => opColorAdjust(player, "desaturate", ["50"]) },
+    { label: "§8\u2b05 Volver", icon: "back", run: () => patternsMenu(player) },
+  ]);
+}
+
+async function replaceForm(player) {  const form = new ModalFormData()
     .title("§lReplace / Reemplazar")
     .dropdown("Bloque a reemplazar (de)", COMMON_BLOCKS, 1)
     .textField("…o escribe el bloque (de)", "ej: dirt")
@@ -2305,13 +2402,15 @@ const HELP_TEXT = [
   "§b/we:up [n] §7· §b/we:box §7· §b/we:size",
   "",
   "§d§lPATTERNS (sobre la selección):",
-  "§d/we:voronoi <escala> <bloques> §7· §d/we:perlin §7· §d/we:simplex §7· §d/we:rmf",
-  "§d/we:pattern <bloques> §7(azar) · §d/we:linear §7· §d/we:linear2d",
-  "§d/we:spread <dx> <dy> <dz> <bloques> §7· §d/we:solidspread §7· §d/we:surfacespread <d> <bloques>",
-  "§d/we:color <color> §7· §d/we:clipboard §7· §d/we:existing §7· §d/we:offset <dx> <dy> <dz> <bloque>",
-  "§d/we:mask <air|solid|bloque> <si> [no]",
-  "§d/we:darken §7· §d/we:lighten §7· §d/we:desaturate <%> §7· §d/we:saturate <r> <g> <b> §7· §d/we:averagecolor <r> <g> <b>",
-  "§7bloques = lista separada por comas, con peso opcional: §f3*stone,dirt,glass",
+  "§7En §f/we:§7 separa los bloques con §fESPACIOS§7 (no comas):",
+  "§d/we:voronoi <escala> <b1> [b2] [b3]... §7· perlin · simplex · rmf",
+  "§d/we:set <b1> [b2]... §7(varios = patrón) · §d/we:pattern · §d/we:linear",
+  "§d/we:spread <dx> <dy> <dz> <b1> [b2]... §7· solidspread · surfacespread",
+  "§d/we:color <red|#ff8800|R G B> §7· clipboard · existing",
+  "§d/we:offset <dx> <dy> <dz> [bloque] §7· §d/we:mask <air|solid|bloque> <si> [no]",
+  "§d/we:darken · lighten · desaturate <%> · saturate <r> <g> <b> · averagecolor <r> <g> <b>",
+  "§7Ejemplo: §f/we:voronoi 12 stone andesite cobblestone",
+  "§8(En el §7menú§8 y en §7/scriptevent§8 sí puedes usar comas: stone,andesite)",
   "",
   "§7dir = north/south/east/west/up/down (o vacío = hacia donde miras)",
 ].join("\n");
@@ -2672,8 +2771,9 @@ function executeCommand(player, raw) {
         break;
       case "set":
       case "fill":
-        if (!args[0]) return msg(player, "§cUso: we:set <bloque>");
-        opSet(player, args[0]);
+        if (!args[0]) return msg(player, "§cUso: we:set <bloque> (o varios = patrón)");
+        if (String(args[0]).includes(",")) opPattern(player, args[0]);
+        else opSet(player, args[0]);
         break;
       case "walls":
         if (!args[0]) return msg(player, "§cUso: we:walls <bloque>");
@@ -2856,7 +2956,7 @@ function executeCommand(player, raw) {
         opMask(player, args[0], args[1], args[2]);
         break;
       case "offset":
-        if (!args[3]) return msg(player, "§cUso: we:offset <dx> <dy> <dz> <bloque>");
+        if (args[2] === undefined) return msg(player, "§cUso: we:offset <dx> <dy> <dz> [bloque]");
         opOffset(player, parseInt(args[0]) || 0, parseInt(args[1]) || 0, parseInt(args[2]) || 0, args[3]);
         break;
       case "darken":
@@ -2930,6 +3030,14 @@ function joinCmd(parts) {
   return parts.filter((p) => p !== undefined && p !== null && p !== "").join(" ");
 }
 
+// Une varios bloques (parámetros separados) en una lista con comas para el pattern.
+// En los comandos oficiales de Bedrock NO se pueden usar comas dentro de un
+// parámetro de texto (da "error de sintaxis"), por eso se reciben separados por
+// espacios y se unen aquí: /we:voronoi 12 stone andesite  ->  "stone,andesite".
+function blocksFrom(arr) {
+  return arr.filter((b) => b !== undefined && b !== null && String(b).trim() !== "").join(",");
+}
+
 function registerWorldEditCommands(registry) {
   const P = CustomCommandParamType; // puede faltar en algunas versiones
   const hasParams = !!(P && P.String !== undefined);
@@ -2993,7 +3101,7 @@ function registerWorldEditCommands(registry) {
 
   if (hasParams) {
     /* ---- Comandos CON argumentos ---- */
-    reg("we:set", "Rellena la selección con un bloque", (o, b) => runWE(o, joinCmd(["set", b])), [STR("bloque")]);
+    reg("we:set", "Rellena la selección (1 bloque o varios = patrón)", (o, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["set", blocksFrom([b1, b2, b3, b4, b5])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
     reg("we:walls", "Construye las 4 paredes", (o, b) => runWE(o, joinCmd(["walls", b])), [STR("bloque")]);
     reg("we:outline", "Construye las 6 caras (cascarón)", (o, b) => runWE(o, joinCmd(["outline", b])), [STR("bloque")]);
     reg("we:replace", "Reemplaza un bloque por otro", (o, de, a) => runWE(o, joinCmd(["replace", de, a])), [STR("de"), STR("a")]);
@@ -3013,23 +3121,23 @@ function registerWorldEditCommands(registry) {
     reg("we:rotate", "Rota el portapapeles (90/180/270)", (o, g) => runWE(o, joinCmd(["rotate", g])), null, [INT("grados")]);
     reg("we:flag", "Construye la bandera de un país", (o, p, e) => runWE(o, joinCmd(["flag", p, e])), [STR("pais")], [INT("escala")]);
 
-    /* ---- PATTERNS estilo FAWE ---- */
-    reg("we:pattern", "Rellena con bloques al azar (lista: stone,dirt)", (o, l) => runWE(o, joinCmd(["pattern", l])), [STR("bloques")]);
-    reg("we:linear", "Bloques en secuencia (x+y+z)", (o, l) => runWE(o, joinCmd(["linear", l])), [STR("bloques")]);
-    reg("we:linear2d", "Bloques en secuencia (x+z)", (o, l) => runWE(o, joinCmd(["linear2d", l])), [STR("bloques")]);
-    reg("we:linear3d", "Bloques en secuencia (x+y+z)", (o, l) => runWE(o, joinCmd(["linear3d", l])), [STR("bloques")]);
-    reg("we:simplex", "Ruido simplex para variar bloques", (o, s, l) => runWE(o, joinCmd(["simplex", s, l])), [INT("escala"), STR("bloques")]);
-    reg("we:perlin", "Ruido perlin para variar bloques", (o, s, l) => runWE(o, joinCmd(["perlin", s, l])), [INT("escala"), STR("bloques")]);
-    reg("we:rmf", "Ruido multifractal (ridged)", (o, s, l) => runWE(o, joinCmd(["rmf", s, l])), [INT("escala"), STR("bloques")]);
-    reg("we:voronoi", "Ruido voronoi (parches)", (o, s, l) => runWE(o, joinCmd(["voronoi", s, l])), [INT("escala"), STR("bloques")]);
-    reg("we:spread", "Esparce bloques al azar", (o, dx, dy, dz, l) => runWE(o, joinCmd(["spread", dx, dy, dz, l])), [INT("dx"), INT("dy"), INT("dz"), STR("bloques")]);
-    reg("we:solidspread", "Esparce solo sobre bloques sólidos", (o, dx, dy, dz, l) => runWE(o, joinCmd(["solidspread", dx, dy, dz, l])), [INT("dx"), INT("dy"), INT("dz"), STR("bloques")]);
-    reg("we:surfacespread", "Aplica solo en superficies", (o, d, l) => runWE(o, joinCmd(["surfacespread", d, l])), [INT("distancia"), STR("bloques")]);
+    /* ---- PATTERNS estilo FAWE (bloques como params separados, sin comas) ---- */
+    reg("we:pattern", "Rellena con bloques al azar", (o, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["pattern", blocksFrom([b1, b2, b3, b4, b5])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:linear", "Bloques en secuencia (x+y+z)", (o, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["linear", blocksFrom([b1, b2, b3, b4, b5])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:linear2d", "Bloques en secuencia (x+z)", (o, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["linear2d", blocksFrom([b1, b2, b3, b4, b5])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:linear3d", "Bloques en secuencia (x+y+z)", (o, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["linear3d", blocksFrom([b1, b2, b3, b4, b5])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:voronoi", "Ruido voronoi (parches)", (o, s, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["voronoi", s, blocksFrom([b1, b2, b3, b4, b5])])), [INT("escala"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:perlin", "Ruido perlin", (o, s, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["perlin", s, blocksFrom([b1, b2, b3, b4, b5])])), [INT("escala"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:simplex", "Ruido simplex", (o, s, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["simplex", s, blocksFrom([b1, b2, b3, b4, b5])])), [INT("escala"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:rmf", "Ruido multifractal (ridged)", (o, s, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["rmf", s, blocksFrom([b1, b2, b3, b4, b5])])), [INT("escala"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
+    reg("we:spread", "Esparce bloques al azar", (o, dx, dy, dz, b1, b2, b3) => runWE(o, joinCmd(["spread", dx, dy, dz, blocksFrom([b1, b2, b3])])), [INT("dx"), INT("dy"), INT("dz"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
+    reg("we:solidspread", "Esparce solo sobre sólidos", (o, dx, dy, dz, b1, b2, b3) => runWE(o, joinCmd(["solidspread", dx, dy, dz, blocksFrom([b1, b2, b3])])), [INT("dx"), INT("dy"), INT("dz"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
+    reg("we:surfacespread", "Aplica solo en superficies", (o, d, b1, b2, b3) => runWE(o, joinCmd(["surfacespread", d, blocksFrom([b1, b2, b3])])), [INT("distancia"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
     reg("we:color", "Bloque más cercano a un color (nombre/hex)", (o, c) => runWE(o, joinCmd(["color", c])), [STR("color")]);
     reg("we:existing", "Mantiene el bloque que ya está", (o) => runWE(o, "existing"));
     reg("we:clipboard", "Usa los bloques del portapapeles como patrón", (o) => runWE(o, "clipboard"));
-    reg("we:mask", "Patrón según una máscara (air|solid|<bloque>)", (o, m, t, f) => runWE(o, joinCmd(["mask", m, t, f])), [STR("mascara"), STR("patron_si")], [STR("patron_no")]);
-    reg("we:offset", "Desplaza el terreno por (dx,dy,dz)", (o, dx, dy, dz, b) => runWE(o, joinCmd(["offset", dx, dy, dz, b])), [INT("dx"), INT("dy"), INT("dz"), STR("bloque")]);
+    reg("we:mask", "Patrón según una máscara (air|solid|<bloque>)", (o, m, t, f) => runWE(o, joinCmd(["mask", m, t, f])), [STR("mascara"), STR("bloque_si")], [STR("bloque_no")]);
+    reg("we:offset", "Desplaza el terreno por (dx,dy,dz)", (o, dx, dy, dz, b) => runWE(o, joinCmd(["offset", dx, dy, dz, b])), [INT("dx"), INT("dy"), INT("dz")], [STR("bloque")]);
     reg("we:darken", "Oscurece los bloques de color", (o) => runWE(o, "darken"));
     reg("we:lighten", "Aclara los bloques de color", (o) => runWE(o, "lighten"));
     reg("we:desaturate", "Quita saturación (0-100)", (o, p) => runWE(o, joinCmd(["desaturate", p])), null, [INT("porcentaje")]);
@@ -3315,8 +3423,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.8.0) cargado. " +
-      "Comandos /we:<cmd> + PATTERNS (voronoi/perlin/spread/color...). Actívalo con: /we:wand"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.8.1) cargado. " +
+      "Patterns con bloques separados por ESPACIOS en /we:. Actívalo con: /we:wand"
   );
 });
 
