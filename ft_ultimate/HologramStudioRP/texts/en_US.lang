@@ -1,0 +1,4 @@
+item.holo:wand=§l§bHologram Wand §r§7(use = menu)
+entity.holo:text.name=§bHologram
+pack.name=§l§bHologram §3Studio
+pack.description=§7Text & item holograms with menu (Script API)
