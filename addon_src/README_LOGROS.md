@@ -5,10 +5,24 @@ totalmente **editable**, que se abre con un **item especial con textura custom**
 **UI custom de ServerForm** (no el formulario simple de Minecraft).
 
 ## Descargar
-- **v1.0.0 (actual):** `dist/logros_v1.mcaddon`
+- **v2.0.0 (actual):** `dist/logros_v2.mcaddon` ⭐ recomendado
+- v1.0.0: `dist/logros_v1.mcaddon`
 
 Ábrelo con Minecraft (importar) y activa **ambos** packs (BP + RP) en tu mundo.
 Activa **Beta APIs / GameTest** del mundo (usa scripts `@minecraft/server`).
+
+## Novedades v2
+- **Aviso estilo Minecraft (toast)**: al desbloquear un logro aparece un aviso §6arriba§r
+  con animación (entra/sale solo) + sonido, con cola para que varios no se solapen.
+- **Auto-detección de progreso**: muchos logros se desbloquean §asolos§r al:
+  - **Minar** bloques (`mine`) — opcionalmente un bloque concreto, ej. `minecraft:diamond_ore`.
+  - **Construir / colocar** bloques (`place`).
+  - **Matar** mobs (`kill`) — opcionalmente un mob concreto.
+  Cada logro tiene una **cantidad objetivo** y un **contador** por jugador, con avisos de
+  progreso en hitos (25/50/75%) en la barra de acción.
+- **ServerForm rediseñado**: UI custom más profesional con **fondo nineslice**, **cabecera**,
+  **glow** ambiental y **botones grandes** horizontales (texturas `btn_long`).
+
 
 ## Qué incluye
 - **Item especial** `logros:book` (§6Libro de Logros§r) con textura custom y efecto "encantado".
@@ -58,5 +72,5 @@ Puedes editarlos o borrarlos desde el menú de admin; los datos se guardan con d
 ```bash
 cd addon_src
 python3 _gen_logros_textures.py
-zip -r -X ../dist/logros_v1.mcaddon logros_BP logros_RP -x "*.py"
+zip -r -X ../dist/logros_v2.mcaddon logros_BP logros_RP -x "*.py"
 ```
