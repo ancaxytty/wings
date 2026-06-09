@@ -1,0 +1,4 @@
+item.spawn_egg.entity.da:floating_text.name=§6Texto §fFlotante
+entity.da:floating_text.name=§6Texto §fFlotante
+entity.da:chestplate.name=§7Editado por §aDeath_Aruban
+pack.name=§l§aFloating §bText+ §cRs
