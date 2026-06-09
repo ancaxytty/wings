@@ -1,0 +1,38 @@
+{
+	"format_version": 2,
+	"header": {
+		"name": "§l§bHologram §3Studio §7[BP]",
+		"description": "§fHologramas de texto e items con menu (Script API).\n§7Texto + Items + Particulas + Rotacion + Flotar\n§bv6.3.0",
+		"uuid": "d8215d7d-d3e0-49d2-b499-422f0688853d",
+		"version": [6, 3, 0],
+		"min_engine_version": [1, 21, 50]
+	},
+	"modules": [
+		{
+			"type": "data",
+			"uuid": "cf3296a3-2e2d-445e-bc8e-392c1757b528",
+			"version": [1, 0, 0]
+		},
+		{
+			"type": "script",
+			"language": "javascript",
+			"uuid": "3dccf206-4d29-4929-a8d3-10509ed490ba",
+			"version": [1, 0, 0],
+			"entry": "scripts/main.js"
+		}
+	],
+	"dependencies": [
+		{
+			"module_name": "@minecraft/server",
+			"version": "2.0.0"
+		},
+		{
+			"module_name": "@minecraft/server-ui",
+			"version": "2.0.0"
+		},
+		{
+			"uuid": "c983b4f7-138b-49c5-af41-5e411ab32ea5",
+			"version": [6, 3, 0]
+		}
+	]
+}
