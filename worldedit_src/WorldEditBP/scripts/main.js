@@ -2279,30 +2279,30 @@ async function helpForm(player) {
 }
 
 const HELP_TEXT = [
-  "§7Tres formas de usar comandos (elige la que funcione en tu versión):",
-  "§7• §fChat:§7 §e;set stone§7  (o §e//set stone§7)  ← funciona casi siempre",
-  "§7• §fOficial:§7 §e/we:set stone§7  ← solo 1.21.90+ / APIs Beta",
-  "§7• §fScriptevent:§7 §e/scriptevent we:set stone§7",
+  "§7Formas de usar WorldEdit (de más a menos compatible):",
+  "§7• §fVarita §7(hacha): tocar=§aPOS1§7, romper=§bPOS2§7, agacharse+usar=menú.",
+  "§7• §fMenú §7(brújula): úsala para abrir el menú con botones.",
+  "§7• §fScriptevent §7(funciona SIEMPRE): §e/scriptevent we:set stone",
+  "§7• §fOficial §7(según versión): §e/we:set stone",
+  "§7• §fChat §7(si tu versión lo permite): §e;set stone §7o §e//set stone",
   "",
-  "§eItem de menú: §fBrújula §7→ úsala para abrir el menú.",
-  "§eVarita: §fHacha §7→ tocar=§aPOS1§7, romper=§bPOS2§7, agacharse+usar=menú.",
+  "§7Comandos (reemplaza §bX§7 por el de abajo → §e/scriptevent we:X§7):",
+  "§bwand §7- entrega la varita · §bmenu §7- abrir menú",
+  "§bset <bloque> §7· §bwalls <bloque> §7· §boutline <bloque>",
+  "§breplace <de> <a>",
+  "§bsphere <bloque> [radio] [hueca] §7· §bhsphere <bloque> [radio]",
+  "§bcyl <bloque> [radio] [altura] [hueco]",
+  "§bcone <bloque> [radio] [altura] [hueco]",
+  "§bpyramid <bloque> [tamaño] §7· §bline <bloque>",
+  "§bhollow §7· §bclear",
+  "§anaturalize §7· §asmooth [iter] §7· §adrain [radio]",
+  "§6fifa §7- menú FIFA 2026 · §6flag <país> [escala] §7· §6flags",
+  "§bcopy §7· §bpaste §7· §bundo",
+  "§bstack <n> [dir] §7· §bmove <n> [dir] §7· §brotate [90|180|270]",
+  "§bexpand <n> [dir] §7· §bcontract <n> [dir]",
+  "§bup [n] §7· §bbox §7· §bsize",
   "",
-  "§7(Abajo se muestran con §f;§7 pero valen para las 3 formas)",
-  "§b;wand §7- entrega la varita · §b;menu §7- abrir menú",
-  "§b;set <bloque> §7· §b;walls <bloque> §7· §b;outline <bloque>",
-  "§b;replace <de> <a>",
-  "§b;sphere <bloque> [radio] [hueca] §7· §b;hsphere <bloque> [radio]",
-  "§b;cyl <bloque> [radio] [altura] [hueco]",
-  "§b;cone <bloque> [radio] [altura] [hueco]",
-  "§b;pyramid <bloque> [tamaño] §7· §b;line <bloque>",
-  "§b;hollow §7· §b;clear",
-  "§a;naturalize §7· §a;smooth [iter] §7· §a;drain [radio]",
-  "§6;fifa §7- menú FIFA 2026 · §6;flag <país> [escala] §7· §6;flags",
-  "§b;copy §7· §b;paste §7· §b;undo",
-  "§b;stack <n> [dir] §7· §b;move <n> [dir] §7· §b;rotate [90|180|270]",
-  "§b;expand <n> [dir] §7· §b;contract <n> [dir]",
-  "§b;up [n] §7· §b;box §7· §b;size",
-  "",
+  "§7Ejemplos: §e/scriptevent we:set stone§7 · §e/scriptevent we:sphere glass 6",
   "§7dir = north/south/east/west/up/down (o vacío = hacia donde miras)",
 ].join("\n");
 
@@ -2863,28 +2863,32 @@ safeSub(
 );
 
 /* Comandos OFICIALES /we:<cmd> — registro en el arranque del sistema.
- * Solo se registran si la versión del juego soporta la Custom Command API
- * (Minecraft 1.21.80+ / @minecraft/server 2.1.0+). En versiones antiguas se
- * omite sin error y el addon sigue funcionando por menú y /scriptevent. */
-if (CustomCommandParamType && CustomCommandPermissionLevel && CustomCommandStatus) {
-  safeSub(
-    () => system.beforeEvents.startup,
-    (ev) => {
-      try {
-        if (ev && ev.customCommandRegistry) {
-          registerWorldEditCommands(ev.customCommandRegistry);
-        }
-      } catch (e) {
-        console.warn("[WorldEdit] No se pudieron registrar los comandos oficiales: " + e);
+ * La detección se basa en el customCommandRegistry REAL del evento startup
+ * (más fiable que comprobar los enums al cargar). Si la versión del juego no
+ * lo expone, se omite sin error y el addon sigue por /scriptevent, varita y
+ * menú (que funcionan en TODAS las versiones, incluida v26.x). */
+const startupOk = safeSub(
+  () => system.beforeEvents.startup,
+  (ev) => {
+    try {
+      const registry = ev && ev.customCommandRegistry;
+      if (registry && CustomCommandParamType && CustomCommandStatus && CustomCommandPermissionLevel) {
+        registerWorldEditCommands(registry);
+      } else {
+        console.warn(
+          "[WorldEdit] Comandos oficiales /we: no disponibles en esta versión. " +
+            "Usa /scriptevent we:<cmd>, la VARITA (hacha) o el MENÚ (brújula)."
+        );
       }
-    },
-    "system.beforeEvents.startup"
-  );
-} else {
+    } catch (e) {
+      console.warn("[WorldEdit] No se pudieron registrar los comandos oficiales: " + e);
+    }
+  },
+  "system.beforeEvents.startup"
+);
+if (!startupOk) {
   console.warn(
-    "[WorldEdit] Esta versión de Minecraft no soporta comandos oficiales /we: " +
-      "(requieren 1.21.90+ o el experimento 'APIs Beta'). " +
-      "Usa los comandos de chat (;set, //set) o /scriptevent we:<cmd>."
+    "[WorldEdit] Sin evento startup. Usa /scriptevent we:<cmd>, la VARITA o el MENÚ."
   );
 }
 
@@ -3070,9 +3074,10 @@ system.runInterval(() => {
       msg(player, "§b§l========== §r§b§lWorldEdit §6\u26bd§r §b§l==========");
       msg(player, "§a\u2714 Activado correctamente.");
       msg(player, "§7Abre el menú con la §ebrújula§7, o §eagáchate + usa la varita§7.");
-      msg(player, "§7Comandos por chat: §e;set <bloque>§7, §e;wand§7, §e;sphere§7... (también §e//set§7).");
-      msg(player, "§8Si tu versión es 1.21.90+ también tienes §e/we:set§8, §e/we:wand§8...");
+      msg(player, "§7Comando que SIEMPRE funciona: §e/scriptevent we:set <bloque>§7.");
+      msg(player, "§8Si tu versión lo soporta: §e/we:set§8 o en el chat §e;set§8.");
       msg(player, "§7Te entregué la §evarita §7(hacha) y el §emenú §7(brújula). §8Los bloques los pones tú.");
+      msg(player, "§7Escribe §e/scriptevent we:help§7 para ver toda la ayuda.");
       system.run(() => giveKit(player));
     } else if (!has && activated.has(id)) {
       activated.delete(id);
@@ -3085,8 +3090,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.2) cargado. " +
-      "Comandos: chat (;set, //set), /we:<cmd> (1.21.90+) y /scriptevent. Actívalo con: ;wand"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.3) cargado. " +
+      "Funciona en v26.x: usa la VARITA, el MENÚ o /scriptevent we:<cmd>. Actívalo con: /scriptevent we:wand"
   );
 });
 
@@ -3096,9 +3101,9 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
   system.runTimeout(() => {
     msg(player, "§b§l== WorldEdit §6\u26bd FIFA World Cup 2026 Edition §b==");
     if (player.hasTag(TAG)) {
-      msg(player, "§aActivado. Usa la §ebrújula§a o comandos de chat: §e;menu§a, §e;set <bloque>§a...");
+      msg(player, "§aActivado. Usa la §ebrújula§a, la §evarita§a o §e/scriptevent we:menu§a.");
     } else {
-      msg(player, "§7Para activar escribe en el chat §e;wand§7 (o §e/scriptevent we:wand§7).");
+      msg(player, "§7Para activar: usa la §evarita§7/§emenú§7 o §e/scriptevent we:wand§7.");
     }
   }, 40);
 });

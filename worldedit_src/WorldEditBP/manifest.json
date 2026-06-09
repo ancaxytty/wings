@@ -4,7 +4,7 @@
     "name": "§b§lWorldEdit§r §6\u26bd FIFA World Cup 2026 Edition",
     "description": "§aWorldEdit para Minecraft Bedrock/PE §6· Edición FIFA World Cup 2026§r\n§7Comandos §foficiales§7 con autocompletado: §b/we:wand§7, §b/we:set§7, §b/we:sphere§7, §b/we:replace§7...\n§7Banderas de §f25 países§7 construibles con bloques.\n§7Actívalo con: §e/we:wand§7 (o §e/tag @p add worldedit§7).",
     "uuid": "bcb2a58e-ee8a-44e8-b2c7-86c907deda0c",
-    "version": [0, 7, 2],
+    "version": [0, 7, 3],
     "min_engine_version": [1, 21, 80]
   },
   "modules": [
@@ -12,14 +12,14 @@
       "type": "script",
       "language": "javascript",
       "uuid": "e9ca6ef3-a0c0-4737-8498-af02c75f6017",
-      "version": [0, 7, 2],
+      "version": [0, 7, 3],
       "entry": "scripts/main.js"
     }
   ],
   "dependencies": [
     {
       "module_name": "@minecraft/server",
-      "version": "2.1.0"
+      "version": "2.3.0"
     },
     {
       "module_name": "@minecraft/server-ui",
@@ -27,7 +27,7 @@
     },
     {
       "uuid": "0ecf3d49-6da5-43f7-8a08-d8fdb18fa4fa",
-      "version": [0, 7, 2]
+      "version": [0, 7, 3]
     }
   ],
   "metadata": {
