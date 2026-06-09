@@ -1,0 +1,4 @@
+item.ft:wand=§l§bHologram Wand §r§7(use = menu)
+entity.da:floating_text.name=§6Floating §fText
+item.spawn_egg.entity.da:floating_text.name=§6Floating §fText
+pack.name=§l§bFloating §eText §6Ultimate
