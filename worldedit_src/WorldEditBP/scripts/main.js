@@ -2279,30 +2279,28 @@ async function helpForm(player) {
 }
 
 const HELP_TEXT = [
-  "§7Formas de usar WorldEdit (de más a menos compatible):",
-  "§7• §fVarita §7(hacha): tocar=§aPOS1§7, romper=§bPOS2§7, agacharse+usar=menú.",
-  "§7• §fMenú §7(brújula): úsala para abrir el menú con botones.",
-  "§7• §fScriptevent §7(funciona SIEMPRE): §e/scriptevent we:set stone",
-  "§7• §fOficial §7(según versión): §e/we:set stone",
-  "§7• §fChat §7(si tu versión lo permite): §e;set stone §7o §e//set stone",
+  "§7Comandos oficiales (igual que §a/holo:§7, con autocompletado):",
+  "§7Escribe §e/we:§7 en el chat y verás la lista.",
+  "§7Si tu versión no los muestra: §e/scriptevent we:<cmd>§7.",
   "",
-  "§7Comandos (reemplaza §bX§7 por el de abajo → §e/scriptevent we:X§7):",
-  "§bwand §7- entrega la varita · §bmenu §7- abrir menú",
-  "§bset <bloque> §7· §bwalls <bloque> §7· §boutline <bloque>",
-  "§breplace <de> <a>",
-  "§bsphere <bloque> [radio] [hueca] §7· §bhsphere <bloque> [radio]",
-  "§bcyl <bloque> [radio] [altura] [hueco]",
-  "§bcone <bloque> [radio] [altura] [hueco]",
-  "§bpyramid <bloque> [tamaño] §7· §bline <bloque>",
-  "§bhollow §7· §bclear",
-  "§anaturalize §7· §asmooth [iter] §7· §adrain [radio]",
-  "§6fifa §7- menú FIFA 2026 · §6flag <país> [escala] §7· §6flags",
-  "§bcopy §7· §bpaste §7· §bundo",
-  "§bstack <n> [dir] §7· §bmove <n> [dir] §7· §brotate [90|180|270]",
-  "§bexpand <n> [dir] §7· §bcontract <n> [dir]",
-  "§bup [n] §7· §bbox §7· §bsize",
+  "§eItem de menú: §fBrújula §7→ abre el menú.",
+  "§eVarita: §fHacha §7→ tocar=§aPOS1§7, romper=§bPOS2§7, agacharse+usar=menú.",
   "",
-  "§7Ejemplos: §e/scriptevent we:set stone§7 · §e/scriptevent we:sphere glass 6",
+  "§b/we:wand §7- entrega la varita · §b/we:menu §7- abrir menú",
+  "§b/we:set <bloque> §7· §b/we:walls <bloque> §7· §b/we:outline <bloque>",
+  "§b/we:replace <de> <a>",
+  "§b/we:sphere <bloque> [radio] [hueca] §7· §b/we:hsphere <bloque> [radio]",
+  "§b/we:cyl <bloque> [radio] [altura] [hueco]",
+  "§b/we:cone <bloque> [radio] [altura] [hueco]",
+  "§b/we:pyramid <bloque> [tamaño] §7· §b/we:line <bloque>",
+  "§b/we:hollow §7· §b/we:clear",
+  "§a/we:naturalize §7· §a/we:smooth [iter] §7· §a/we:drain [radio]",
+  "§6/we:fifa §7· §6/we:flag <país> [escala] §7· §6/we:flags",
+  "§b/we:copy §7· §b/we:paste §7· §b/we:undo",
+  "§b/we:stack <n> [dir] §7· §b/we:move <n> [dir] §7· §b/we:rotate [90|180|270]",
+  "§b/we:expand <n> [dir] §7· §b/we:contract <n> [dir]",
+  "§b/we:up [n] §7· §b/we:box §7· §b/we:size",
+  "",
   "§7dir = north/south/east/west/up/down (o vacío = hacia donde miras)",
 ].join("\n");
 
@@ -2497,15 +2495,16 @@ function executeCommand(player, raw) {
 /*  obligatorio en la API oficial, p.ej:  /we:set stone               */
 /* ------------------------------------------------------------------ */
 
+// Resultado de comando (solo si el enum existe; si no, undefined es válido).
+function weResult(ok) {
+  if (!CustomCommandStatus) return undefined;
+  return { status: ok ? CustomCommandStatus.Success : CustomCommandStatus.Failure };
+}
+
 // Ejecuta un comando WorldEdit desde el callback (read-only) de forma diferida.
 function runWE(origin, rawCmd) {
   const player = origin && origin.sourceEntity;
-  if (!player || player.typeId !== "minecraft:player") {
-    return {
-      status: CustomCommandStatus.Failure,
-      message: "§cSolo un jugador puede ejecutar comandos de WorldEdit.",
-    };
-  }
+  if (!player || player.typeId !== "minecraft:player") return weResult(false);
   // Los callbacks de comandos corren en modo solo-lectura: hay que diferir
   // cualquier modificación del mundo con system.run().
   system.run(() => {
@@ -2516,7 +2515,7 @@ function runWE(origin, rawCmd) {
       console.warn("[WorldEdit] Error en comando '" + rawCmd + "': " + e);
     }
   });
-  return { status: CustomCommandStatus.Success };
+  return weResult(true);
 }
 
 // Une las partes de un comando ignorando valores vacíos/undefined.
@@ -2525,310 +2524,108 @@ function joinCmd(parts) {
 }
 
 function registerWorldEditCommands(registry) {
-  const P = CustomCommandParamType;
-  const ANY = CustomCommandPermissionLevel.Any;
+  const P = CustomCommandParamType; // puede faltar en algunas versiones
+  const hasParams = !!(P && P.String !== undefined);
+  // permissionLevel es OPCIONAL: si el enum no existe, no lo incluimos
+  // (así registramos igual, como hace el addon de Hologramas con /holo:menu).
+  const perm =
+    CustomCommandPermissionLevel && CustomCommandPermissionLevel.Any !== undefined
+      ? CustomCommandPermissionLevel.Any
+      : undefined;
 
-  // Enum de direcciones (autocompletado para stack/move/expand/contract).
-  try {
-    registry.registerEnum("we:direction", [
-      "north",
-      "south",
-      "east",
-      "west",
-      "up",
-      "down",
-    ]);
-  } catch (e) {
-    console.warn("[WorldEdit] No se pudo registrar el enum we:direction: " + e);
+  // Enum de direcciones (autocompletado) — solo si hay soporte de parámetros.
+  if (hasParams) {
+    try {
+      registry.registerEnum("we:direction", ["north", "south", "east", "west", "up", "down"]);
+    } catch (e) {
+      console.warn("[WorldEdit] enum we:direction: " + e);
+    }
   }
+  const DIR = hasParams ? { type: P.Enum, name: "we:direction" } : null;
+  const STR = (n) => (hasParams ? { type: P.String, name: n } : null);
+  const INT = (n) => (hasParams ? { type: P.Integer, name: n } : null);
+  const BOOL = (n) => (hasParams ? { type: P.Boolean, name: n } : null);
 
-  const reg = (def, cb) => {
+  let okCount = 0;
+  // reg(name, description, callback, mandatory[], optional[])
+  function reg(name, description, cb, mandatory, optional) {
+    const def = { name: name, description: description };
+    if (perm !== undefined) def.permissionLevel = perm;
+    if (hasParams && mandatory) {
+      const m = mandatory.filter(Boolean);
+      if (m.length) def.mandatoryParameters = m;
+    }
+    if (hasParams && optional) {
+      const o = optional.filter(Boolean);
+      if (o.length) def.optionalParameters = o;
+    }
     try {
       registry.registerCommand(def, cb);
+      okCount++;
     } catch (e) {
-      console.warn("[WorldEdit] No se registró /" + def.name + ": " + e);
+      console.warn("[WorldEdit] No se registró /" + name + ": " + e);
     }
-  };
+  }
 
-  const DIR = { type: P.Enum, name: "we:direction" };
+  /* ---- Comandos SIN argumentos (funcionan en cualquier versión con la API) ---- */
+  reg("we:wand", "Entrega la varita de selección (hacha)", (o) => runWE(o, "wand"));
+  reg("we:kit", "Entrega la varita + el item de menú", (o) => runWE(o, "kit"));
+  reg("we:menu", "Abre el menú de WorldEdit", (o) => runWE(o, "menu"));
+  reg("we:help", "Muestra la ayuda de WorldEdit", (o) => runWE(o, "help"));
+  reg("we:fifa", "Abre el menú FIFA World Cup 2026", (o) => runWE(o, "fifa"));
+  reg("we:flags", "Lista de países (FIFA 2026)", (o) => runWE(o, "flags"));
+  reg("we:pos1", "Fija POS1 en tu posición", (o) => runWE(o, "pos1"));
+  reg("we:pos2", "Fija POS2 en tu posición", (o) => runWE(o, "pos2"));
+  reg("we:size", "Muestra el tamaño de la selección", (o) => runWE(o, "size"));
+  reg("we:box", "Muestra/oculta la caja de partículas", (o) => runWE(o, "box"));
+  reg("we:hollow", "Ahueca la selección", (o) => runWE(o, "hollow"));
+  reg("we:clear", "Vacía la selección (aire)", (o) => runWE(o, "clear"));
+  reg("we:naturalize", "Naturaliza la selección", (o) => runWE(o, "naturalize"));
+  reg("we:copy", "Copia la selección", (o) => runWE(o, "copy"));
+  reg("we:paste", "Pega el portapapeles", (o) => runWE(o, "paste"));
+  reg("we:undo", "Deshace la última operación", (o) => runWE(o, "undo"));
 
-  /* ---- Herramientas / menús ---- */
-  reg(
-    { name: "we:wand", description: "Entrega la varita de selección (hacha)", permissionLevel: ANY },
-    (o) => runWE(o, "wand")
-  );
-  reg(
-    { name: "we:kit", description: "Entrega la varita + el item de menú (brújula)", permissionLevel: ANY },
-    (o) => runWE(o, "kit")
-  );
-  reg(
-    { name: "we:menu", description: "Abre el menú de WorldEdit", permissionLevel: ANY },
-    (o) => runWE(o, "menu")
-  );
-  reg(
-    { name: "we:help", description: "Muestra la ayuda de WorldEdit", permissionLevel: ANY },
-    (o) => runWE(o, "help")
-  );
-  reg(
-    { name: "we:fifa", description: "Abre el menú FIFA World Cup 2026", permissionLevel: ANY },
-    (o) => runWE(o, "fifa")
-  );
+  if (hasParams) {
+    /* ---- Comandos CON argumentos ---- */
+    reg("we:set", "Rellena la selección con un bloque", (o, b) => runWE(o, joinCmd(["set", b])), [STR("bloque")]);
+    reg("we:walls", "Construye las 4 paredes", (o, b) => runWE(o, joinCmd(["walls", b])), [STR("bloque")]);
+    reg("we:outline", "Construye las 6 caras (cascarón)", (o, b) => runWE(o, joinCmd(["outline", b])), [STR("bloque")]);
+    reg("we:replace", "Reemplaza un bloque por otro", (o, de, a) => runWE(o, joinCmd(["replace", de, a])), [STR("de"), STR("a")]);
+    reg("we:line", "Línea entre POS1 y POS2", (o, b) => runWE(o, joinCmd(["line", b])), [STR("bloque")]);
+    reg("we:sphere", "Esfera centrada en ti", (o, b, r, h) => runWE(o, joinCmd(["sphere", b, r, h ? "hollow" : ""])), [STR("bloque")], [INT("radio"), BOOL("hueca")]);
+    reg("we:hsphere", "Esfera hueca", (o, b, r) => runWE(o, joinCmd(["hsphere", b, r])), [STR("bloque")], [INT("radio")]);
+    reg("we:cyl", "Cilindro centrado en ti", (o, b, r, a, h) => runWE(o, joinCmd(["cyl", b, r, a, h ? "hollow" : ""])), [STR("bloque")], [INT("radio"), INT("altura"), BOOL("hueco")]);
+    reg("we:pyramid", "Pirámide centrada en ti", (o, b, t) => runWE(o, joinCmd(["pyramid", b, t])), [STR("bloque")], [INT("tamano")]);
+    reg("we:cone", "Cono centrado en ti", (o, b, r, a, h) => runWE(o, joinCmd(["cone", b, r, a, h ? "hollow" : ""])), [STR("bloque")], [INT("radio"), INT("altura"), BOOL("hueco")]);
+    reg("we:smooth", "Suaviza el terreno", (o, it) => runWE(o, joinCmd(["smooth", it])), null, [INT("iteraciones")]);
+    reg("we:drain", "Drena agua/lava", (o, r) => runWE(o, joinCmd(["drain", r])), null, [INT("radio")]);
+    reg("we:up", "Plataforma n bloques arriba", (o, n) => runWE(o, joinCmd(["up", n])), null, [INT("n")]);
+    reg("we:stack", "Repite la selección n veces", (o, n, d) => runWE(o, joinCmd(["stack", n, d])), [INT("veces")], [DIR]);
+    reg("we:move", "Mueve la selección n bloques", (o, n, d) => runWE(o, joinCmd(["move", n, d])), [INT("n")], [DIR]);
+    reg("we:expand", "Expande la selección", (o, n, d) => runWE(o, joinCmd(["expand", n, d])), [INT("n")], [DIR]);
+    reg("we:contract", "Contrae la selección", (o, n, d) => runWE(o, joinCmd(["contract", n, d])), [INT("n")], [DIR]);
+    reg("we:rotate", "Rota el portapapeles (90/180/270)", (o, g) => runWE(o, joinCmd(["rotate", g])), null, [INT("grados")]);
+    reg("we:flag", "Construye la bandera de un país", (o, p, e) => runWE(o, joinCmd(["flag", p, e])), [STR("pais")], [INT("escala")]);
+  } else {
+    // Sin soporte de argumentos: registramos avisos que redirigen a /scriptevent.
+    const argCmds = ["set", "walls", "outline", "replace", "line", "sphere", "hsphere", "cyl", "pyramid", "cone", "smooth", "drain", "up", "stack", "move", "expand", "contract", "rotate", "flag"];
+    for (const n of argCmds) {
+      reg("we:" + n, "Necesita argumentos: usa /scriptevent we:" + n + " ...", (o) => {
+        const pl = o && o.sourceEntity;
+        if (pl) {
+          try {
+            pl.sendMessage("§e[WorldEdit] Tu versión no admite argumentos en /we:. Usa §f/scriptevent we:" + n + " <args>§e.");
+          } catch (_) {}
+        }
+        return weResult(true);
+      });
+    }
+  }
 
-  /* ---- Selección ---- */
-  reg(
-    { name: "we:pos1", description: "Fija POS1 en tu posición actual", permissionLevel: ANY },
-    (o) => runWE(o, "pos1")
+  console.warn(
+    "[WorldEdit] Comandos oficiales /we: registrados: " + okCount +
+      " (argumentos=" + hasParams + ", permiso=" + (perm !== undefined) + ")."
   );
-  reg(
-    { name: "we:pos2", description: "Fija POS2 en tu posición actual", permissionLevel: ANY },
-    (o) => runWE(o, "pos2")
-  );
-  reg(
-    { name: "we:size", description: "Muestra el tamaño de la selección", permissionLevel: ANY },
-    (o) => runWE(o, "size")
-  );
-  reg(
-    { name: "we:box", description: "Muestra/oculta la caja de partículas", permissionLevel: ANY },
-    (o) => runWE(o, "box")
-  );
-
-  /* ---- Operaciones con bloque ---- */
-  reg(
-    {
-      name: "we:set",
-      description: "Rellena la selección con un bloque",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-    },
-    (o, bloque) => runWE(o, joinCmd(["set", bloque]))
-  );
-  reg(
-    {
-      name: "we:walls",
-      description: "Construye las 4 paredes de la selección",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-    },
-    (o, bloque) => runWE(o, joinCmd(["walls", bloque]))
-  );
-  reg(
-    {
-      name: "we:outline",
-      description: "Construye las 6 caras (cascarón) de la selección",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-    },
-    (o, bloque) => runWE(o, joinCmd(["outline", bloque]))
-  );
-  reg(
-    {
-      name: "we:replace",
-      description: "Reemplaza un bloque por otro dentro de la selección",
-      permissionLevel: ANY,
-      mandatoryParameters: [
-        { type: P.String, name: "de" },
-        { type: P.String, name: "a" },
-      ],
-    },
-    (o, de, a) => runWE(o, joinCmd(["replace", de, a]))
-  );
-  reg(
-    { name: "we:clear", description: "Vacía la selección (aire)", permissionLevel: ANY },
-    (o) => runWE(o, "clear")
-  );
-  reg(
-    { name: "we:hollow", description: "Ahueca la selección", permissionLevel: ANY },
-    (o) => runWE(o, "hollow")
-  );
-  reg(
-    {
-      name: "we:line",
-      description: "Línea de bloques entre POS1 y POS2",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-    },
-    (o, bloque) => runWE(o, joinCmd(["line", bloque]))
-  );
-
-  /* ---- Formas ---- */
-  reg(
-    {
-      name: "we:sphere",
-      description: "Esfera centrada en ti",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-      optionalParameters: [
-        { type: P.Integer, name: "radio" },
-        { type: P.Boolean, name: "hueca" },
-      ],
-    },
-    (o, bloque, radio, hueca) =>
-      runWE(o, joinCmd(["sphere", bloque, radio, hueca ? "hollow" : ""]))
-  );
-  reg(
-    {
-      name: "we:hsphere",
-      description: "Esfera hueca centrada en ti",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-      optionalParameters: [{ type: P.Integer, name: "radio" }],
-    },
-    (o, bloque, radio) => runWE(o, joinCmd(["hsphere", bloque, radio]))
-  );
-  reg(
-    {
-      name: "we:cyl",
-      description: "Cilindro centrado en ti",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-      optionalParameters: [
-        { type: P.Integer, name: "radio" },
-        { type: P.Integer, name: "altura" },
-        { type: P.Boolean, name: "hueco" },
-      ],
-    },
-    (o, bloque, radio, altura, hueco) =>
-      runWE(o, joinCmd(["cyl", bloque, radio, altura, hueco ? "hollow" : ""]))
-  );
-  reg(
-    {
-      name: "we:pyramid",
-      description: "Pirámide centrada en ti",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-      optionalParameters: [{ type: P.Integer, name: "tamano" }],
-    },
-    (o, bloque, tamano) => runWE(o, joinCmd(["pyramid", bloque, tamano]))
-  );
-  reg(
-    {
-      name: "we:cone",
-      description: "Cono centrado en ti",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "bloque" }],
-      optionalParameters: [
-        { type: P.Integer, name: "radio" },
-        { type: P.Integer, name: "altura" },
-        { type: P.Boolean, name: "hueco" },
-      ],
-    },
-    (o, bloque, radio, altura, hueco) =>
-      runWE(o, joinCmd(["cone", bloque, radio, altura, hueco ? "hollow" : ""]))
-  );
-
-  /* ---- Terreno ---- */
-  reg(
-    { name: "we:naturalize", description: "Naturaliza la selección (grass/dirt/stone)", permissionLevel: ANY },
-    (o) => runWE(o, "naturalize")
-  );
-  reg(
-    {
-      name: "we:smooth",
-      description: "Suaviza el terreno de la selección",
-      permissionLevel: ANY,
-      optionalParameters: [{ type: P.Integer, name: "iteraciones" }],
-    },
-    (o, iteraciones) => runWE(o, joinCmd(["smooth", iteraciones]))
-  );
-  reg(
-    {
-      name: "we:drain",
-      description: "Drena agua/lava a tu alrededor",
-      permissionLevel: ANY,
-      optionalParameters: [{ type: P.Integer, name: "radio" }],
-    },
-    (o, radio) => runWE(o, joinCmd(["drain", radio]))
-  );
-  reg(
-    {
-      name: "we:up",
-      description: "Te coloca sobre una plataforma n bloques arriba",
-      permissionLevel: ANY,
-      optionalParameters: [{ type: P.Integer, name: "n" }],
-    },
-    (o, n) => runWE(o, joinCmd(["up", n]))
-  );
-
-  /* ---- Portapapeles / transformaciones ---- */
-  reg(
-    { name: "we:copy", description: "Copia la selección al portapapeles", permissionLevel: ANY },
-    (o) => runWE(o, "copy")
-  );
-  reg(
-    { name: "we:paste", description: "Pega el portapapeles en tu posición", permissionLevel: ANY },
-    (o) => runWE(o, "paste")
-  );
-  reg(
-    { name: "we:undo", description: "Deshace la última operación", permissionLevel: ANY },
-    (o) => runWE(o, "undo")
-  );
-  reg(
-    {
-      name: "we:stack",
-      description: "Repite la selección n veces en una dirección",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.Integer, name: "veces" }],
-      optionalParameters: [DIR],
-    },
-    (o, veces, dir) => runWE(o, joinCmd(["stack", veces, dir]))
-  );
-  reg(
-    {
-      name: "we:move",
-      description: "Mueve la selección n bloques en una dirección",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.Integer, name: "n" }],
-      optionalParameters: [DIR],
-    },
-    (o, n, dir) => runWE(o, joinCmd(["move", n, dir]))
-  );
-  reg(
-    {
-      name: "we:expand",
-      description: "Expande la selección n bloques en una dirección",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.Integer, name: "n" }],
-      optionalParameters: [DIR],
-    },
-    (o, n, dir) => runWE(o, joinCmd(["expand", n, dir]))
-  );
-  reg(
-    {
-      name: "we:contract",
-      description: "Contrae la selección n bloques en una dirección",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.Integer, name: "n" }],
-      optionalParameters: [DIR],
-    },
-    (o, n, dir) => runWE(o, joinCmd(["contract", n, dir]))
-  );
-  reg(
-    {
-      name: "we:rotate",
-      description: "Rota el portapapeles (90, 180 o 270 grados)",
-      permissionLevel: ANY,
-      optionalParameters: [{ type: P.Integer, name: "grados" }],
-    },
-    (o, grados) => runWE(o, joinCmd(["rotate", grados]))
-  );
-
-  /* ---- FIFA World Cup 2026 ---- */
-  reg(
-    {
-      name: "we:flag",
-      description: "Construye la bandera de un país (FIFA 2026)",
-      permissionLevel: ANY,
-      mandatoryParameters: [{ type: P.String, name: "pais" }],
-      optionalParameters: [{ type: P.Integer, name: "escala" }],
-    },
-    (o, pais, escala) => runWE(o, joinCmd(["flag", pais, escala]))
-  );
-  reg(
-    { name: "we:flags", description: "Lista de países disponibles (FIFA 2026)", permissionLevel: ANY },
-    (o) => runWE(o, "flags")
-  );
-
-  console.warn("[WorldEdit] Comandos oficiales /we:<cmd> registrados.");
 }
 
 /* ------------------------------------------------------------------ */
@@ -2872,7 +2669,7 @@ const startupOk = safeSub(
   (ev) => {
     try {
       const registry = ev && ev.customCommandRegistry;
-      if (registry && CustomCommandParamType && CustomCommandStatus && CustomCommandPermissionLevel) {
+      if (registry) {
         registerWorldEditCommands(registry);
       } else {
         console.warn(
@@ -3074,10 +2871,9 @@ system.runInterval(() => {
       msg(player, "§b§l========== §r§b§lWorldEdit §6\u26bd§r §b§l==========");
       msg(player, "§a\u2714 Activado correctamente.");
       msg(player, "§7Abre el menú con la §ebrújula§7, o §eagáchate + usa la varita§7.");
-      msg(player, "§7Comando que SIEMPRE funciona: §e/scriptevent we:set <bloque>§7.");
-      msg(player, "§8Si tu versión lo soporta: §e/we:set§8 o en el chat §e;set§8.");
+      msg(player, "§7Comandos: escribe §e/we:§7 (como §a/holo:§7) y verás la lista con autocompletado.");
+      msg(player, "§8Si no aparecen: usa §e/scriptevent we:<cmd>§8.");
       msg(player, "§7Te entregué la §evarita §7(hacha) y el §emenú §7(brújula). §8Los bloques los pones tú.");
-      msg(player, "§7Escribe §e/scriptevent we:help§7 para ver toda la ayuda.");
       system.run(() => giveKit(player));
     } else if (!has && activated.has(id)) {
       activated.delete(id);
@@ -3090,8 +2886,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.3) cargado. " +
-      "Funciona en v26.x: usa la VARITA, el MENÚ o /scriptevent we:<cmd>. Actívalo con: /scriptevent we:wand"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.7.4) cargado. " +
+      "Comandos /we:<cmd> (como /holo:), VARITA, MENÚ y /scriptevent. Actívalo con: /we:wand"
   );
 });
 
@@ -3101,9 +2897,9 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
   system.runTimeout(() => {
     msg(player, "§b§l== WorldEdit §6\u26bd FIFA World Cup 2026 Edition §b==");
     if (player.hasTag(TAG)) {
-      msg(player, "§aActivado. Usa la §ebrújula§a, la §evarita§a o §e/scriptevent we:menu§a.");
+      msg(player, "§aActivado. Usa la §ebrújula§a, la §evarita§a o §e/we:menu§a.");
     } else {
-      msg(player, "§7Para activar: usa la §evarita§7/§emenú§7 o §e/scriptevent we:wand§7.");
+      msg(player, "§7Para activar: usa la §evarita§7/§emenú§7 o §e/we:wand§7.");
     }
   }, 40);
 });
