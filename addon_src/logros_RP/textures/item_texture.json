@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "logros_custom",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "logros_book": {
+      "textures": "textures/items/logros_book"
+    }
+  }
+}

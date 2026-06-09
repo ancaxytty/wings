@@ -1,0 +1,32 @@
+{
+  "namespace": "server_form",
+
+  "logros_background_image": {
+    "type": "image",
+    "texture": "textures/ui/logros/form_bg",
+    "size": [ "100%", "100%" ],
+    "nineslice_size": 24,
+    "tiled": false,
+    "layer": -5
+  },
+
+  "logros_background_panel": {
+    "type": "panel",
+    "size": [ "100%", "100%" ],
+    "controls": [
+      { "logros_bg@server_form.logros_background_image": {} }
+    ]
+  },
+
+  "main_screen_content": {
+    "modifications": [
+      {
+        "array_name": "controls",
+        "operation": "insert_front",
+        "value": [
+          { "logros_custom_background@server_form.logros_background_panel": {} }
+        ]
+      }
+    ]
+  }
+}
