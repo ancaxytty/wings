@@ -340,10 +340,10 @@ function fillRegion(player, b, predicate, label) {
 /* ------------------------------------------------------------------ */
 function opSet(player, blockName) {
   if (!bothPos(player)) return needSel(player);
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const s = getSel(player);
-  fillRegion(player, minMax(s.pos1, s.pos2), () => perm, "Rellenando");
+  fillRegion(player, minMax(s.pos1, s.pos2), (x, y, z) => pick(x, y, z), "Rellenando");
 }
 
 function opReplace(player, fromName, toName) {
@@ -363,23 +363,23 @@ function opReplace(player, fromName, toName) {
 
 function opWalls(player, blockName) {
   if (!bothPos(player)) return needSel(player);
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const s = getSel(player);
   const b = minMax(s.pos1, s.pos2);
   fillRegion(
     player,
     b,
     (x, y, z) =>
-      x === b.minX || x === b.maxX || z === b.minZ || z === b.maxZ ? perm : null,
+      x === b.minX || x === b.maxX || z === b.minZ || z === b.maxZ ? pick(x, y, z) : null,
     "Paredes"
   );
 }
 
 function opFaces(player, blockName) {
   if (!bothPos(player)) return needSel(player);
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const s = getSel(player);
   const b = minMax(s.pos1, s.pos2);
   fillRegion(
@@ -392,7 +392,7 @@ function opFaces(player, blockName) {
       z === b.maxZ ||
       y === b.minY ||
       y === b.maxY
-        ? perm
+        ? pick(x, y, z)
         : null,
     "Contorno"
   );
@@ -406,8 +406,8 @@ function opClear(player) {
 }
 
 function opSphere(player, blockName, radius, hollow, center) {
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const r = Math.max(1, Math.min(40, Math.floor(radius)));
   const c = center || toBlockLoc(player.location);
   const b = {
@@ -427,15 +427,15 @@ function opSphere(player, blockName, radius, hollow, center) {
       const d = Math.sqrt((x - c.x) ** 2 + (y - c.y) ** 2 + (z - c.z) ** 2);
       if (d > outer) return null;
       if (hollow && d < inner) return null;
-      return perm;
+      return pick(x, y, z);
     },
     "Esfera"
   );
 }
 
 function opCylinder(player, blockName, radius, height, hollow, center) {
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const r = Math.max(1, Math.min(40, Math.floor(radius)));
   const h = Math.max(1, Math.min(160, Math.floor(height)));
   const c = center || toBlockLoc(player.location);
@@ -456,15 +456,15 @@ function opCylinder(player, blockName, radius, height, hollow, center) {
       const d = Math.sqrt((x - c.x) ** 2 + (z - c.z) ** 2);
       if (d > outer) return null;
       if (hollow && d < inner) return null;
-      return perm;
+      return pick(x, y, z);
     },
     "Cilindro"
   );
 }
 
 function opPyramid(player, blockName, size, center) {
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const s = Math.max(1, Math.min(60, Math.floor(size)));
   const c = center || toBlockLoc(player.location);
   const b = {
@@ -481,7 +481,7 @@ function opPyramid(player, blockName, size, center) {
     (x, y, z) => {
       const half = s - 1 - (y - c.y);
       if (half < 0) return null;
-      if (Math.abs(x - c.x) <= half && Math.abs(z - c.z) <= half) return perm;
+      if (Math.abs(x - c.x) <= half && Math.abs(z - c.z) <= half) return pick(x, y, z);
       return null;
     },
     "Pirámide"
@@ -1718,8 +1718,8 @@ function opHollow(player) {
 
 // Cono (como la pirámide pero circular), centrado en ti.
 function opCone(player, blockName, radius, height, hollow, center) {
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const r = Math.max(1, Math.min(40, Math.floor(radius)));
   const h = Math.max(1, Math.min(160, Math.floor(height)));
   const c = center || toBlockLoc(player.location);
@@ -1741,7 +1741,7 @@ function opCone(player, blockName, radius, height, hollow, center) {
       const d = Math.sqrt((x - c.x) ** 2 + (z - c.z) ** 2);
       if (d > rad + 0.5) return null;
       if (hollow && d < rad - 0.5) return null;
-      return perm;
+      return pick(x, y, z);
     },
     "Cono"
   );
@@ -1817,8 +1817,8 @@ function line3D(p1, p2) {
   return points;
 }
 
-// Aplica una permutación a una lista de puntos (con progreso + undo).
-function applyPoints(player, points, perm, label) {
+// Aplica un selector de pattern a una lista de puntos (con progreso + undo).
+function applyPoints(player, points, pick, label) {
   if (isBusy(player)) return;
   if (points.length === 0) return;
   if (points.length > MAX_BLOCKS) {
@@ -1827,6 +1827,7 @@ function applyPoints(player, points, perm, label) {
       `§cDemasiado grande: §f${points.length}§c (máx §f${MAX_BLOCKS}§c).`
     );
   }
+  const getPerm = typeof pick === "function" ? pick : () => pick;
   const dim = player.dimension;
   const changes = [];
   let processed = 0;
@@ -1838,7 +1839,7 @@ function applyPoints(player, points, perm, label) {
         const block = dim.getBlock(p);
         if (block) {
           changes.push({ x: p.x, y: p.y, z: p.z, perm: block.permutation, dim });
-          block.setPermutation(perm);
+          block.setPermutation(getPerm(p.x, p.y, p.z));
           placed++;
         }
       } catch (e) {}
@@ -1858,10 +1859,10 @@ function applyPoints(player, points, perm, label) {
 
 function opLine(player, blockName) {
   if (!bothPos(player)) return needSel(player);
-  const perm = resolvePerm(blockName);
-  if (!perm) return badBlock(player, blockName);
+  const pick = makePicker(blockName);
+  if (!pick) return badBlock(player, blockName);
   const s = getSel(player);
-  applyPoints(player, line3D(s.pos1, s.pos2), perm, "Línea");
+  applyPoints(player, line3D(s.pos1, s.pos2), pick, "Línea");
 }
 
 /* ------------------------------------------------------------------ */
@@ -1995,7 +1996,7 @@ async function builderForm(player) {
     .title("§lConstructor de Formas")
     .dropdown("Forma", shapes, { defaultValueIndex: 0 })
     .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
-    .textField("…o bloque personalizado", "ej: glass")
+    .textField("…o bloque(s): stone,andesite", "ej: glass")
     .slider("Radio / tamaño", 1, 40, { valueStep: 1, defaultValue: 5 })
     .slider("Altura (cilindro/cono)", 1, 100, { valueStep: 1, defaultValue: 8 })
     .toggle("Hueco (donde aplique)", { defaultValue: false });
@@ -2188,9 +2189,9 @@ async function colorAdjustMenu(player) {
 
 async function replaceForm(player) {  const form = new ModalFormData()
     .title("§lReplace / Reemplazar")
-    .dropdown("Bloque a reemplazar (de)", COMMON_BLOCKS, 1)
+    .dropdown("Bloque a reemplazar (de)", COMMON_BLOCKS, { defaultValueIndex: 1 })
     .textField("…o escribe el bloque (de)", "ej: dirt")
-    .dropdown("Bloque nuevo (a)", COMMON_BLOCKS, 0)
+    .dropdown("Bloque nuevo (a)", COMMON_BLOCKS, { defaultValueIndex: 0 })
     .textField("…o escribe el bloque (a)", "ej: stone");
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
@@ -2203,10 +2204,10 @@ async function replaceForm(player) {  const form = new ModalFormData()
 async function sphereForm(player) {
   const form = new ModalFormData()
     .title("§lSphere / Esfera")
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
-    .textField("…o bloque personalizado", "ej: glass")
-    .slider("Radio", 1, 40, 1, 4)
-    .toggle("Hueca (hollow)", false);
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
+    .textField("…o bloque(s): stone,andesite", "ej: glass")
+    .slider("Radio", 1, 40, { valueStep: 1, defaultValue: 4 })
+    .toggle("Hueca (hollow)", { defaultValue: false });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [idx, custom, radius, hollow] = res.formValues;
@@ -2217,9 +2218,9 @@ async function sphereForm(player) {
 async function hsphereForm(player) {
   const form = new ModalFormData()
     .title("§lHSphere / Esfera hueca")
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
-    .textField("…o bloque personalizado", "ej: glass")
-    .slider("Radio", 1, 40, 1, 6);
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
+    .textField("…o bloque(s): stone,andesite", "ej: glass")
+    .slider("Radio", 1, 40, { valueStep: 1, defaultValue: 6 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [idx, custom, radius] = res.formValues;
@@ -2230,7 +2231,7 @@ async function hsphereForm(player) {
 async function smoothForm(player) {
   const form = new ModalFormData()
     .title("§lSmooth / Suavizar")
-    .slider("Iteraciones (intensidad)", 1, 10, 1, 2);
+    .slider("Iteraciones (intensidad)", 1, 10, { valueStep: 1, defaultValue: 2 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [iters] = res.formValues;
@@ -2240,7 +2241,7 @@ async function smoothForm(player) {
 async function drainForm(player) {
   const form = new ModalFormData()
     .title("§lDrain / Drenar")
-    .slider("Radio", 1, 40, 1, 6);
+    .slider("Radio", 1, 40, { valueStep: 1, defaultValue: 6 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [radius] = res.formValues;
@@ -2250,11 +2251,11 @@ async function drainForm(player) {
 async function cylinderForm(player) {
   const form = new ModalFormData()
     .title("§lCylinder / Cilindro")
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
-    .textField("…o bloque personalizado", "ej: stone")
-    .slider("Radio", 1, 40, 1, 4)
-    .slider("Altura", 1, 100, 1, 4)
-    .toggle("Hueco (hollow)", false);
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
+    .textField("…o bloque(s): stone,andesite", "ej: stone")
+    .slider("Radio", 1, 40, { valueStep: 1, defaultValue: 4 })
+    .slider("Altura", 1, 100, { valueStep: 1, defaultValue: 4 })
+    .toggle("Hueco (hollow)", { defaultValue: false });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [idx, custom, radius, height, hollow] = res.formValues;
@@ -2265,9 +2266,9 @@ async function cylinderForm(player) {
 async function pyramidForm(player) {
   const form = new ModalFormData()
     .title("§lPyramid / Pirámide")
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
-    .textField("…o bloque personalizado", "ej: sandstone")
-    .slider("Tamaño (base)", 1, 50, 1, 5);
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
+    .textField("…o bloque(s): stone,andesite", "ej: sandstone")
+    .slider("Tamaño (base)", 1, 50, { valueStep: 1, defaultValue: 5 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [idx, custom, size] = res.formValues;
@@ -2278,11 +2279,11 @@ async function pyramidForm(player) {
 async function coneForm(player) {
   const form = new ModalFormData()
     .title("§lCone / Cono")
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
-    .textField("…o bloque personalizado", "ej: quartz_block")
-    .slider("Radio (base)", 1, 40, 1, 5)
-    .slider("Altura", 1, 100, 1, 8)
-    .toggle("Hueco (hollow)", false);
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
+    .textField("…o bloque(s): stone,andesite", "ej: quartz_block")
+    .slider("Radio (base)", 1, 40, { valueStep: 1, defaultValue: 5 })
+    .slider("Altura", 1, 100, { valueStep: 1, defaultValue: 8 })
+    .toggle("Hueco (hollow)", { defaultValue: false });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [idx, custom, radius, height, hollow] = res.formValues;
@@ -2294,8 +2295,8 @@ async function lineForm(player) {
   if (!bothPos(player)) return needSel(player);
   const form = new ModalFormData()
     .title("§lLine / Línea")
-    .dropdown("Bloque", COMMON_BLOCKS, 0)
-    .textField("…o bloque personalizado", "ej: glowstone");
+    .dropdown("Bloque", COMMON_BLOCKS, { defaultValueIndex: 0 })
+    .textField("…o bloque(s): stone,andesite", "ej: glowstone");
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [idx, custom] = res.formValues;
@@ -2306,7 +2307,7 @@ async function lineForm(player) {
 async function upForm(player) {
   const form = new ModalFormData()
     .title("§lUp / Subir")
-    .slider("Bloques a subir", 1, 64, 1, 1);
+    .slider("Bloques a subir", 1, 64, { valueStep: 1, defaultValue: 1 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   opUp(player, res.formValues[0]);
@@ -2315,8 +2316,8 @@ async function upForm(player) {
 async function stackForm(player) {
   const form = new ModalFormData()
     .title("§lStack / Multiplicar")
-    .slider("Cantidad (copias)", 1, 32, 1, 2)
-    .dropdown("Dirección", DIR_LABELS, 0);
+    .slider("Cantidad (copias)", 1, 32, { valueStep: 1, defaultValue: 2 })
+    .dropdown("Dirección", DIR_LABELS, { defaultValueIndex: 0 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [count, dirIdx] = res.formValues;
@@ -2326,7 +2327,7 @@ async function stackForm(player) {
 async function rotateForm(player) {
   const form = new ModalFormData()
     .title("§lRotate / Rotar")
-    .dropdown("Grados", ["90°", "180°", "270°"], 0);
+    .dropdown("Grados", ["90°", "180°", "270°"], { defaultValueIndex: 0 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const deg = [90, 180, 270][res.formValues[0]];
@@ -2336,8 +2337,8 @@ async function rotateForm(player) {
 async function moveForm(player) {
   const form = new ModalFormData()
     .title("§lMove / Mover")
-    .slider("Distancia", 1, 64, 1, 1)
-    .dropdown("Dirección", DIR_LABELS, 0);
+    .slider("Distancia", 1, 64, { valueStep: 1, defaultValue: 1 })
+    .dropdown("Dirección", DIR_LABELS, { defaultValueIndex: 0 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [amt, dirIdx] = res.formValues;
@@ -2347,8 +2348,8 @@ async function moveForm(player) {
 async function expandForm(player) {
   const form = new ModalFormData()
     .title("§lExpand / Expandir")
-    .slider("Cantidad", 1, 64, 1, 5)
-    .dropdown("Dirección", DIR_LABELS, 0);
+    .slider("Cantidad", 1, 64, { valueStep: 1, defaultValue: 5 })
+    .dropdown("Dirección", DIR_LABELS, { defaultValueIndex: 0 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [amt, dirIdx] = res.formValues;
@@ -2358,8 +2359,8 @@ async function expandForm(player) {
 async function contractForm(player) {
   const form = new ModalFormData()
     .title("§lContract / Contraer")
-    .slider("Cantidad", 1, 64, 1, 5)
-    .dropdown("Dirección", DIR_LABELS, 0);
+    .slider("Cantidad", 1, 64, { valueStep: 1, defaultValue: 5 })
+    .dropdown("Dirección", DIR_LABELS, { defaultValueIndex: 0 });
   const res = await showForm(player, form);
   if (!res || res.canceled) return;
   const [amt, dirIdx] = res.formValues;
@@ -2386,13 +2387,14 @@ const HELP_TEXT = [
   "§eItem de menú: §fBrújula §7→ abre el menú.",
   "§eVarita: §fHacha §7→ tocar=§aPOS1§7, romper=§bPOS2§7, agacharse+usar=menú.",
   "",
-  "§b/we:wand §7- entrega la varita · §b/we:menu §7- abrir menú",
-  "§b/we:set <bloque> §7· §b/we:walls <bloque> §7· §b/we:outline <bloque>",
-  "§b/we:replace <de> <a>",
-  "§b/we:sphere <bloque> [radio] [hueca] §7· §b/we:hsphere <bloque> [radio]",
-  "§b/we:cyl <bloque> [radio] [altura] [hueco]",
-  "§b/we:cone <bloque> [radio] [altura] [hueco]",
-  "§b/we:pyramid <bloque> [tamaño] §7· §b/we:line <bloque>",
+  "§b/we:wand §7- varita · §b/we:menu §7- menú",
+  "§7§o(varios bloques = textura/patrón, ej: stone andesite cobblestone)",
+  "§b/we:set <bloque...> §7· §b/we:walls <bloque...> §7· §b/we:outline <bloque...>",
+  "§b/we:replace <de> <a> §7· §b/we:line <bloque...>",
+  "§b/we:sphere <radio> <bloque...> §7· §b/we:hsphere <radio> <bloque...>",
+  "§b/we:cyl <radio> <altura> <bloque...> §7· §b/we:hcyl ...",
+  "§b/we:cone <radio> <altura> <bloque...> §7· §b/we:hcone ...",
+  "§b/we:pyramid <tamaño> <bloque...>",
   "§b/we:hollow §7· §b/we:clear",
   "§a/we:naturalize §7· §a/we:smooth [iter] §7· §a/we:drain [radio]",
   "§6/we:fifa §7· §6/we:flag <país> [escala] §7· §6/we:flags",
@@ -2429,8 +2431,10 @@ function isAirBlock(block) {
   return !block || block.typeId === "minecraft:air";
 }
 
-// Paleta de bloques "de color" con su RGB aproximado (para #color, darken, etc.)
+// Paleta de bloques con su RGB medio (fiel a la TextureUtil de WorldEdit/FAWE).
+// Cuantos más bloques, más fiel es #color / darken / lighten / saturate.
 const COLOR_PALETTE = [
+  // --- Concreto (colores vivos) ---
   { id: "minecraft:white_concrete", r: 207, g: 213, b: 214 },
   { id: "minecraft:light_gray_concrete", r: 125, g: 125, b: 115 },
   { id: "minecraft:gray_concrete", r: 54, g: 57, b: 61 },
@@ -2447,6 +2451,97 @@ const COLOR_PALETTE = [
   { id: "minecraft:magenta_concrete", r: 169, g: 48, b: 159 },
   { id: "minecraft:pink_concrete", r: 213, g: 101, b: 142 },
   { id: "minecraft:brown_concrete", r: 96, g: 60, b: 32 },
+  // --- Lana (vivos, algo más claros) ---
+  { id: "minecraft:white_wool", r: 233, g: 236, b: 236 },
+  { id: "minecraft:orange_wool", r: 240, g: 118, b: 19 },
+  { id: "minecraft:magenta_wool", r: 189, g: 68, b: 179 },
+  { id: "minecraft:light_blue_wool", r: 58, g: 175, b: 217 },
+  { id: "minecraft:yellow_wool", r: 248, g: 198, b: 39 },
+  { id: "minecraft:lime_wool", r: 112, g: 185, b: 25 },
+  { id: "minecraft:pink_wool", r: 237, g: 141, b: 172 },
+  { id: "minecraft:gray_wool", r: 62, g: 68, b: 71 },
+  { id: "minecraft:light_gray_wool", r: 142, g: 142, b: 134 },
+  { id: "minecraft:cyan_wool", r: 21, g: 137, b: 145 },
+  { id: "minecraft:purple_wool", r: 121, g: 42, b: 172 },
+  { id: "minecraft:blue_wool", r: 53, g: 57, b: 157 },
+  { id: "minecraft:brown_wool", r: 114, g: 71, b: 40 },
+  { id: "minecraft:green_wool", r: 84, g: 109, b: 27 },
+  { id: "minecraft:red_wool", r: 160, g: 39, b: 34 },
+  { id: "minecraft:black_wool", r: 20, g: 21, b: 25 },
+  // --- Terracota (tonos tierra, apagados) ---
+  { id: "minecraft:terracotta", r: 152, g: 94, b: 67 },
+  { id: "minecraft:white_terracotta", r: 209, g: 178, b: 161 },
+  { id: "minecraft:orange_terracotta", r: 162, g: 84, b: 38 },
+  { id: "minecraft:magenta_terracotta", r: 150, g: 88, b: 109 },
+  { id: "minecraft:light_blue_terracotta", r: 113, g: 109, b: 138 },
+  { id: "minecraft:yellow_terracotta", r: 186, g: 133, b: 35 },
+  { id: "minecraft:lime_terracotta", r: 103, g: 118, b: 53 },
+  { id: "minecraft:pink_terracotta", r: 162, g: 78, b: 79 },
+  { id: "minecraft:gray_terracotta", r: 58, g: 42, b: 36 },
+  { id: "minecraft:light_gray_terracotta", r: 135, g: 107, b: 98 },
+  { id: "minecraft:cyan_terracotta", r: 87, g: 91, b: 91 },
+  { id: "minecraft:purple_terracotta", r: 118, g: 70, b: 86 },
+  { id: "minecraft:blue_terracotta", r: 74, g: 60, b: 91 },
+  { id: "minecraft:brown_terracotta", r: 77, g: 51, b: 36 },
+  { id: "minecraft:green_terracotta", r: 76, g: 83, b: 42 },
+  { id: "minecraft:red_terracotta", r: 143, g: 61, b: 47 },
+  { id: "minecraft:black_terracotta", r: 37, g: 23, b: 16 },
+  // --- Bloques naturales y de construcción ---
+  { id: "minecraft:stone", r: 125, g: 125, b: 125 },
+  { id: "minecraft:cobblestone", r: 122, g: 122, b: 122 },
+  { id: "minecraft:stone_bricks", r: 122, g: 121, b: 122 },
+  { id: "minecraft:mossy_cobblestone", r: 110, g: 118, b: 98 },
+  { id: "minecraft:andesite", r: 136, g: 136, b: 137 },
+  { id: "minecraft:diorite", r: 188, g: 188, b: 189 },
+  { id: "minecraft:granite", r: 149, g: 103, b: 85 },
+  { id: "minecraft:deepslate", r: 77, g: 77, b: 80 },
+  { id: "minecraft:tuff", r: 108, g: 109, b: 103 },
+  { id: "minecraft:calcite", r: 223, g: 224, b: 219 },
+  { id: "minecraft:dirt", r: 134, g: 96, b: 67 },
+  { id: "minecraft:coarse_dirt", r: 119, g: 85, b: 59 },
+  { id: "minecraft:podzol", r: 91, g: 63, b: 30 },
+  { id: "minecraft:grass_block", r: 95, g: 159, b: 53 },
+  { id: "minecraft:moss_block", r: 89, g: 109, b: 45 },
+  { id: "minecraft:mycelium", r: 111, g: 98, b: 103 },
+  { id: "minecraft:sand", r: 219, g: 207, b: 163 },
+  { id: "minecraft:sandstone", r: 216, g: 203, b: 156 },
+  { id: "minecraft:red_sand", r: 190, g: 102, b: 33 },
+  { id: "minecraft:gravel", r: 131, g: 127, b: 126 },
+  { id: "minecraft:clay", r: 159, g: 164, b: 177 },
+  { id: "minecraft:oak_planks", r: 162, g: 131, b: 79 },
+  { id: "minecraft:spruce_planks", r: 114, g: 84, b: 48 },
+  { id: "minecraft:birch_planks", r: 196, g: 179, b: 123 },
+  { id: "minecraft:dark_oak_planks", r: 66, g: 43, b: 20 },
+  { id: "minecraft:acacia_planks", r: 168, g: 90, b: 50 },
+  { id: "minecraft:cherry_planks", r: 226, g: 177, b: 168 },
+  { id: "minecraft:oak_log", r: 109, g: 85, b: 50 },
+  { id: "minecraft:bricks", r: 150, g: 97, b: 83 },
+  { id: "minecraft:nether_bricks", r: 44, g: 22, b: 26 },
+  { id: "minecraft:netherrack", r: 97, g: 38, b: 38 },
+  { id: "minecraft:quartz_block", r: 235, g: 229, b: 222 },
+  { id: "minecraft:prismarine", r: 99, g: 156, b: 151 },
+  { id: "minecraft:sea_lantern", r: 172, g: 199, b: 190 },
+  { id: "minecraft:snow_block", r: 249, g: 254, b: 254 },
+  { id: "minecraft:ice", r: 145, g: 183, b: 253 },
+  { id: "minecraft:packed_ice", r: 141, g: 180, b: 251 },
+  { id: "minecraft:obsidian", r: 20, g: 18, b: 30 },
+  { id: "minecraft:end_stone", r: 219, g: 222, b: 158 },
+  { id: "minecraft:bone_block", r: 229, g: 225, b: 205 },
+  { id: "minecraft:purpur_block", r: 170, g: 126, b: 170 },
+  { id: "minecraft:glowstone", r: 171, g: 131, b: 84 },
+  { id: "minecraft:hay_block", r: 166, g: 138, b: 30 },
+  { id: "minecraft:pumpkin", r: 224, g: 140, b: 33 },
+  { id: "minecraft:melon_block", r: 113, g: 144, b: 30 },
+  { id: "minecraft:lapis_block", r: 30, g: 67, b: 140 },
+  { id: "minecraft:gold_block", r: 246, g: 208, b: 62 },
+  { id: "minecraft:iron_block", r: 220, g: 220, b: 220 },
+  { id: "minecraft:diamond_block", r: 110, g: 219, b: 214 },
+  { id: "minecraft:emerald_block", r: 80, g: 222, b: 113 },
+  { id: "minecraft:redstone_block", r: 175, g: 24, b: 5 },
+  { id: "minecraft:coal_block", r: 16, g: 17, b: 18 },
+  { id: "minecraft:amethyst_block", r: 134, g: 98, b: 189 },
+  { id: "minecraft:slime", r: 112, g: 189, b: 93 },
+  { id: "minecraft:honey_block", r: 251, g: 177, b: 49 },
 ];
 const BLOCK_RGB = {};
 for (const c of COLOR_PALETTE) BLOCK_RGB[c.id] = [c.r, c.g, c.b];
@@ -2471,15 +2566,24 @@ function parseColor(str) {
   if (m.length === 3 && m.every((n) => !isNaN(n))) return m.map(clamp255);
   return null;
 }
+let _paletteReady = false;
+function ensurePalette() {
+  if (_paletteReady) return;
+  for (const c of COLOR_PALETTE) {
+    try { c._perm = resolvePerm(c.id) || null; } catch (_) { c._perm = null; }
+  }
+  _paletteReady = true;
+}
 function nearestColorPerm(rgb) {
+  ensurePalette();
   let best = null, bd = Infinity;
   for (const c of COLOR_PALETTE) {
+    if (!c._perm) continue; // omite bloques no válidos en esta versión
     const dr = c.r - rgb[0], dg = c.g - rgb[1], db = c.b - rgb[2];
     const d = dr * dr + dg * dg + db * db;
     if (d < bd) { bd = d; best = c; }
   }
-  if (!best) return null;
-  return resolvePerm(best.id);
+  return best ? best._perm : null;
 }
 
 // Lista de bloques con peso opcional: "3*stone,dirt", "50%stone,50%dirt"
@@ -2502,6 +2606,16 @@ function pickWeighted(list, t) {
   let r = (t < 0 ? 0 : t >= 1 ? 0.9999 : t) * total, acc = 0;
   for (const e of list) { acc += e.weight; if (r < acc) return e.perm; }
   return list[list.length - 1].perm;
+}
+
+// Convierte una lista de bloques ("stone" o "stone,andesite,3*cobblestone") en
+// un selector (x,y,z)->permutación. 1 bloque = fijo; varios = patrón aleatorio.
+// Lo usan TODAS las formas (walls, sphere, pyramid, line, etc.) para texturizar.
+function makePicker(patternStr) {
+  const list = parseBlockList(patternStr);
+  if (!list) return null;
+  if (list.length === 1) { const p = list[0].perm; return () => p; }
+  return () => pickWeighted(list, Math.random());
 }
 
 /* ---- Ruido determinista ---- */
@@ -2771,17 +2885,16 @@ function executeCommand(player, raw) {
         break;
       case "set":
       case "fill":
-        if (!args[0]) return msg(player, "§cUso: we:set <bloque> (o varios = patrón)");
-        if (String(args[0]).includes(",")) opPattern(player, args[0]);
-        else opSet(player, args[0]);
+        if (!args[0]) return msg(player, "§cUso: we:set <bloque> [bloque2]... (varios = patrón)");
+        opSet(player, blocksFrom(args));
         break;
       case "walls":
-        if (!args[0]) return msg(player, "§cUso: we:walls <bloque>");
-        opWalls(player, args[0]);
+        if (!args[0]) return msg(player, "§cUso: we:walls <bloque> [bloque2]...");
+        opWalls(player, blocksFrom(args));
         break;
       case "outline":
-        if (!args[0]) return msg(player, "§cUso: we:outline <bloque>");
-        opFaces(player, args[0]);
+        if (!args[0]) return msg(player, "§cUso: we:outline <bloque> [bloque2]...");
+        opFaces(player, blocksFrom(args));
         break;
       case "replace":
         if (!args[0] || !args[1]) return msg(player, "§cUso: we:replace <de> <a>");
@@ -2792,38 +2905,47 @@ function executeCommand(player, raw) {
         opClear(player);
         break;
       case "sphere": {
-        if (!args[0]) return msg(player, "§cUso: we:sphere <bloque> <radio> [h]");
-        const radius = parseInt(args[1]) || 4;
-        const hollow = (args[2] || "").toLowerCase().startsWith("h");
-        opSphere(player, args[0], radius, hollow);
+        const { nums, blocks } = splitNumsBlocks(args, 1);
+        if (!blocks) return msg(player, "§cUso: we:sphere <radio> <bloque> [bloque2]...");
+        opSphere(player, blocks, nums[0] || 4, false);
         break;
       }
       case "hsphere": {
-        if (!args[0]) return msg(player, "§cUso: we:hsphere <bloque> <radio>");
-        const radius = parseInt(args[1]) || 4;
-        opHSphere(player, args[0], radius);
+        const { nums, blocks } = splitNumsBlocks(args, 1);
+        if (!blocks) return msg(player, "§cUso: we:hsphere <radio> <bloque> [bloque2]...");
+        opHSphere(player, blocks, nums[0] || 4);
         break;
       }
       case "cyl":
       case "cylinder": {
-        if (!args[0]) return msg(player, "§cUso: we:cyl <bloque> <radio> [altura] [h]");
-        const radius = parseInt(args[1]) || 4;
-        const height = parseInt(args[2]) || 4;
-        const hollow = (args[3] || "").toLowerCase().startsWith("h");
-        opCylinder(player, args[0], radius, height, hollow);
+        const { nums, blocks } = splitNumsBlocks(args, 2);
+        if (!blocks) return msg(player, "§cUso: we:cyl <radio> <altura> <bloque> [bloque2]...");
+        opCylinder(player, blocks, nums[0] || 4, nums[1] || 4, false);
+        break;
+      }
+      case "hcyl":
+      case "hcylinder": {
+        const { nums, blocks } = splitNumsBlocks(args, 2);
+        if (!blocks) return msg(player, "§cUso: we:hcyl <radio> <altura> <bloque> [bloque2]...");
+        opCylinder(player, blocks, nums[0] || 4, nums[1] || 4, true);
         break;
       }
       case "pyramid": {
-        if (!args[0]) return msg(player, "§cUso: we:pyramid <bloque> <tamaño>");
-        opPyramid(player, args[0], parseInt(args[1]) || 5);
+        const { nums, blocks } = splitNumsBlocks(args, 1);
+        if (!blocks) return msg(player, "§cUso: we:pyramid <tamaño> <bloque> [bloque2]...");
+        opPyramid(player, blocks, nums[0] || 5);
         break;
       }
       case "cone": {
-        if (!args[0]) return msg(player, "§cUso: we:cone <bloque> <radio> [altura] [h]");
-        const radius = parseInt(args[1]) || 5;
-        const height = parseInt(args[2]) || 8;
-        const hollow = (args[3] || "").toLowerCase().startsWith("h");
-        opCone(player, args[0], radius, height, hollow);
+        const { nums, blocks } = splitNumsBlocks(args, 2);
+        if (!blocks) return msg(player, "§cUso: we:cone <radio> <altura> <bloque> [bloque2]...");
+        opCone(player, blocks, nums[0] || 5, nums[1] || 8, false);
+        break;
+      }
+      case "hcone": {
+        const { nums, blocks } = splitNumsBlocks(args, 2);
+        if (!blocks) return msg(player, "§cUso: we:hcone <radio> <altura> <bloque> [bloque2]...");
+        opCone(player, blocks, nums[0] || 5, nums[1] || 8, true);
         break;
       }
       case "hollow":
@@ -2831,8 +2953,8 @@ function executeCommand(player, raw) {
         break;
       case "line":
       case "linea":
-        if (!args[0]) return msg(player, "§cUso: we:line <bloque> (usa POS1 y POS2)");
-        opLine(player, args[0]);
+        if (!args[0]) return msg(player, "§cUso: we:line <bloque> [bloque2]... (usa POS1 y POS2)");
+        opLine(player, blocksFrom(args));
         break;
       case "naturalize":
       case "nat":
@@ -3038,6 +3160,19 @@ function blocksFrom(arr) {
   return arr.filter((b) => b !== undefined && b !== null && String(b).trim() !== "").join(",");
 }
 
+// Separa los argumentos en NÚMEROS (los primeros numCount enteros) y BLOQUES
+// (el resto, unidos por comas). Acepta cualquier orden, p.ej:
+//   sphere 6 stone andesite   ó   sphere stone andesite 6
+function splitNumsBlocks(args, numCount) {
+  const nums = [];
+  const blocks = [];
+  for (const a of args) {
+    if (nums.length < numCount && /^-?\d+$/.test(String(a))) nums.push(parseInt(a));
+    else blocks.push(a);
+  }
+  return { nums, blocks: blocks.join(",") };
+}
+
 function registerWorldEditCommands(registry) {
   const P = CustomCommandParamType; // puede faltar en algunas versiones
   const hasParams = !!(P && P.String !== undefined);
@@ -3102,15 +3237,17 @@ function registerWorldEditCommands(registry) {
   if (hasParams) {
     /* ---- Comandos CON argumentos ---- */
     reg("we:set", "Rellena la selección (1 bloque o varios = patrón)", (o, b1, b2, b3, b4, b5) => runWE(o, joinCmd(["set", blocksFrom([b1, b2, b3, b4, b5])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4"), STR("bloque5")]);
-    reg("we:walls", "Construye las 4 paredes", (o, b) => runWE(o, joinCmd(["walls", b])), [STR("bloque")]);
-    reg("we:outline", "Construye las 6 caras (cascarón)", (o, b) => runWE(o, joinCmd(["outline", b])), [STR("bloque")]);
+    reg("we:walls", "Paredes (1 bloque o varios = patrón)", (o, b1, b2, b3, b4) => runWE(o, joinCmd(["walls", blocksFrom([b1, b2, b3, b4])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4")]);
+    reg("we:outline", "Cascarón (6 caras), 1 o varios bloques", (o, b1, b2, b3, b4) => runWE(o, joinCmd(["outline", blocksFrom([b1, b2, b3, b4])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4")]);
     reg("we:replace", "Reemplaza un bloque por otro", (o, de, a) => runWE(o, joinCmd(["replace", de, a])), [STR("de"), STR("a")]);
-    reg("we:line", "Línea entre POS1 y POS2", (o, b) => runWE(o, joinCmd(["line", b])), [STR("bloque")]);
-    reg("we:sphere", "Esfera centrada en ti", (o, b, r, h) => runWE(o, joinCmd(["sphere", b, r, h ? "hollow" : ""])), [STR("bloque")], [INT("radio"), BOOL("hueca")]);
-    reg("we:hsphere", "Esfera hueca", (o, b, r) => runWE(o, joinCmd(["hsphere", b, r])), [STR("bloque")], [INT("radio")]);
-    reg("we:cyl", "Cilindro centrado en ti", (o, b, r, a, h) => runWE(o, joinCmd(["cyl", b, r, a, h ? "hollow" : ""])), [STR("bloque")], [INT("radio"), INT("altura"), BOOL("hueco")]);
-    reg("we:pyramid", "Pirámide centrada en ti", (o, b, t) => runWE(o, joinCmd(["pyramid", b, t])), [STR("bloque")], [INT("tamano")]);
-    reg("we:cone", "Cono centrado en ti", (o, b, r, a, h) => runWE(o, joinCmd(["cone", b, r, a, h ? "hollow" : ""])), [STR("bloque")], [INT("radio"), INT("altura"), BOOL("hueco")]);
+    reg("we:line", "Línea entre POS1 y POS2 (1 o varios bloques)", (o, b1, b2, b3, b4) => runWE(o, joinCmd(["line", blocksFrom([b1, b2, b3, b4])])), [STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4")]);
+    reg("we:sphere", "Esfera <radio> <bloques...>", (o, r, b1, b2, b3, b4) => runWE(o, joinCmd(["sphere", r, blocksFrom([b1, b2, b3, b4])])), [INT("radio"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4")]);
+    reg("we:hsphere", "Esfera hueca <radio> <bloques...>", (o, r, b1, b2, b3, b4) => runWE(o, joinCmd(["hsphere", r, blocksFrom([b1, b2, b3, b4])])), [INT("radio"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4")]);
+    reg("we:cyl", "Cilindro <radio> <altura> <bloques...>", (o, r, a, b1, b2, b3) => runWE(o, joinCmd(["cyl", r, a, blocksFrom([b1, b2, b3])])), [INT("radio"), INT("altura"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
+    reg("we:hcyl", "Cilindro hueco <radio> <altura> <bloques...>", (o, r, a, b1, b2, b3) => runWE(o, joinCmd(["hcyl", r, a, blocksFrom([b1, b2, b3])])), [INT("radio"), INT("altura"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
+    reg("we:pyramid", "Pirámide <tamaño> <bloques...>", (o, t, b1, b2, b3, b4) => runWE(o, joinCmd(["pyramid", t, blocksFrom([b1, b2, b3, b4])])), [INT("tamano"), STR("bloque1")], [STR("bloque2"), STR("bloque3"), STR("bloque4")]);
+    reg("we:cone", "Cono <radio> <altura> <bloques...>", (o, r, a, b1, b2, b3) => runWE(o, joinCmd(["cone", r, a, blocksFrom([b1, b2, b3])])), [INT("radio"), INT("altura"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
+    reg("we:hcone", "Cono hueco <radio> <altura> <bloques...>", (o, r, a, b1, b2, b3) => runWE(o, joinCmd(["hcone", r, a, blocksFrom([b1, b2, b3])])), [INT("radio"), INT("altura"), STR("bloque1")], [STR("bloque2"), STR("bloque3")]);
     reg("we:smooth", "Suaviza el terreno", (o, it) => runWE(o, joinCmd(["smooth", it])), null, [INT("iteraciones")]);
     reg("we:drain", "Drena agua/lava", (o, r) => runWE(o, joinCmd(["drain", r])), null, [INT("radio")]);
     reg("we:up", "Plataforma n bloques arriba", (o, n) => runWE(o, joinCmd(["up", n])), null, [INT("n")]);
@@ -3423,8 +3560,8 @@ system.runInterval(() => {
 /* Mensaje de carga */
 system.run(() => {
   console.warn(
-    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.8.1) cargado. " +
-      "Patterns con bloques separados por ESPACIOS en /we:. Actívalo con: /we:wand"
+    "[WorldEdit] MCPE FIFA World Cup 2026 Edition (v0.8.2) cargado. " +
+      "Formas con textura (varios bloques) + paleta de colores fiel a WorldEdit/FAWE. Actívalo con: /we:wand"
   );
 });
 
