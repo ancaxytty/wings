@@ -1,6 +1,6 @@
 /* ============================================================
-   MCPE ADDONS STORE – Main Application Logic
-   Google Auth + Real-time Data + UI + Animations
+   MCPE ADDONS STORE V2 – Main Application Logic
+   Google Auth + Hamburger Menu + Real-time Data + 0 Initial Data
    ============================================================ */
 
 'use strict';
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollReveal();
   initTypingEffect();
   loadAddons();
-  animateStats();
+  updateStats();
   restoreSession();
   listenRealtime();
 });
@@ -69,7 +69,6 @@ function initParticles() {
   window.addEventListener('resize', resize);
 
   const COLORS = ['#00d4ff', '#7c3aed', '#a78bfa', '#f59e0b', '#10b981'];
-  const SYMBOLS = ['✦', '◆', '▪', '•'];
 
   class Particle {
     constructor() { this.reset(true); }
@@ -81,7 +80,6 @@ function initParticles() {
       this.speedX =  (Math.random() - 0.5) * 0.2;
       this.alpha  = Math.random() * 0.5 + 0.1;
       this.color  = COLORS[Math.floor(Math.random() * COLORS.length)];
-      this.symbol = Math.random() > 0.8 ? SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)] : null;
     }
     update() {
       this.x += this.speedX;
@@ -91,14 +89,9 @@ function initParticles() {
     draw() {
       ctx.globalAlpha = this.alpha;
       ctx.fillStyle   = this.color;
-      if (this.symbol) {
-        ctx.font = `${this.size * 6}px Arial`;
-        ctx.fillText(this.symbol, this.x, this.y);
-      } else {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
@@ -114,7 +107,7 @@ function initParticles() {
 }
 
 /* ============================================================
-   NAVBAR
+   NAVBAR (scroll behavior)
    ============================================================ */
 function initNavbar() {
   const navbar = document.getElementById('navbar');
@@ -133,13 +126,40 @@ function initNavbar() {
   });
 }
 
-function toggleMobileMenu() {
-  const links = document.getElementById('nav-links');
-  const btn   = document.querySelector('.mobile-menu-btn');
-  links.classList.toggle('open');
-  btn.classList.toggle('open');
+/* ============================================================
+   HAMBURGER MENU
+   ============================================================ */
+function toggleHamburger() {
+  const btn     = document.getElementById('hamburger-btn');
+  const menu    = document.getElementById('nav-menu');
+  const overlay = document.getElementById('mobile-menu-overlay');
+
+  const isOpen = menu.classList.contains('open');
+
+  if (isOpen) {
+    closeHamburger();
+  } else {
+    btn.classList.add('open');
+    menu.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
 }
 
+function closeHamburger() {
+  const btn     = document.getElementById('hamburger-btn');
+  const menu    = document.getElementById('nav-menu');
+  const overlay = document.getElementById('mobile-menu-overlay');
+
+  btn.classList.remove('open');
+  menu.classList.remove('open');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ============================================================
+   USER DROPDOWN (Desktop)
+   ============================================================ */
 function toggleUserDropdown() {
   const dd  = document.getElementById('user-dropdown');
   const btn = document.querySelector('.user-avatar-btn');
@@ -151,10 +171,6 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.user-avatar-btn') && !e.target.closest('.user-dropdown')) {
     document.getElementById('user-dropdown')?.classList.remove('open');
     document.querySelector('.user-avatar-btn')?.classList.remove('open');
-  }
-  if (!e.target.closest('.nav-links') && !e.target.closest('.mobile-menu-btn')) {
-    document.getElementById('nav-links')?.classList.remove('open');
-    document.querySelector('.mobile-menu-btn')?.classList.remove('open');
   }
 });
 
@@ -196,28 +212,16 @@ function initScrollReveal() {
 }
 
 /* ============================================================
-   ANIMATED STATS COUNTER
+   STATS (Real values from DB - starts at 0)
    ============================================================ */
-function animateStats() {
-  const addons    = DB.get(DB_KEYS.ADDONS);
-  const users     = DB.get(DB_KEYS.USERS);
-  const totalDl   = addons.reduce((s, a) => s + (a.downloads || 0), 0);
+function updateStats() {
+  const addons  = DB.get(DB_KEYS.ADDONS);
+  const users   = DB.get(DB_KEYS.USERS);
+  const totalDl = addons.reduce((s, a) => s + (a.downloads || 0), 0);
 
-  countUp('stat-addons',    addons.length);
-  countUp('stat-users',     users.length);
-  countUp('stat-downloads', totalDl);
-}
-
-function countUp(id, target) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  let current = 0;
-  const step  = Math.max(1, Math.floor(target / 60));
-  const iv    = setInterval(() => {
-    current = Math.min(current + step, target);
-    el.textContent = current.toLocaleString();
-    if (current >= target) clearInterval(iv);
-  }, 30);
+  document.getElementById('stat-addons').textContent    = addons.length;
+  document.getElementById('stat-users').textContent     = users.length;
+  document.getElementById('stat-downloads').textContent = totalDl;
 }
 
 /* ============================================================
@@ -225,7 +229,6 @@ function countUp(id, target) {
    ============================================================ */
 function initGoogleAuth() {
   if (typeof google === 'undefined') {
-    // Retry when SDK loads
     setTimeout(initGoogleAuth, 500);
     return;
   }
@@ -285,7 +288,7 @@ function loginUser(user) {
   closeModal('auth-modal');
   showToast(`¡Bienvenido, ${user.name}! 👋`, 'success');
   loadPurchases();
-  animateStats();
+  updateStats();
 }
 
 function restoreSession() {
@@ -293,7 +296,6 @@ function restoreSession() {
     const saved = localStorage.getItem('mcpe_current_user');
     if (saved) {
       const user = JSON.parse(saved);
-      // Token valid ~1 hour; for demo we keep 7 days
       if (Date.now() - user.loginAt < 7 * 24 * 3600 * 1000) {
         State.user = user;
         updateAuthUI(user);
@@ -306,28 +308,36 @@ function restoreSession() {
 }
 
 function updateAuthUI(user) {
+  // Mobile menu
   document.getElementById('logged-out-btns').style.display = 'none';
-  document.getElementById('logged-in-btns').style.display  = 'flex';
+  document.getElementById('logged-in-btns').style.display  = 'block';
+  document.getElementById('menu-user-avatar').src  = user.avatar || '';
+  document.getElementById('menu-user-name').textContent   = user.name;
+  document.getElementById('menu-user-email').textContent  = user.email;
 
+  // Desktop
+  document.getElementById('desktop-logged-out').style.display = 'none';
+  document.getElementById('desktop-logged-in').style.display  = 'flex';
   document.getElementById('nav-user-avatar').src  = user.avatar || '';
   document.getElementById('nav-user-name').textContent   = user.name.split(' ')[0];
   document.getElementById('dropdown-avatar').src  = user.avatar || '';
   document.getElementById('dropdown-name').textContent   = user.name;
   document.getElementById('dropdown-email').textContent  = user.email;
-
-  // Show admin link if admin
-  const settings = DB.getObj(DB_KEYS.SETTINGS, {});
-  if (user.email === settings.adminEmail || user.email === ADMIN_EMAIL) {
-    document.getElementById('admin-link').style.display = 'flex';
-  }
 }
 
 function logout() {
   State.user = null;
   localStorage.removeItem('mcpe_current_user');
-  document.getElementById('logged-out-btns').style.display = 'flex';
+
+  // Mobile menu
+  document.getElementById('logged-out-btns').style.display = 'block';
   document.getElementById('logged-in-btns').style.display  = 'none';
+
+  // Desktop
+  document.getElementById('desktop-logged-out').style.display = 'block';
+  document.getElementById('desktop-logged-in').style.display  = 'none';
   document.getElementById('user-dropdown').classList.remove('open');
+
   if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
   showToast('Sesión cerrada correctamente', 'info');
 }
@@ -377,13 +387,13 @@ function openAuthModal(mode = 'login') {
 }
 
 function openPurchasesModal() {
-  document.getElementById('user-dropdown').classList.remove('open');
+  document.getElementById('user-dropdown')?.classList.remove('open');
   renderPurchases();
   openModal('purchases-modal');
 }
 
 /* ============================================================
-   LOAD ADDONS (Real-time from localStorage)
+   LOAD ADDONS (Real-time from localStorage - starts empty)
    ============================================================ */
 function loadAddons() {
   const addons = DB.get(DB_KEYS.ADDONS);
@@ -396,7 +406,7 @@ function listenRealtime() {
     if (e.detail.key === DB_KEYS.ADDONS) {
       State.addons = e.detail.data;
       applyFilters();
-      animateStats();
+      updateStats();
     }
   });
   // Poll every 3s for cross-tab updates
@@ -405,7 +415,7 @@ function listenRealtime() {
     if (JSON.stringify(fresh) !== JSON.stringify(State.addons)) {
       State.addons = fresh;
       applyFilters();
-      animateStats();
+      updateStats();
     }
   }, 3000);
 }
@@ -548,6 +558,7 @@ function renderFeatured() {
     const isFree = !addon.price || parseFloat(addon.price) === 0;
     const card   = document.createElement('div');
     card.className = 'featured-card';
+    card.onclick = () => openAddonDetail(addon.id);
     card.innerHTML = `
       ${addon.image
         ? `<img class="featured-card-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" loading="lazy" onerror="this.style.display='none'" />`
@@ -559,7 +570,7 @@ function renderFeatured() {
         <p style="color:var(--text-muted);font-size:.85rem;margin:.4rem 0 .8rem">${escHtml(addon.description||'').substring(0,80)}…</p>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <span class="featured-card-price">${isFree ? '🎁 Gratis' : `💰 $${parseFloat(addon.price).toFixed(2)}`}</span>
-          <button class="btn btn-primary btn-sm" onclick="openAddonDetail('${addon.id}')">Ver más</button>
+          <span class="btn btn-primary btn-sm">Ver más</span>
         </div>
       </div>`;
     container.appendChild(card);
@@ -684,6 +695,8 @@ function downloadAddon(event, id) {
   } else {
     showToast('El enlace de descarga no está disponible aún.', 'warning');
   }
+
+  updateStats();
 }
 
 /* ============================================================
@@ -779,23 +792,25 @@ function generateId() {
   return 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
 }
 
-// Expose globally for HTML onclick usage
-window.openAuthModal     = openAuthModal;
-window.closeModal        = closeModal;
-window.openModal         = openModal;
-window.toggleMobileMenu  = toggleMobileMenu;
-window.toggleUserDropdown= toggleUserDropdown;
-window.logout            = logout;
-window.setCategory       = setCategory;
-window.filterAddons      = filterAddons;
-window.openAddonDetail   = openAddonDetail;
-window.downloadAddon     = downloadAddon;
-window.openPurchasesModal= openPurchasesModal;
-window.loadMore          = loadMore;
-window.showToast         = showToast;
-window.escHtml           = escHtml;
-window.generateId        = generateId;
-window.State             = State;
-window.savePurchase      = savePurchase;
-window.renderAddonAction = renderAddonAction;
-window.hasPurchased      = hasPurchased;
+// Expose globally
+window.toggleHamburger    = toggleHamburger;
+window.closeHamburger     = closeHamburger;
+window.openAuthModal      = openAuthModal;
+window.closeModal         = closeModal;
+window.openModal          = openModal;
+window.toggleUserDropdown = toggleUserDropdown;
+window.logout             = logout;
+window.setCategory        = setCategory;
+window.filterAddons       = filterAddons;
+window.openAddonDetail    = openAddonDetail;
+window.downloadAddon      = downloadAddon;
+window.openPurchasesModal = openPurchasesModal;
+window.loadMore           = loadMore;
+window.showToast          = showToast;
+window.escHtml            = escHtml;
+window.generateId         = generateId;
+window.State              = State;
+window.savePurchase       = savePurchase;
+window.renderAddonAction  = renderAddonAction;
+window.hasPurchased       = hasPurchased;
+window.updateStats        = updateStats;

@@ -17,286 +17,332 @@
 </head>
 <body>
 
-<!-- ========== SIDEBAR ========== -->
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <a href="index.html" class="sidebar-logo">
-      <span class="sidebar-logo-icon">⛏</span>
-      <span class="sidebar-logo-text">MCPE <span>Admin</span></span>
-    </a>
-    <button class="sidebar-close" onclick="toggleSidebar()">
-      <i class="fas fa-times"></i>
-    </button>
-  </div>
+<!-- ========== LOGIN GATE (blocks everything until admin logs in) ========== -->
+<div class="admin-login-gate" id="admin-login-gate">
+  <div class="login-gate-card">
+    <div class="login-gate-icon">🔒</div>
+    <h1>Panel de Administración</h1>
+    <p>Solo el Owner/Admin puede acceder</p>
 
-  <nav class="sidebar-nav">
-    <div class="nav-section">
-      <span class="nav-section-title">Principal</span>
-      <a href="#" class="sidebar-link active" data-page="dashboard" onclick="switchPage('dashboard',this)">
-        <i class="fas fa-chart-line"></i> Dashboard
-      </a>
-      <a href="#" class="sidebar-link" data-page="addons" onclick="switchPage('addons',this)">
-        <i class="fas fa-puzzle-piece"></i> Add-ons
-      </a>
-      <a href="#" class="sidebar-link" data-page="orders" onclick="switchPage('orders',this)">
-        <i class="fas fa-receipt"></i> Pedidos
-      </a>
-    </div>
-    <div class="nav-section">
-      <span class="nav-section-title">Gestión</span>
-      <a href="#" class="sidebar-link" data-page="users" onclick="switchPage('users',this)">
-        <i class="fas fa-users"></i> Usuarios
-      </a>
-      <a href="#" class="sidebar-link" data-page="settings" onclick="switchPage('settings',this)">
-        <i class="fas fa-cog"></i> Configuración
-      </a>
-    </div>
-    <div class="nav-section">
-      <span class="nav-section-title">Herramientas</span>
-      <a href="index.html" class="sidebar-link">
-        <i class="fas fa-external-link-alt"></i> Ver Tienda
-      </a>
-    </div>
-  </nav>
-
-  <div class="sidebar-footer">
-    <div class="sidebar-user">
-      <img id="sidebar-avatar" src="" alt="" class="sidebar-user-avatar" />
-      <div>
-        <strong id="sidebar-user-name">Admin</strong>
-        <small id="sidebar-user-email">admin@mcpe.com</small>
+    <form id="admin-login-form" onsubmit="adminLogin(event)">
+      <div class="login-form-group">
+        <label><i class="fas fa-envelope"></i> Correo electrónico</label>
+        <input type="email" id="admin-login-email" class="login-input" placeholder="tu@email.com" required autocomplete="email" />
       </div>
+      <div class="login-form-group">
+        <label><i class="fas fa-lock"></i> Contraseña</label>
+        <div class="password-wrapper">
+          <input type="password" id="admin-login-password" class="login-input" placeholder="••••••••••" required autocomplete="current-password" />
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility()">
+            <i class="fas fa-eye" id="password-eye-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="login-error" id="login-error" style="display:none">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="login-error-text">Credenciales incorrectas</span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full login-submit-btn">
+        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión como Admin
+      </button>
+    </form>
+
+    <div class="login-gate-footer">
+      <a href="index.html"><i class="fas fa-arrow-left"></i> Volver a la tienda</a>
     </div>
   </div>
-</aside>
+</div>
 
-<!-- ========== MAIN CONTENT ========== -->
-<main class="main-content" id="main-content">
-  <!-- Top Bar -->
-  <header class="topbar">
-    <button class="topbar-menu-btn" onclick="toggleSidebar()">
-      <i class="fas fa-bars"></i>
-    </button>
-    <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
-    <div class="topbar-actions">
-      <button class="topbar-btn" onclick="location.reload()" title="Refrescar">
-        <i class="fas fa-sync-alt"></i>
-      </button>
-      <button class="topbar-btn" onclick="window.location='index.html'" title="Ver Tienda">
-        <i class="fas fa-store"></i>
+<!-- ========== ADMIN PANEL (hidden until authenticated) ========== -->
+<div class="admin-panel" id="admin-panel" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-logo">
+        <span class="sidebar-logo-icon">⛏</span>
+        <span class="sidebar-logo-text">MCPE <span>Admin</span></span>
+      </a>
+      <button class="sidebar-close" onclick="toggleSidebar()">
+        <i class="fas fa-times"></i>
       </button>
     </div>
-  </header>
 
-  <!-- Page Content -->
-  <div class="page-content" id="page-content">
-
-    <!-- ===== DASHBOARD PAGE ===== -->
-    <div class="page" id="page-dashboard">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-card-icon" style="background:rgba(0,212,255,.1);color:var(--primary)">
-            <i class="fas fa-puzzle-piece"></i>
-          </div>
-          <div class="stat-card-info">
-            <span class="stat-card-value" id="dash-total-addons">0</span>
-            <span class="stat-card-label">Total Add-ons</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-icon" style="background:rgba(16,185,129,.1);color:var(--green)">
-            <i class="fas fa-dollar-sign"></i>
-          </div>
-          <div class="stat-card-info">
-            <span class="stat-card-value" id="dash-revenue">$0</span>
-            <span class="stat-card-label">Ingresos Totales</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-icon" style="background:rgba(124,58,237,.1);color:var(--accent)">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="stat-card-info">
-            <span class="stat-card-value" id="dash-total-users">0</span>
-            <span class="stat-card-label">Usuarios</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-icon" style="background:rgba(245,158,11,.1);color:var(--gold)">
-            <i class="fas fa-download"></i>
-          </div>
-          <div class="stat-card-info">
-            <span class="stat-card-value" id="dash-total-downloads">0</span>
-            <span class="stat-card-label">Descargas</span>
-          </div>
-        </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <span class="nav-section-title">Principal</span>
+        <a href="#" class="sidebar-link active" data-page="dashboard" onclick="switchPage('dashboard',this)">
+          <i class="fas fa-chart-line"></i> Dashboard
+        </a>
+        <a href="#" class="sidebar-link" data-page="addons" onclick="switchPage('addons',this)">
+          <i class="fas fa-puzzle-piece"></i> Add-ons
+        </a>
+        <a href="#" class="sidebar-link" data-page="orders" onclick="switchPage('orders',this)">
+          <i class="fas fa-receipt"></i> Pedidos
+        </a>
       </div>
+      <div class="nav-section">
+        <span class="nav-section-title">Gestión</span>
+        <a href="#" class="sidebar-link" data-page="users" onclick="switchPage('users',this)">
+          <i class="fas fa-users"></i> Usuarios
+        </a>
+        <a href="#" class="sidebar-link" data-page="settings" onclick="switchPage('settings',this)">
+          <i class="fas fa-cog"></i> Configuración
+        </a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-section-title">Herramientas</span>
+        <a href="index.html" class="sidebar-link">
+          <i class="fas fa-external-link-alt"></i> Ver Tienda
+        </a>
+        <a href="#" class="sidebar-link logout-sidebar-link" onclick="adminLogout()">
+          <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+        </a>
+      </div>
+    </nav>
 
-      <div class="dash-grid">
-        <div class="dash-card">
-          <div class="dash-card-header">
-            <h3><i class="fas fa-clock"></i> Pedidos Recientes</h3>
-          </div>
-          <div class="dash-card-body" id="dash-recent-orders">
-            <p class="empty-text">No hay pedidos aún.</p>
-          </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar-placeholder">
+          <i class="fas fa-crown"></i>
         </div>
-        <div class="dash-card">
-          <div class="dash-card-header">
-            <h3><i class="fas fa-fire"></i> Add-ons Populares</h3>
-          </div>
-          <div class="dash-card-body" id="dash-popular-addons">
-            <p class="empty-text">No hay add-ons aún.</p>
-          </div>
+        <div>
+          <strong>Owner / Admin</strong>
+          <small id="sidebar-admin-email">admin</small>
         </div>
       </div>
     </div>
+  </aside>
 
-    <!-- ===== ADDONS PAGE ===== -->
-    <div class="page hidden" id="page-addons">
-      <div class="page-header">
-        <h2>Gestionar Add-ons</h2>
-        <button class="btn btn-primary" onclick="openAddonForm()">
-          <i class="fas fa-plus"></i> Nuevo Add-on
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <button class="topbar-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="location.reload()" title="Refrescar">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <button class="topbar-btn" onclick="window.location='index.html'" title="Ver Tienda">
+          <i class="fas fa-store"></i>
+        </button>
+        <button class="topbar-btn topbar-btn-logout" onclick="adminLogout()" title="Cerrar Sesión">
+          <i class="fas fa-sign-out-alt"></i>
         </button>
       </div>
+    </header>
 
-      <div class="table-container">
-        <div class="table-toolbar">
-          <div class="table-search">
-            <i class="fas fa-search"></i>
-            <input type="text" id="admin-addon-search" placeholder="Buscar add-on..." oninput="filterAdminAddons()" />
+    <!-- Page Content -->
+    <div class="page-content" id="page-content">
+
+      <!-- ===== DASHBOARD PAGE ===== -->
+      <div class="page" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(0,212,255,.1);color:var(--primary)">
+              <i class="fas fa-puzzle-piece"></i>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-value" id="dash-total-addons">0</span>
+              <span class="stat-card-label">Total Add-ons</span>
+            </div>
           </div>
-          <span class="table-count" id="addon-count">0 add-ons</span>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(16,185,129,.1);color:var(--green)">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-value" id="dash-revenue">$0</span>
+              <span class="stat-card-label">Ingresos Totales</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(124,58,237,.1);color:var(--accent)">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-value" id="dash-total-users">0</span>
+              <span class="stat-card-label">Usuarios</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background:rgba(245,158,11,.1);color:var(--gold)">
+              <i class="fas fa-download"></i>
+            </div>
+            <div class="stat-card-info">
+              <span class="stat-card-value" id="dash-total-downloads">0</span>
+              <span class="stat-card-label">Descargas</span>
+            </div>
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Add-on</th>
-                <th>Categoría</th>
-                <th>Precio</th>
-                <th>Descargas</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="addons-table-body">
-              <tr><td colspan="6" class="empty-text">No hay add-ons.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <!-- ===== ORDERS PAGE ===== -->
-    <div class="page hidden" id="page-orders">
-      <div class="page-header">
-        <h2>Pedidos / Ventas</h2>
-        <span class="badge-info" id="orders-total">Total: $0</span>
-      </div>
-      <div class="table-container">
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID Pedido</th>
-                <th>Add-on</th>
-                <th>Usuario</th>
-                <th>Precio</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="orders-table-body">
-              <tr><td colspan="6" class="empty-text">No hay pedidos.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== USERS PAGE ===== -->
-    <div class="page hidden" id="page-users">
-      <div class="page-header">
-        <h2>Usuarios Registrados</h2>
-        <span class="badge-info" id="users-count">0 usuarios</span>
-      </div>
-      <div class="table-container">
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Avatar</th>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Registro</th>
-              </tr>
-            </thead>
-            <tbody id="users-table-body">
-              <tr><td colspan="4" class="empty-text">No hay usuarios registrados.</td></tr>
-            </tbody>
-          </table>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3><i class="fas fa-clock"></i> Pedidos Recientes</h3>
+            </div>
+            <div class="dash-card-body" id="dash-recent-orders">
+              <p class="empty-text">No hay pedidos aún.</p>
+            </div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3><i class="fas fa-fire"></i> Add-ons Populares</h3>
+            </div>
+            <div class="dash-card-body" id="dash-popular-addons">
+              <p class="empty-text">No hay add-ons aún.</p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- ===== SETTINGS PAGE ===== -->
-    <div class="page hidden" id="page-settings">
-      <div class="page-header">
-        <h2>Configuración</h2>
-      </div>
-      <div class="settings-grid">
-        <div class="setting-card">
-          <h3><i class="fas fa-store"></i> General</h3>
-          <div class="form-group">
-            <label>Nombre de la Tienda</label>
-            <input type="text" id="setting-store-name" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>Subtítulo</label>
-            <input type="text" id="setting-store-subtitle" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>Email del Admin</label>
-            <input type="email" id="setting-admin-email" class="form-input" />
-          </div>
-          <button class="btn btn-primary" onclick="saveSettings()">
-            <i class="fas fa-save"></i> Guardar
+      <!-- ===== ADDONS PAGE ===== -->
+      <div class="page hidden" id="page-addons">
+        <div class="page-header">
+          <h2>Gestionar Add-ons</h2>
+          <button class="btn btn-primary" onclick="openAddonForm()">
+            <i class="fas fa-plus"></i> Nuevo Add-on
           </button>
         </div>
-        <div class="setting-card">
-          <h3><i class="fab fa-paypal"></i> PayPal</h3>
-          <div class="form-group">
-            <label>Client ID</label>
-            <input type="text" id="setting-paypal-id" class="form-input" value="AXNocpelnAuDkB3PfxMsD0q3ou7r0VJYQo1mk-1XmOEEDQE11HfiDdprWZpC3U3FTw1FGK1gS-eEeI-f" />
+
+        <div class="table-container">
+          <div class="table-toolbar">
+            <div class="table-search">
+              <i class="fas fa-search"></i>
+              <input type="text" id="admin-addon-search" placeholder="Buscar add-on..." oninput="filterAdminAddons()" />
+            </div>
+            <span class="table-count" id="addon-count">0 add-ons</span>
           </div>
-          <div class="form-group">
-            <label>Secret Key</label>
-            <input type="password" id="setting-paypal-secret" class="form-input" value="EPV3OgWLZapXvPHg64wW1gjw6A4VxuXdZqiTm14b7zn-ybroXUfEiKop9mCuLFQ-RnIEJen1bdu2w8jh" />
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Add-on</th>
+                  <th>Categoría</th>
+                  <th>Precio</th>
+                  <th>Descargas</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="addons-table-body">
+                <tr><td colspan="6" class="empty-text">No hay add-ons. ¡Crea tu primer add-on!</td></tr>
+              </tbody>
+            </table>
           </div>
-          <p class="form-hint">Estas credenciales están en el frontend solo como referencia. La validación real ocurre en PayPal.</p>
-        </div>
-        <div class="setting-card">
-          <h3><i class="fab fa-google"></i> Google OAuth</h3>
-          <div class="form-group">
-            <label>Client ID</label>
-            <input type="text" id="setting-google-id" class="form-input" value="834396146604-onhc6725abrh3kgj3lchsgnqr634s41f.apps.googleusercontent.com" readonly />
-          </div>
-          <p class="form-hint">Configurado en Firebase / Google Cloud Console.</p>
-        </div>
-        <div class="setting-card danger-card">
-          <h3><i class="fas fa-exclamation-triangle"></i> Zona de Peligro</h3>
-          <button class="btn btn-danger" onclick="clearAllData()">
-            <i class="fas fa-trash"></i> Borrar Todos los Datos
-          </button>
-          <p class="form-hint" style="margin-top:8px">Esto eliminará TODOS los add-ons, usuarios y pedidos.</p>
         </div>
       </div>
-    </div>
 
-  </div>
-</main>
+      <!-- ===== ORDERS PAGE ===== -->
+      <div class="page hidden" id="page-orders">
+        <div class="page-header">
+          <h2>Pedidos / Ventas</h2>
+          <span class="badge-info" id="orders-total">Total: $0</span>
+        </div>
+        <div class="table-container">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID Pedido</th>
+                  <th>Add-on</th>
+                  <th>Usuario</th>
+                  <th>Precio</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body">
+                <tr><td colspan="6" class="empty-text">No hay pedidos aún.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== USERS PAGE ===== -->
+      <div class="page hidden" id="page-users">
+        <div class="page-header">
+          <h2>Usuarios Registrados</h2>
+          <span class="badge-info" id="users-count">0 usuarios</span>
+        </div>
+        <div class="table-container">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Avatar</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Registro</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr><td colspan="4" class="empty-text">No hay usuarios registrados.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS PAGE ===== -->
+      <div class="page hidden" id="page-settings">
+        <div class="page-header">
+          <h2>Configuración</h2>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-card">
+            <h3><i class="fas fa-store"></i> General</h3>
+            <div class="form-group">
+              <label>Nombre de la Tienda</label>
+              <input type="text" id="setting-store-name" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>Subtítulo</label>
+              <input type="text" id="setting-store-subtitle" class="form-input" />
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()">
+              <i class="fas fa-save"></i> Guardar
+            </button>
+          </div>
+          <div class="setting-card">
+            <h3><i class="fas fa-key"></i> Credenciales Admin</h3>
+            <div class="form-group">
+              <label>Email del Admin</label>
+              <input type="email" id="setting-admin-email" class="form-input" readonly />
+            </div>
+            <div class="form-group">
+              <label>Contraseña</label>
+              <input type="password" id="setting-admin-password" class="form-input" readonly />
+            </div>
+            <p class="form-hint">Las credenciales del admin están protegidas y configuradas en el código.</p>
+          </div>
+          <div class="setting-card">
+            <h3><i class="fab fa-paypal"></i> PayPal</h3>
+            <div class="form-group">
+              <label>Client ID</label>
+              <input type="text" id="setting-paypal-id" class="form-input" value="AXNocpelnAuDkB3PfxMsD0q3ou7r0VJYQo1mk-1XmOEEDQE11HfiDdprWZpC3U3FTw1FGK1gS-eEeI-f" readonly />
+            </div>
+            <p class="form-hint">Configurado en el SDK de PayPal para pagos reales.</p>
+          </div>
+          <div class="setting-card danger-card">
+            <h3><i class="fas fa-exclamation-triangle"></i> Zona de Peligro</h3>
+            <button class="btn btn-danger" onclick="clearAllData()">
+              <i class="fas fa-trash"></i> Borrar Todos los Datos
+            </button>
+            <p class="form-hint" style="margin-top:8px">Esto eliminará TODOS los add-ons, usuarios y pedidos.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
 
 <!-- ========== ADDON FORM MODAL ========== -->
 <div class="admin-modal-overlay" id="addon-form-modal">
