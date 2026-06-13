@@ -1,43 +1,139 @@
 /* ============================================================
-   MCPE ADDONS STORE – Admin Panel Logic
+   MCPE ADDONS STORE V2 – Admin Panel Logic
+   Protected with Email/Password Login
    Full CRUD for Add-ons, Orders, Users, Settings
    ============================================================ */
 
 'use strict';
+
+// ─── Admin Credentials (Owner only) ─────────────────────────
+const ADMIN_CREDENTIALS = {
+  email:    'vidfreenut@gmail.com',
+  password: 'Vzomstudios2026'
+};
 
 // ─── State ───────────────────────────────────────────────────
 let adminAddons = [];
 let adminOrders = [];
 let adminUsers  = [];
 let editingId   = null;
+let isAdminAuthenticated = false;
 
 // ─── Init ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  checkAdminAccess();
+  checkExistingSession();
+});
+
+/* ============================================================
+   ADMIN AUTHENTICATION
+   ============================================================ */
+function checkExistingSession() {
+  const session = localStorage.getItem('mcpe_admin_session');
+  if (session) {
+    try {
+      const data = JSON.parse(session);
+      // Session valid for 24 hours
+      if (data.email === ADMIN_CREDENTIALS.email && (Date.now() - data.loginAt) < 24 * 60 * 60 * 1000) {
+        isAdminAuthenticated = true;
+        showAdminPanel();
+        return;
+      }
+    } catch {}
+    localStorage.removeItem('mcpe_admin_session');
+  }
+  showLoginGate();
+}
+
+function adminLogin(event) {
+  event.preventDefault();
+
+  const email    = document.getElementById('admin-login-email').value.trim();
+  const password = document.getElementById('admin-login-password').value;
+
+  // Validate credentials
+  if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+    // Success - save session
+    isAdminAuthenticated = true;
+    localStorage.setItem('mcpe_admin_session', JSON.stringify({
+      email: email,
+      loginAt: Date.now()
+    }));
+
+    hideLoginError();
+    showAdminPanel();
+    adminToast('¡Bienvenido, Owner! 👑', 'success');
+  } else {
+    // Failed
+    showLoginError('Credenciales incorrectas. Solo el Owner puede acceder.');
+    shakeLoginForm();
+  }
+}
+
+function adminLogout() {
+  isAdminAuthenticated = false;
+  localStorage.removeItem('mcpe_admin_session');
+  showLoginGate();
+  adminToast('Sesión de admin cerrada', 'info');
+}
+
+function showLoginGate() {
+  document.getElementById('admin-login-gate').style.display = 'flex';
+  document.getElementById('admin-panel').style.display = 'none';
+}
+
+function showAdminPanel() {
+  document.getElementById('admin-login-gate').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'flex';
+
+  // Set admin email in sidebar
+  document.getElementById('sidebar-admin-email').textContent = ADMIN_CREDENTIALS.email;
+
+  // Set settings fields
+  document.getElementById('setting-admin-email').value = ADMIN_CREDENTIALS.email;
+  document.getElementById('setting-admin-password').value = '••••••••••••';
+
+  // Load data
   loadAllData();
   refreshDashboard();
   loadSettings();
   startRealtime();
-});
+}
 
-/* ============================================================
-   ACCESS CHECK
-   ============================================================ */
-function checkAdminAccess() {
-  try {
-    const user = JSON.parse(localStorage.getItem('mcpe_current_user'));
-    if (user) {
-      document.getElementById('sidebar-avatar').src       = user.avatar || '';
-      document.getElementById('sidebar-user-name').textContent  = user.name;
-      document.getElementById('sidebar-user-email').textContent = user.email;
-    }
-  } catch {}
+function showLoginError(msg) {
+  const errorEl = document.getElementById('login-error');
+  const textEl  = document.getElementById('login-error-text');
+  textEl.textContent = msg;
+  errorEl.style.display = 'flex';
+}
+
+function hideLoginError() {
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function shakeLoginForm() {
+  const form = document.getElementById('admin-login-form');
+  form.classList.add('shake');
+  setTimeout(() => form.classList.remove('shake'), 500);
+}
+
+function togglePasswordVisibility() {
+  const input = document.getElementById('admin-login-password');
+  const icon  = document.getElementById('password-eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.className = 'fas fa-eye-slash';
+  } else {
+    input.type = 'password';
+    icon.className = 'fas fa-eye';
+  }
 }
 
 /* ============================================================
    SIDEBAR NAVIGATION
    ============================================================ */
 function switchPage(page, link) {
+  if (!isAdminAuthenticated) return;
+
   // Hide all pages
   document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
   // Show selected
@@ -61,6 +157,9 @@ function switchPage(page, link) {
   if (page === 'addons')    renderAddonsTable();
   if (page === 'orders')    renderOrdersTable();
   if (page === 'users')     renderUsersTable();
+
+  // Close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
 }
 
 function toggleSidebar() {
@@ -78,6 +177,7 @@ function loadAllData() {
 
 function startRealtime() {
   setInterval(() => {
+    if (!isAdminAuthenticated) return;
     const freshAddons = DB.get(DB_KEYS.ADDONS);
     const freshOrders = DB.get(DB_KEYS.ORDERS);
     const freshUsers  = DB.get(DB_KEYS.USERS);
@@ -127,7 +227,7 @@ function refreshDashboard() {
   // Popular add-ons
   const popular = document.getElementById('dash-popular-addons');
   if (adminAddons.length === 0) {
-    popular.innerHTML = '<p class="empty-text">No hay add-ons aún.</p>';
+    popular.innerHTML = '<p class="empty-text">No hay add-ons aún. ¡Crea tu primer add-on!</p>';
   } else {
     const sorted = [...adminAddons].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 5);
     popular.innerHTML = sorted.map(a => `
@@ -160,7 +260,7 @@ function renderAddonsTable() {
   countEl.textContent = `${list.length} add-on${list.length !== 1 ? 's' : ''}`;
 
   if (list.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="empty-text">No hay add-ons.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="empty-text">No hay add-ons. ¡Crea tu primer add-on!</td></tr>';
     return;
   }
 
@@ -207,6 +307,7 @@ function filterAdminAddons() { renderAddonsTable(); }
    ADDON FORM (CREATE / EDIT)
    ============================================================ */
 function openAddonForm(addonId = null) {
+  if (!isAdminAuthenticated) return;
   editingId = addonId;
   const modal = document.getElementById('addon-form-modal');
   const title = document.getElementById('addon-form-title');
@@ -250,6 +351,7 @@ function closeAddonForm() {
 
 function saveAddon(e) {
   e.preventDefault();
+  if (!isAdminAuthenticated) return;
 
   const id          = document.getElementById('addon-form-id').value;
   const name        = document.getElementById('addon-form-name').value.trim();
@@ -308,6 +410,7 @@ function editAddon(id) {
 }
 
 function deleteAddon(id) {
+  if (!isAdminAuthenticated) return;
   if (!confirm('¿Estás seguro de eliminar este add-on? Esta acción no se puede deshacer.')) return;
 
   let addons = DB.get(DB_KEYS.ADDONS);
@@ -329,7 +432,7 @@ function renderOrdersTable() {
   document.getElementById('orders-total').textContent = `Total: $${total.toFixed(2)}`;
 
   if (adminOrders.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="empty-text">No hay pedidos.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="empty-text">No hay pedidos aún.</td></tr>';
     return;
   }
 
@@ -377,21 +480,21 @@ function renderUsersTable() {
    ============================================================ */
 function loadSettings() {
   const settings = DB.getObj(DB_KEYS.SETTINGS, DEFAULT_SETTINGS);
-  document.getElementById('setting-store-name').value     = settings.storeName || '';
-  document.getElementById('setting-store-subtitle').value = settings.storeSubtitle || '';
-  document.getElementById('setting-admin-email').value    = settings.adminEmail || ADMIN_EMAIL;
+  document.getElementById('setting-store-name').value     = settings.storeName || 'MCPE Addons Store';
+  document.getElementById('setting-store-subtitle').value = settings.storeSubtitle || 'Los mejores Add-ons para Minecraft PE';
 }
 
 function saveSettings() {
+  if (!isAdminAuthenticated) return;
   const settings = DB.getObj(DB_KEYS.SETTINGS, DEFAULT_SETTINGS);
   settings.storeName     = document.getElementById('setting-store-name').value.trim();
   settings.storeSubtitle = document.getElementById('setting-store-subtitle').value.trim();
-  settings.adminEmail    = document.getElementById('setting-admin-email').value.trim();
   DB.setObj(DB_KEYS.SETTINGS, settings);
   adminToast('Configuración guardada ✅', 'success');
 }
 
 function clearAllData() {
+  if (!isAdminAuthenticated) return;
   if (!confirm('⚠️ ¿Borrar TODOS los datos? Add-ons, usuarios, pedidos, todo se perderá.')) return;
   if (!confirm('🔴 Última confirmación: ¿Realmente quieres borrar TODO?')) return;
 
@@ -408,6 +511,7 @@ function clearAllData() {
    ============================================================ */
 function adminToast(msg, type = 'info', duration = 4000) {
   const container = document.getElementById('admin-toast-container');
+  if (!container) return;
   const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle', warning: 'fa-exclamation-circle' };
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -426,13 +530,16 @@ function escHtml(str) {
 }
 
 // Globals
-window.switchPage       = switchPage;
-window.toggleSidebar    = toggleSidebar;
-window.openAddonForm    = openAddonForm;
-window.closeAddonForm   = closeAddonForm;
-window.saveAddon        = saveAddon;
-window.editAddon        = editAddon;
-window.deleteAddon      = deleteAddon;
-window.filterAdminAddons= filterAdminAddons;
-window.saveSettings     = saveSettings;
-window.clearAllData     = clearAllData;
+window.adminLogin        = adminLogin;
+window.adminLogout       = adminLogout;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.switchPage        = switchPage;
+window.toggleSidebar     = toggleSidebar;
+window.openAddonForm     = openAddonForm;
+window.closeAddonForm    = closeAddonForm;
+window.saveAddon         = saveAddon;
+window.editAddon         = editAddon;
+window.deleteAddon       = deleteAddon;
+window.filterAdminAddons = filterAdminAddons;
+window.saveSettings      = saveSettings;
+window.clearAllData      = clearAllData;
