@@ -113,9 +113,15 @@ const DB = {
 
     if (FIREBASE_READY && _rtdb) {
       return _rtdb.ref(key).set(data)
+        .then(() => {
+          if (window.CLOUD_STATUS) window.CLOUD_STATUS.error = null;
+          _safeDispatch('cloud-status', window.CLOUD_STATUS);
+        })
         .catch(err => {
           console.error('[MCPE Store] Error guardando en la nube:', err);
+          if (window.CLOUD_STATUS) window.CLOUD_STATUS.error = (err && err.message) || 'PERMISSION_DENIED';
           _safeDispatch('db-error', { key, error: err });
+          _safeDispatch('cloud-status', window.CLOUD_STATUS);
           throw err;
         });
     }
@@ -143,6 +149,9 @@ const DB = {
 window.DB = DB;
 window.DB_KEYS = DB_KEYS;
 window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+
+// Estado de la nube (para mostrar un indicador visible al usuario)
+window.CLOUD_STATUS = { ready: FIREBASE_READY, connected: false, error: null };
 
 function _safeDispatch(name, detail) {
   try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (e) { /* noop */ }
@@ -180,6 +189,12 @@ if (FIREBASE_READY) {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     _rtdb = firebase.database();
+
+    // Estado de conexión visible
+    _rtdb.ref('.info/connected').on('value', s => {
+      if (window.CLOUD_STATUS) window.CLOUD_STATUS.connected = (s.val() === true);
+      _safeDispatch('cloud-status', window.CLOUD_STATUS);
+    });
 
     const _refs = [
       [DB_KEYS.ADDONS,   false],
@@ -227,6 +242,12 @@ if (FIREBASE_READY) {
         _cache[key] = val;
         try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* noop */ }
         _emit(key, val);
+      }, err => {
+        // Error de LECTURA (típicamente reglas que deniegan el acceso)
+        console.error('[MCPE Store] Error leyendo de la nube (' + key + '):', err);
+        if (window.CLOUD_STATUS) window.CLOUD_STATUS.error = (err && err.message) || 'PERMISSION_DENIED';
+        _safeDispatch('db-error', { key, error: err });
+        _safeDispatch('cloud-status', window.CLOUD_STATUS);
       });
     });
 

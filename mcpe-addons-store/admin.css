@@ -973,3 +973,33 @@ img { max-width: 100%; display: block; }
   .page-header { gap: 8px; }
   .image-preview { max-width: 100%; }
 }
+
+
+/* ============================================================
+   INDICADOR DE ESTADO DE LA NUBE
+   ============================================================ */
+.cloud-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card2);
+  white-space: nowrap;
+}
+.cloud-status i { font-size: 0.6rem; }
+.cloud-status.cloud-ok   { color: var(--green);   border-color: rgba(16,185,129,.4); }
+.cloud-status.cloud-ok i { color: var(--green); }
+.cloud-status.cloud-err  { color: var(--red);     border-color: rgba(239,68,68,.4); }
+.cloud-status.cloud-err i{ color: var(--red); animation: pulseDot 1s infinite; }
+.cloud-status.cloud-wait { color: var(--gold);    border-color: rgba(245,158,11,.4); }
+.cloud-status.cloud-wait i{ color: var(--gold); animation: pulseDot 1s infinite; }
+.cloud-status.cloud-off  { color: var(--text-muted); }
+.cloud-status.cloud-off i{ color: var(--text-muted); }
+
+@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+@media (max-width: 600px) {
+  .cloud-status #cloud-status-text { display: none; }
+  .cloud-status { padding: 8px; }
+}

@@ -46,7 +46,39 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Indicador visible del estado de la nube
+  window.addEventListener('cloud-status', () => updateCloudStatus());
+  window.addEventListener('db-error', () => updateCloudStatus());
+  updateCloudStatus();
+  setInterval(updateCloudStatus, 4000);
 });
+
+// Actualiza el punto de estado de la nube (verde/rojo/amarillo)
+function updateCloudStatus() {
+  const el   = document.getElementById('cloud-status');
+  const text = document.getElementById('cloud-status-text');
+  if (!el || !text) return;
+  const st = window.CLOUD_STATUS || { ready: false, connected: false, error: null };
+  el.classList.remove('cloud-ok', 'cloud-err', 'cloud-wait', 'cloud-off');
+  if (!st.ready) {
+    el.classList.add('cloud-off');
+    text.textContent = 'Sin nube (local)';
+    el.title = 'Firebase no está configurado: los datos NO se comparten entre navegadores.';
+  } else if (st.error) {
+    el.classList.add('cloud-err');
+    text.textContent = 'Permiso denegado';
+    el.title = 'La nube rechaza el acceso. Revisa las Reglas de tu Realtime Database (.read y .write en true).';
+  } else if (st.connected) {
+    el.classList.add('cloud-ok');
+    text.textContent = 'Nube conectada';
+    el.title = 'Sincronización en la nube activa: los add-ons se ven en todos los navegadores.';
+  } else {
+    el.classList.add('cloud-wait');
+    text.textContent = 'Conectando…';
+    el.title = 'Conectando con la nube…';
+  }
+}
 
 /* ============================================================
    ADMIN AUTHENTICATION
