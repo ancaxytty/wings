@@ -685,9 +685,11 @@ function downloadAddon(event, id) {
   if (addon.downloadUrl) {
     const link     = document.createElement('a');
     link.href      = addon.downloadUrl;
-    link.download  = addon.name + '.mcpack';
-    link.target    = '_blank';
-    link.rel       = 'noopener';
+    link.download  = addon.downloadName || (addon.name + '.mcaddon');
+    if (!/^data:/i.test(addon.downloadUrl)) {
+      link.target = '_blank';
+      link.rel    = 'noopener';
+    }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

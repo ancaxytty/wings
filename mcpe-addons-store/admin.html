@@ -359,7 +359,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Nombre *</label>
-          <input type="text" id="addon-form-name" class="form-input" required placeholder="Ej: Dragon Mod" />
+          <input type="text" id="addon-form-name" class="form-input" required placeholder="Ej: Dragon Add-on" />
         </div>
         <div class="form-group">
           <label>Categoría *</label>
@@ -404,15 +404,37 @@
       </div>
 
       <div class="form-group">
-        <label>URL de Imagen (opcional)</label>
+        <label>Imagen del Add-on</label>
+        <div class="file-upload">
+          <input type="file" id="addon-form-image-file" accept="image/*" onchange="handleImageUpload(this)" hidden />
+          <button type="button" class="file-upload-btn" onclick="document.getElementById('addon-form-image-file').click()">
+            <i class="fas fa-image"></i> Subir imagen
+          </button>
+          <span class="file-upload-name" id="addon-form-image-filename">Ningún archivo seleccionado</span>
+        </div>
+        <div class="image-preview" id="addon-form-image-preview" style="display:none">
+          <img id="addon-form-image-preview-img" alt="Vista previa" />
+          <button type="button" class="image-preview-remove" onclick="clearImageUpload()" title="Quitar imagen">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="form-or"><span>o pega una URL</span></div>
         <input type="url" id="addon-form-image" class="form-input" placeholder="https://ejemplo.com/imagen.png" />
-        <p class="form-hint">Puedes usar URLs de Imgur, Discord CDN, o cualquier imagen pública.</p>
+        <p class="form-hint">Sube una imagen desde tu dispositivo o pega una URL pública (Imgur, Discord CDN, etc.).</p>
       </div>
 
       <div class="form-group">
-        <label>URL de Descarga *</label>
-        <input type="url" id="addon-form-download" class="form-input" required placeholder="https://mediafire.com/... o enlace directo .mcpack" />
-        <p class="form-hint">Enlace directo al archivo .mcpack o .mcaddon.</p>
+        <label>Archivo del Add-on *</label>
+        <div class="file-upload">
+          <input type="file" id="addon-form-download-file" accept=".mcaddon,.mcpack,.zip" onchange="handleDownloadUpload(this)" hidden />
+          <button type="button" class="file-upload-btn" onclick="document.getElementById('addon-form-download-file').click()">
+            <i class="fas fa-cloud-arrow-up"></i> Subir .mcaddon
+          </button>
+          <span class="file-upload-name" id="addon-form-download-filename">Ningún archivo seleccionado</span>
+        </div>
+        <div class="form-or"><span>o pega un enlace de descarga</span></div>
+        <input type="url" id="addon-form-download" class="form-input" placeholder="https://mediafire.com/... o enlace directo .mcaddon" />
+        <p class="form-hint">Sube el archivo <strong>.mcaddon</strong> / <strong>.mcpack</strong> directamente, o pega un enlace de descarga.</p>
       </div>
 
       <div class="form-row checkboxes">
@@ -429,7 +451,7 @@
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="closeAddonForm()">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="addon-form-submit-btn">
-          <i class="fas fa-save"></i> Guardar Add-on
+          <i class="fas fa-cloud-arrow-up"></i> Publicar Add-on
         </button>
       </div>
     </form>
