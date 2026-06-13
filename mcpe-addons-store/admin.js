@@ -61,7 +61,7 @@ function adminLogin(event) {
 
     hideLoginError();
     showAdminPanel();
-    adminToast('¡Bienvenido, Owner! 👑', 'success');
+    adminToast('¡Bienvenido, Owner!', 'success');
   } else {
     // Failed
     showLoginError('Credenciales incorrectas. Solo el Owner puede acceder.');
@@ -214,7 +214,7 @@ function refreshDashboard() {
   } else {
     recentOrders.innerHTML = adminOrders.slice(-5).reverse().map(o => `
       <div class="dash-order-item">
-        <div class="dash-addon-item-icon">💰</div>
+        <div class="dash-addon-item-icon"><i class="fas fa-dollar-sign"></i></div>
         <div class="dash-item-info">
           <div class="dash-item-name">${escHtml(o.addonName)}</div>
           <div class="dash-item-sub">${new Date(o.date).toLocaleDateString('es-ES')}</div>
@@ -232,7 +232,7 @@ function refreshDashboard() {
     const sorted = [...adminAddons].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 5);
     popular.innerHTML = sorted.map(a => `
       <div class="dash-addon-item">
-        <div class="dash-addon-item-icon">${a.emoji || '📦'}</div>
+        <div class="dash-addon-item-icon">${a.emoji ? escHtml(a.emoji) : '<i class="fas fa-cube"></i>'}</div>
         <div class="dash-item-info">
           <div class="dash-item-name">${escHtml(a.name)}</div>
           <div class="dash-item-sub">${a.category || 'General'} • ${(a.downloads||0).toLocaleString()} descargas</div>
@@ -272,8 +272,8 @@ function renderAddonsTable() {
           <div class="table-addon-cell">
             <div class="table-addon-icon">
               ${addon.image
-                ? `<img src="${escHtml(addon.image)}" alt="" onerror="this.outerHTML='${addon.emoji||'📦'}'" />`
-                : (addon.emoji || '📦')
+                ? `<img src="${escHtml(addon.image)}" alt="" onerror="this.outerHTML='${addon.emoji ? escHtml(addon.emoji) : '&#9638;'}'" />`
+                : (addon.emoji ? escHtml(addon.emoji) : '<i class="fas fa-cube"></i>')
               }
             </div>
             <span class="table-addon-name">${escHtml(addon.name)}</span>
@@ -384,18 +384,18 @@ function saveAddon(e) {
         updatedAt: new Date().toISOString()
       };
     }
-    adminToast('Add-on actualizado correctamente ✅', 'success');
+    adminToast('Add-on actualizado correctamente', 'success');
   } else {
     // Create new
     const newAddon = {
       id: 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
       name, category, description, price, version, mcVersion,
-      emoji: emoji || '📦', image, downloadUrl, isFeatured, isNew,
+      emoji: emoji || '', image, downloadUrl, isFeatured, isNew,
       downloads: 0, purchases: 0,
       createdAt: new Date().toISOString()
     };
     addons.push(newAddon);
-    adminToast('Add-on creado correctamente 🎉', 'success');
+    adminToast('Add-on creado correctamente', 'success');
   }
 
   DB.set(DB_KEYS.ADDONS, addons);
@@ -419,7 +419,7 @@ function deleteAddon(id) {
   adminAddons = addons;
   renderAddonsTable();
   refreshDashboard();
-  adminToast('Add-on eliminado 🗑️', 'warning');
+  adminToast('Add-on eliminado', 'warning');
 }
 
 /* ============================================================
@@ -490,13 +490,13 @@ function saveSettings() {
   settings.storeName     = document.getElementById('setting-store-name').value.trim();
   settings.storeSubtitle = document.getElementById('setting-store-subtitle').value.trim();
   DB.setObj(DB_KEYS.SETTINGS, settings);
-  adminToast('Configuración guardada ✅', 'success');
+  adminToast('Configuración guardada', 'success');
 }
 
 function clearAllData() {
   if (!isAdminAuthenticated) return;
-  if (!confirm('⚠️ ¿Borrar TODOS los datos? Add-ons, usuarios, pedidos, todo se perderá.')) return;
-  if (!confirm('🔴 Última confirmación: ¿Realmente quieres borrar TODO?')) return;
+  if (!confirm('ADVERTENCIA: ¿Borrar TODOS los datos? Add-ons, usuarios, pedidos, todo se perderá.')) return;
+  if (!confirm('Última confirmación: ¿Realmente quieres borrar TODO?')) return;
 
   localStorage.removeItem(DB_KEYS.ADDONS);
   localStorage.removeItem(DB_KEYS.USERS);

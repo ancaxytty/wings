@@ -286,7 +286,7 @@ function loginUser(user) {
 
   updateAuthUI(user);
   closeModal('auth-modal');
-  showToast(`¡Bienvenido, ${user.name}! 👋`, 'success');
+  showToast(`¡Bienvenido, ${user.name}!`, 'success');
   loadPurchases();
   updateStats();
 }
@@ -496,14 +496,14 @@ function buildAddonCard(addon, index) {
 
   el.innerHTML = `
     ${addon.image
-      ? `<img class="addon-card-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" loading="lazy" onerror="this.outerHTML='<div class=addon-card-img-placeholder>📦</div>'" />`
-      : `<div class="addon-card-img-placeholder">${addon.emoji || '📦'}</div>`
+      ? `<img class="addon-card-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" loading="lazy" onerror="this.outerHTML='<div class=addon-card-img-placeholder>&#9638;</div>'" />`
+      : `<div class="addon-card-img-placeholder">${addon.emoji ? escHtml(addon.emoji) : '<i class=\"fas fa-cube\"></i>'}</div>`
     }
     <div class="addon-card-body">
       <div class="addon-card-badges">
-        <span class="badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '🎁 Gratis' : '👑 Premium'}</span>
-        ${addon.isNew     ? '<span class="badge badge-new">✨ Nuevo</span>' : ''}
-        ${addon.isFeatured? '<span class="badge badge-hot">🔥 Top</span>'  : ''}
+        <span class="badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '<i class="fas fa-gift"></i> Gratis' : '<i class="fas fa-crown"></i> Premium'}</span>
+        ${addon.isNew     ? '<span class="badge badge-new"><i class="fas fa-certificate"></i> Nuevo</span>' : ''}
+        ${addon.isFeatured? '<span class="badge badge-hot"><i class="fas fa-fire"></i> Top</span>'  : ''}
         ${addon.category  ? `<span class="badge badge-category">${escHtml(addon.category)}</span>` : ''}
       </div>
       <h3 class="addon-card-title">${escHtml(addon.name)}</h3>
@@ -562,14 +562,14 @@ function renderFeatured() {
     card.innerHTML = `
       ${addon.image
         ? `<img class="featured-card-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" loading="lazy" onerror="this.style.display='none'" />`
-        : `<div class="featured-card-img" style="background:linear-gradient(135deg,var(--bg-card2),rgba(0,212,255,.05));display:flex;align-items:center;justify-content:center;font-size:4rem">${addon.emoji||'📦'}</div>`
+        : `<div class="featured-card-img" style="background:linear-gradient(135deg,var(--bg-card2),rgba(0,212,255,.05));display:flex;align-items:center;justify-content:center;font-size:4rem">${addon.emoji ? escHtml(addon.emoji) : '<i class=\"fas fa-cube\"></i>'}</div>`
       }
-      <div class="featured-badge">⭐ Destacado</div>
+      <div class="featured-badge"><i class="fas fa-star"></i> Destacado</div>
       <div class="featured-card-body">
         <h3 class="featured-card-title">${escHtml(addon.name)}</h3>
         <p style="color:var(--text-muted);font-size:.85rem;margin:.4rem 0 .8rem">${escHtml(addon.description||'').substring(0,80)}…</p>
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <span class="featured-card-price">${isFree ? '🎁 Gratis' : `💰 $${parseFloat(addon.price).toFixed(2)}`}</span>
+          <span class="featured-card-price">${isFree ? '<i class="fas fa-gift"></i> Gratis' : `<i class="fas fa-dollar-sign"></i> $${parseFloat(addon.price).toFixed(2)}`}</span>
           <span class="btn btn-primary btn-sm">Ver más</span>
         </div>
       </div>`;
@@ -590,13 +590,13 @@ function openAddonDetail(id) {
 
   inner.innerHTML = `
     ${addon.image
-      ? `<img class="addon-modal-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" onerror="this.outerHTML='<div class=addon-modal-img-placeholder>${addon.emoji||'📦'}</div>'" />`
-      : `<div class="addon-modal-img-placeholder">${addon.emoji || '📦'}</div>`
+      ? `<img class="addon-modal-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" onerror="this.outerHTML='<div class=addon-modal-img-placeholder>${addon.emoji ? escHtml(addon.emoji) : '&#9638;'}</div>'" />`
+      : `<div class="addon-modal-img-placeholder">${addon.emoji ? escHtml(addon.emoji) : '<i class=\"fas fa-cube\"></i>'}</div>`
     }
     <div class="addon-card-badges" style="margin-bottom:12px">
-      <span class="badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '🎁 Gratis' : '👑 Premium'}</span>
-      ${addon.isNew      ? '<span class="badge badge-new">✨ Nuevo</span>'     : ''}
-      ${addon.isFeatured ? '<span class="badge badge-hot">🔥 Destacado</span>' : ''}
+      <span class="badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '<i class="fas fa-gift"></i> Gratis' : '<i class="fas fa-crown"></i> Premium'}</span>
+      ${addon.isNew      ? '<span class="badge badge-new"><i class="fas fa-certificate"></i> Nuevo</span>'     : ''}
+      ${addon.isFeatured ? '<span class="badge badge-hot"><i class="fas fa-fire"></i> Destacado</span>' : ''}
       ${addon.category   ? `<span class="badge badge-category">${escHtml(addon.category)}</span>` : ''}
     </div>
     <h2 class="addon-modal-title">${escHtml(addon.name)}</h2>
@@ -610,7 +610,7 @@ function openAddonDetail(id) {
 
     <div class="addon-modal-price-row">
       <span class="addon-modal-price ${isFree ? 'free' : ''}">
-        ${isFree ? '🎁 Gratis' : `$${parseFloat(addon.price).toFixed(2)} USD`}
+        ${isFree ? '<i class="fas fa-gift"></i> Gratis' : `$${parseFloat(addon.price).toFixed(2)} USD`}
       </span>
     </div>
 
@@ -691,7 +691,7 @@ function downloadAddon(event, id) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast(`Descargando ${addon.name}… 📥`, 'success');
+    showToast(`Descargando ${addon.name}…`, 'success');
   } else {
     showToast('El enlace de descarga no está disponible aún.', 'warning');
   }
@@ -743,7 +743,7 @@ function renderPurchases() {
     const addon = State.addons.find(a => a.id === p.addonId);
     return `
       <div class="purchase-item">
-        <div class="purchase-item-img">${addon?.emoji || '📦'}</div>
+        <div class="purchase-item-img">${addon?.emoji ? escHtml(addon.emoji) : '<i class="fas fa-cube"></i>'}</div>
         <div class="purchase-item-info">
           <div class="purchase-item-name">${escHtml(p.addonName)}</div>
           <div class="purchase-item-date">${new Date(p.date).toLocaleDateString('es-ES')}</div>

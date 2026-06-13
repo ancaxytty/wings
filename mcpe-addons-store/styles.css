@@ -1652,3 +1652,25 @@ ul { list-style: none; }
   .toast-container { left: 16px; right: 16px; bottom: 16px; }
   .toast { max-width: none; }
 }
+
+
+/* ---------- Admin Button (menu) ---------- */
+.nav-admin-btn {
+  margin-right: 10px;
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+  font-weight: 600;
+}
+.nav-admin-btn:hover {
+  background: var(--gold) !important;
+  color: #050b14 !important;
+  box-shadow: 0 0 18px rgba(245,158,11,0.45);
+}
+.nav-link-admin {
+  color: var(--gold) !important;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 14px;
+}
+.nav-link-admin i { color: var(--gold); }
+.nav-link-admin:hover { background: rgba(245,158,11,0.12); }
