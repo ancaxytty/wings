@@ -29,6 +29,23 @@ const isDataUrl = (s) => typeof s === 'string' && /^data:/i.test(s);
 // ─── Init ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   checkExistingSession();
+
+  // Vincular el formulario de add-ons directamente (más fiable que onsubmit en línea)
+  const addonForm = document.getElementById('addon-form');
+  if (addonForm) {
+    addonForm.addEventListener('submit', saveAddon);
+  }
+  // Respaldo: si el botón no estuviera dentro del form por cualquier motivo
+  const publishBtn = document.getElementById('addon-form-submit-btn');
+  if (publishBtn) {
+    publishBtn.addEventListener('click', (ev) => {
+      const form = document.getElementById('addon-form');
+      if (form && publishBtn.type !== 'submit') {
+        ev.preventDefault();
+        saveAddon(ev);
+      }
+    });
+  }
 });
 
 /* ============================================================
@@ -485,95 +502,91 @@ function handleDownloadUpload(input) {
 }
 
 function saveAddon(e) {
-  e.preventDefault();
-  if (!isAdminAuthenticated) return;
-
-  const id          = document.getElementById('addon-form-id').value;
-  const name        = document.getElementById('addon-form-name').value.trim();
-  const category    = document.getElementById('addon-form-category').value;
-  const description = document.getElementById('addon-form-desc').value.trim();
-  const price       = parseFloat(document.getElementById('addon-form-price').value) || 0;
-  const version     = document.getElementById('addon-form-version').value.trim();
-  const mcVersion   = document.getElementById('addon-form-mcversion').value.trim();
-  const emoji       = document.getElementById('addon-form-emoji').value.trim();
-  const imageUrl    = document.getElementById('addon-form-image').value.trim();
-  const downloadUrlInput = document.getElementById('addon-form-download').value.trim();
-  const isFeatured  = document.getElementById('addon-form-featured').checked;
-  const isNew       = document.getElementById('addon-form-new').checked;
-
-  // La imagen subida tiene prioridad sobre la URL
-  const image = _uploadedImage || imageUrl;
-  // El archivo subido tiene prioridad sobre el enlace
-  const downloadUrl  = _uploadedDownload || downloadUrlInput;
-  const downloadName = _uploadedDownload ? _uploadedDownloadName : '';
-
-  if (!name || !category) {
-    adminToast('Completa el nombre y la categoría.', 'error');
-    return;
-  }
-  // Si hay un archivo seleccionado pero aún no terminó de leerse
-  const dlFileInput = document.getElementById('addon-form-download-file');
-  if (dlFileInput && dlFileInput.files.length > 0 && !_uploadedDownload) {
-    adminToast('El archivo aún se está procesando, espera un momento e intenta de nuevo.', 'warning');
-    return;
-  }
-  if (!downloadUrl) {
-    adminToast('Sube un archivo .mcaddon o pega un enlace de descarga.', 'error');
-    return;
-  }
-
-  const addons = DB.get(DB_KEYS.ADDONS);
-  let successMsg;
-
-  if (id) {
-    // Edit existing
-    const idx = addons.findIndex(a => a.id === id);
-    if (idx !== -1) {
-      addons[idx] = {
-        ...addons[idx],
-        name, category, description, price, version, mcVersion,
-        emoji, image, downloadUrl, downloadName, isFeatured, isNew,
-        updatedAt: new Date().toISOString()
-      };
+  if (e && e.preventDefault) e.preventDefault();
+  try {
+    if (!isAdminAuthenticated) {
+      adminToast('Tu sesión expiró. Inicia sesión de nuevo.', 'error');
+      return;
     }
-    successMsg = 'Add-on publicado (cambios guardados)';
-  } else {
-    // Create new
-    const newAddon = {
-      id: 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-      name, category, description, price, version, mcVersion,
-      emoji: emoji || '', image, downloadUrl, downloadName, isFeatured, isNew,
-      downloads: 0, purchases: 0,
-      createdAt: new Date().toISOString()
-    };
-    addons.push(newAddon);
-    successMsg = 'Add-on publicado correctamente';
-  }
 
-  // Deshabilitar el botón mientras se publica
-  const submitBtn = document.getElementById('addon-form-submit-btn');
-  const prevBtnHtml = submitBtn ? submitBtn.innerHTML : '';
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publicando…';
-  }
+    const id          = document.getElementById('addon-form-id').value;
+    const name        = document.getElementById('addon-form-name').value.trim();
+    const category    = document.getElementById('addon-form-category').value;
+    const description = document.getElementById('addon-form-desc').value.trim();
+    const price       = parseFloat(document.getElementById('addon-form-price').value) || 0;
+    const version     = document.getElementById('addon-form-version').value.trim();
+    const mcVersion   = document.getElementById('addon-form-mcversion').value.trim();
+    const emoji       = document.getElementById('addon-form-emoji').value.trim();
+    const imageUrl    = document.getElementById('addon-form-image').value.trim();
+    const downloadUrlInput = document.getElementById('addon-form-download').value.trim();
+    const isFeatured  = document.getElementById('addon-form-featured').checked;
+    const isNew       = document.getElementById('addon-form-new').checked;
 
-  Promise.resolve(DB.set(DB_KEYS.ADDONS, addons))
-    .then(() => {
-      adminAddons = DB.get(DB_KEYS.ADDONS);
-      adminToast(successMsg, 'success');
-      closeAddonForm();
-      renderAddonsTable();
-      refreshDashboard();
-    })
-    .catch((err) => {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevBtnHtml; }
+    // La imagen/archivo subido tiene prioridad sobre la URL
+    const image = _uploadedImage || imageUrl;
+    const downloadUrl  = _uploadedDownload || downloadUrlInput;
+    const downloadName = _uploadedDownload ? _uploadedDownloadName : '';
+
+    if (!name || !category) {
+      adminToast('Completa el nombre y la categoría.', 'error');
+      return;
+    }
+    const dlFileInput = document.getElementById('addon-form-download-file');
+    if (dlFileInput && dlFileInput.files.length > 0 && !_uploadedDownload) {
+      adminToast('El archivo aún se está procesando, espera un momento e intenta de nuevo.', 'warning');
+      return;
+    }
+    if (!downloadUrl) {
+      adminToast('Sube un archivo .mcaddon o pega un enlace de descarga.', 'error');
+      return;
+    }
+
+    const addons = DB.get(DB_KEYS.ADDONS);
+    let successMsg;
+
+    if (id) {
+      const idx = addons.findIndex(a => a.id === id);
+      if (idx !== -1) {
+        addons[idx] = {
+          ...addons[idx],
+          name, category, description, price, version, mcVersion,
+          emoji, image, downloadUrl, downloadName, isFeatured, isNew,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      successMsg = 'Add-on publicado (cambios guardados)';
+    } else {
+      const newAddon = {
+        id: 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        name, category, description, price, version, mcVersion,
+        emoji: emoji || '', image, downloadUrl, downloadName, isFeatured, isNew,
+        downloads: 0, purchases: 0,
+        createdAt: new Date().toISOString()
+      };
+      addons.push(newAddon);
+      successMsg = 'Add-on publicado correctamente';
+    }
+
+    // Guardar: la UI se actualiza YA (local). La nube se sincroniza en segundo plano.
+    const result = DB.set(DB_KEYS.ADDONS, addons);
+    adminAddons = DB.get(DB_KEYS.ADDONS);
+    adminToast(successMsg, 'success');
+    closeAddonForm();
+    renderAddonsTable();
+    refreshDashboard();
+
+    // Si la nube falla, avisar sin bloquear (el add-on ya quedó publicado localmente)
+    Promise.resolve(result).catch(err => {
       if (err && err.message === 'LOCAL_STORAGE_FULL') {
-        adminToast('El archivo es demasiado grande para guardarse. Usa un archivo más liviano o un enlace de descarga.', 'error', 8000);
+        adminToast('El archivo es muy grande para guardarse. Usa un enlace o un archivo más liviano.', 'error', 8000);
       } else {
-        adminToast('No se pudo publicar en la nube. Revisa las reglas de tu Realtime Database (permiso denegado). Consulta la consola para más detalles.', 'error', 9000);
+        adminToast('Publicado localmente, pero no se pudo sincronizar con la nube. Revisa las reglas de tu Realtime Database (lectura/escritura = true).', 'warning', 9000);
       }
     });
+  } catch (err) {
+    console.error('[Admin] Error al publicar add-on:', err);
+    adminToast('Error al publicar: ' + (err && err.message ? err.message : err), 'error', 8000);
+  }
 }
 
 function editAddon(id) {
