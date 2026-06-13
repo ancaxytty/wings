@@ -19,10 +19,66 @@ let adminUsers  = [];
 let editingId   = null;
 let isAdminAuthenticated = false;
 
+// Uploaded files held in memory (data URLs) until the add-on is published
+let _uploadedImage        = null;  // data URL of uploaded image
+let _uploadedDownload     = null;  // data URL of uploaded .mcaddon
+let _uploadedDownloadName = null;  // original filename of uploaded .mcaddon
+
+const isDataUrl = (s) => typeof s === 'string' && /^data:/i.test(s);
+
 // ─── Init ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   checkExistingSession();
+
+  // Vincular el formulario de add-ons directamente (más fiable que onsubmit en línea)
+  const addonForm = document.getElementById('addon-form');
+  if (addonForm) {
+    addonForm.addEventListener('submit', saveAddon);
+  }
+  // Respaldo: si el botón no estuviera dentro del form por cualquier motivo
+  const publishBtn = document.getElementById('addon-form-submit-btn');
+  if (publishBtn) {
+    publishBtn.addEventListener('click', (ev) => {
+      const form = document.getElementById('addon-form');
+      if (form && publishBtn.type !== 'submit') {
+        ev.preventDefault();
+        saveAddon(ev);
+      }
+    });
+  }
+
+  // Indicador visible del estado de la nube
+  window.addEventListener('cloud-status', () => updateCloudStatus());
+  window.addEventListener('db-error', () => updateCloudStatus());
+  updateCloudStatus();
+  setInterval(updateCloudStatus, 4000);
 });
+
+// Actualiza el punto de estado de la nube (verde/rojo/amarillo)
+function updateCloudStatus() {
+  const el   = document.getElementById('cloud-status');
+  const text = document.getElementById('cloud-status-text');
+  if (!el || !text) return;
+  const st = window.CLOUD_STATUS || { ready: false, connected: false, error: null };
+  el.classList.remove('cloud-ok', 'cloud-err', 'cloud-wait', 'cloud-off');
+  if (!st.ready) {
+    el.classList.add('cloud-off');
+    text.textContent = 'Sin nube (local)';
+    el.title = 'Firebase no está configurado: los datos NO se comparten entre navegadores.';
+  } else if (st.error) {
+    el.classList.add('cloud-err');
+    text.textContent = 'Permiso denegado';
+    el.title = 'La nube rechaza el acceso. Revisa las Reglas de tu Realtime Database (.read y .write en true).';
+  } else if (st.connected) {
+    el.classList.add('cloud-ok');
+    text.textContent = 'Nube conectada';
+    el.title = 'Sincronización en la nube activa: los add-ons se ven en todos los navegadores.';
+  } else {
+    el.classList.add('cloud-wait');
+    text.textContent = 'Conectando…';
+    el.title = 'Conectando con la nube…';
+  }
+}
 
 /* ============================================================
    ADMIN AUTHENTICATION
@@ -61,7 +117,7 @@ function adminLogin(event) {
 
     hideLoginError();
     showAdminPanel();
-    adminToast('¡Bienvenido, Owner! 👑', 'success');
+    adminToast('¡Bienvenido, Owner!', 'success');
   } else {
     // Failed
     showLoginError('Credenciales incorrectas. Solo el Owner puede acceder.');
@@ -214,7 +270,7 @@ function refreshDashboard() {
   } else {
     recentOrders.innerHTML = adminOrders.slice(-5).reverse().map(o => `
       <div class="dash-order-item">
-        <div class="dash-addon-item-icon">💰</div>
+        <div class="dash-addon-item-icon"><i class="fas fa-dollar-sign"></i></div>
         <div class="dash-item-info">
           <div class="dash-item-name">${escHtml(o.addonName)}</div>
           <div class="dash-item-sub">${new Date(o.date).toLocaleDateString('es-ES')}</div>
@@ -232,7 +288,7 @@ function refreshDashboard() {
     const sorted = [...adminAddons].sort((a, b) => (b.downloads || 0) - (a.downloads || 0)).slice(0, 5);
     popular.innerHTML = sorted.map(a => `
       <div class="dash-addon-item">
-        <div class="dash-addon-item-icon">${a.emoji || '📦'}</div>
+        <div class="dash-addon-item-icon">${a.emoji ? escHtml(a.emoji) : '<i class="fas fa-cube"></i>'}</div>
         <div class="dash-item-info">
           <div class="dash-item-name">${escHtml(a.name)}</div>
           <div class="dash-item-sub">${a.category || 'General'} • ${(a.downloads||0).toLocaleString()} descargas</div>
@@ -272,8 +328,8 @@ function renderAddonsTable() {
           <div class="table-addon-cell">
             <div class="table-addon-icon">
               ${addon.image
-                ? `<img src="${escHtml(addon.image)}" alt="" onerror="this.outerHTML='${addon.emoji||'📦'}'" />`
-                : (addon.emoji || '📦')
+                ? `<img src="${escHtml(addon.image)}" alt="" onerror="this.outerHTML='${addon.emoji ? escHtml(addon.emoji) : '&#9638;'}'" />`
+                : (addon.emoji ? escHtml(addon.emoji) : '<i class="fas fa-cube"></i>')
               }
             </div>
             <span class="table-addon-name">${escHtml(addon.name)}</span>
@@ -313,16 +369,17 @@ function openAddonForm(addonId = null) {
   const title = document.getElementById('addon-form-title');
   const btn   = document.getElementById('addon-form-submit-btn');
 
-  // Reset form
+  // Reset form + uploads
   document.getElementById('addon-form').reset();
   document.getElementById('addon-form-id').value = '';
   document.getElementById('addon-form-new').checked = true;
+  resetUploadState();
 
   if (addonId) {
     const addon = adminAddons.find(a => a.id === addonId);
     if (!addon) return;
     title.textContent = 'Editar Add-on';
-    btn.innerHTML     = '<i class="fas fa-save"></i> Actualizar';
+    btn.innerHTML     = '<i class="fas fa-cloud-arrow-up"></i> Publicar cambios';
     // Fill form
     document.getElementById('addon-form-id').value        = addon.id;
     document.getElementById('addon-form-name').value      = addon.name || '';
@@ -332,13 +389,29 @@ function openAddonForm(addonId = null) {
     document.getElementById('addon-form-version').value   = addon.version || '';
     document.getElementById('addon-form-mcversion').value = addon.mcVersion || '';
     document.getElementById('addon-form-emoji').value     = addon.emoji || '';
-    document.getElementById('addon-form-image').value     = addon.image || '';
-    document.getElementById('addon-form-download').value  = addon.downloadUrl || '';
     document.getElementById('addon-form-featured').checked= addon.isFeatured || false;
     document.getElementById('addon-form-new').checked     = addon.isNew || false;
+
+    // Image: uploaded (data URL) vs external URL
+    if (isDataUrl(addon.image)) {
+      _uploadedImage = addon.image;
+      showImagePreview(addon.image, 'Imagen actual');
+    } else if (addon.image) {
+      document.getElementById('addon-form-image').value = addon.image;
+      showImagePreview(addon.image, '');
+    }
+
+    // Download: uploaded file (data URL) vs external URL
+    if (isDataUrl(addon.downloadUrl)) {
+      _uploadedDownload     = addon.downloadUrl;
+      _uploadedDownloadName = addon.downloadName || (addon.name + '.mcaddon');
+      document.getElementById('addon-form-download-filename').textContent = _uploadedDownloadName;
+    } else if (addon.downloadUrl) {
+      document.getElementById('addon-form-download').value = addon.downloadUrl;
+    }
   } else {
     title.textContent = 'Nuevo Add-on';
-    btn.innerHTML     = '<i class="fas fa-save"></i> Guardar Add-on';
+    btn.innerHTML     = '<i class="fas fa-cloud-arrow-up"></i> Publicar Add-on';
   }
 
   modal.classList.add('open');
@@ -347,62 +420,205 @@ function openAddonForm(addonId = null) {
 function closeAddonForm() {
   document.getElementById('addon-form-modal').classList.remove('open');
   editingId = null;
+  resetUploadState();
+}
+
+/* ============================================================
+   FILE UPLOADS (image + .mcaddon)  →  base64 data URLs
+   Se guardan en la nube para que todos los descarguen igual.
+   ============================================================ */
+const MAX_FILE_MB = 8; // limite razonable para guardar en la nube
+
+// Resetea el estado de subidas y la UI del formulario
+function resetUploadState() {
+  _uploadedImage        = null;
+  _uploadedDownload     = null;
+  _uploadedDownloadName = null;
+  const imgFile = document.getElementById('addon-form-image-file');
+  const dlFile  = document.getElementById('addon-form-download-file');
+  if (imgFile) imgFile.value = '';
+  if (dlFile)  dlFile.value  = '';
+  const imgName = document.getElementById('addon-form-image-filename');
+  const dlName  = document.getElementById('addon-form-download-filename');
+  if (imgName) imgName.textContent = 'Ningún archivo seleccionado';
+  if (dlName)  dlName.textContent  = 'Ningún archivo seleccionado';
+  hideImagePreview();
+}
+
+function showImagePreview(src, label) {
+  const wrap = document.getElementById('addon-form-image-preview');
+  const img  = document.getElementById('addon-form-image-preview-img');
+  if (!wrap || !img) return;
+  img.src = src;
+  wrap.style.display = 'flex';
+  if (label) {
+    document.getElementById('addon-form-image-filename').textContent = label;
+  }
+}
+
+function hideImagePreview() {
+  const wrap = document.getElementById('addon-form-image-preview');
+  if (wrap) wrap.style.display = 'none';
+}
+
+// Subida y compresión de imagen (reduce tamaño para la nube)
+function handleImageUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    adminToast('Selecciona un archivo de imagen válido.', 'error');
+    input.value = '';
+    return;
+  }
+  document.getElementById('addon-form-image-filename').textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const imgEl = new Image();
+    imgEl.onload = () => {
+      // Redimensionar a un máximo de 800px para reducir el peso
+      const MAX = 800;
+      let { width, height } = imgEl;
+      if (width > MAX || height > MAX) {
+        if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(imgEl, 0, 0, width, height);
+      try {
+        _uploadedImage = canvas.toDataURL('image/jpeg', 0.85);
+      } catch {
+        _uploadedImage = e.target.result; // fallback sin comprimir
+      }
+      // Al subir archivo, ignoramos la URL escrita
+      document.getElementById('addon-form-image').value = '';
+      showImagePreview(_uploadedImage, file.name);
+    };
+    imgEl.onerror = () => adminToast('No se pudo procesar la imagen.', 'error');
+    imgEl.src = e.target.result;
+  };
+  reader.onerror = () => adminToast('Error al leer la imagen.', 'error');
+  reader.readAsDataURL(file);
+}
+
+function clearImageUpload() {
+  _uploadedImage = null;
+  document.getElementById('addon-form-image-file').value = '';
+  document.getElementById('addon-form-image').value = '';
+  document.getElementById('addon-form-image-filename').textContent = 'Ningún archivo seleccionado';
+  hideImagePreview();
+}
+
+// Subida del archivo del add-on (.mcaddon / .mcpack / .zip)
+function handleDownloadUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const sizeMB = file.size / (1024 * 1024);
+  if (sizeMB > MAX_FILE_MB) {
+    adminToast(`El archivo pesa ${sizeMB.toFixed(1)} MB. Máximo ${MAX_FILE_MB} MB para subida directa; usa un enlace para archivos más grandes.`, 'error');
+    input.value = '';
+    return;
+  }
+  document.getElementById('addon-form-download-filename').textContent = `${file.name} (${sizeMB.toFixed(2)} MB)`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    _uploadedDownload     = e.target.result; // data URL base64
+    _uploadedDownloadName = file.name;
+    // Al subir archivo, ignoramos la URL escrita
+    document.getElementById('addon-form-download').value = '';
+  };
+  reader.onerror = () => adminToast('Error al leer el archivo.', 'error');
+  reader.readAsDataURL(file);
 }
 
 function saveAddon(e) {
-  e.preventDefault();
-  if (!isAdminAuthenticated) return;
-
-  const id          = document.getElementById('addon-form-id').value;
-  const name        = document.getElementById('addon-form-name').value.trim();
-  const category    = document.getElementById('addon-form-category').value;
-  const description = document.getElementById('addon-form-desc').value.trim();
-  const price       = parseFloat(document.getElementById('addon-form-price').value) || 0;
-  const version     = document.getElementById('addon-form-version').value.trim();
-  const mcVersion   = document.getElementById('addon-form-mcversion').value.trim();
-  const emoji       = document.getElementById('addon-form-emoji').value.trim();
-  const image       = document.getElementById('addon-form-image').value.trim();
-  const downloadUrl = document.getElementById('addon-form-download').value.trim();
-  const isFeatured  = document.getElementById('addon-form-featured').checked;
-  const isNew       = document.getElementById('addon-form-new').checked;
-
-  if (!name || !category || !downloadUrl) {
-    adminToast('Completa todos los campos requeridos.', 'error');
-    return;
-  }
-
-  const addons = DB.get(DB_KEYS.ADDONS);
-
-  if (id) {
-    // Edit existing
-    const idx = addons.findIndex(a => a.id === id);
-    if (idx !== -1) {
-      addons[idx] = {
-        ...addons[idx],
-        name, category, description, price, version, mcVersion,
-        emoji, image, downloadUrl, isFeatured, isNew,
-        updatedAt: new Date().toISOString()
-      };
+  if (e && e.preventDefault) e.preventDefault();
+  try {
+    if (!isAdminAuthenticated) {
+      adminToast('Tu sesión expiró. Inicia sesión de nuevo.', 'error');
+      return;
     }
-    adminToast('Add-on actualizado correctamente ✅', 'success');
-  } else {
-    // Create new
-    const newAddon = {
-      id: 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-      name, category, description, price, version, mcVersion,
-      emoji: emoji || '📦', image, downloadUrl, isFeatured, isNew,
-      downloads: 0, purchases: 0,
-      createdAt: new Date().toISOString()
-    };
-    addons.push(newAddon);
-    adminToast('Add-on creado correctamente 🎉', 'success');
-  }
 
-  DB.set(DB_KEYS.ADDONS, addons);
-  adminAddons = addons;
-  closeAddonForm();
-  renderAddonsTable();
-  refreshDashboard();
+    const id          = document.getElementById('addon-form-id').value;
+    const name        = document.getElementById('addon-form-name').value.trim();
+    const category    = document.getElementById('addon-form-category').value;
+    const description = document.getElementById('addon-form-desc').value.trim();
+    const price       = parseFloat(document.getElementById('addon-form-price').value) || 0;
+    const version     = document.getElementById('addon-form-version').value.trim();
+    const mcVersion   = document.getElementById('addon-form-mcversion').value.trim();
+    const emoji       = document.getElementById('addon-form-emoji').value.trim();
+    const imageUrl    = document.getElementById('addon-form-image').value.trim();
+    const downloadUrlInput = document.getElementById('addon-form-download').value.trim();
+    const isFeatured  = document.getElementById('addon-form-featured').checked;
+    const isNew       = document.getElementById('addon-form-new').checked;
+
+    // La imagen/archivo subido tiene prioridad sobre la URL
+    const image = _uploadedImage || imageUrl;
+    const downloadUrl  = _uploadedDownload || downloadUrlInput;
+    const downloadName = _uploadedDownload ? _uploadedDownloadName : '';
+
+    if (!name || !category) {
+      adminToast('Completa el nombre y la categoría.', 'error');
+      return;
+    }
+    const dlFileInput = document.getElementById('addon-form-download-file');
+    if (dlFileInput && dlFileInput.files.length > 0 && !_uploadedDownload) {
+      adminToast('El archivo aún se está procesando, espera un momento e intenta de nuevo.', 'warning');
+      return;
+    }
+    if (!downloadUrl) {
+      adminToast('Sube un archivo .mcaddon o pega un enlace de descarga.', 'error');
+      return;
+    }
+
+    const addons = DB.get(DB_KEYS.ADDONS);
+    let successMsg;
+
+    if (id) {
+      const idx = addons.findIndex(a => a.id === id);
+      if (idx !== -1) {
+        addons[idx] = {
+          ...addons[idx],
+          name, category, description, price, version, mcVersion,
+          emoji, image, downloadUrl, downloadName, isFeatured, isNew,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      successMsg = 'Add-on publicado (cambios guardados)';
+    } else {
+      const newAddon = {
+        id: 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        name, category, description, price, version, mcVersion,
+        emoji: emoji || '', image, downloadUrl, downloadName, isFeatured, isNew,
+        downloads: 0, purchases: 0,
+        createdAt: new Date().toISOString()
+      };
+      addons.push(newAddon);
+      successMsg = 'Add-on publicado correctamente';
+    }
+
+    // Guardar: la UI se actualiza YA (local). La nube se sincroniza en segundo plano.
+    const result = DB.set(DB_KEYS.ADDONS, addons);
+    adminAddons = DB.get(DB_KEYS.ADDONS);
+    adminToast(successMsg, 'success');
+    closeAddonForm();
+    renderAddonsTable();
+    refreshDashboard();
+
+    // Si la nube falla, avisar sin bloquear (el add-on ya quedó publicado localmente)
+    Promise.resolve(result).catch(err => {
+      if (err && err.message === 'LOCAL_STORAGE_FULL') {
+        adminToast('El archivo es muy grande para guardarse. Usa un enlace o un archivo más liviano.', 'error', 8000);
+      } else {
+        adminToast('Publicado localmente, pero no se pudo sincronizar con la nube. Revisa las reglas de tu Realtime Database (lectura/escritura = true).', 'warning', 9000);
+      }
+    });
+  } catch (err) {
+    console.error('[Admin] Error al publicar add-on:', err);
+    adminToast('Error al publicar: ' + (err && err.message ? err.message : err), 'error', 8000);
+  }
 }
 
 function editAddon(id) {
@@ -419,7 +635,7 @@ function deleteAddon(id) {
   adminAddons = addons;
   renderAddonsTable();
   refreshDashboard();
-  adminToast('Add-on eliminado 🗑️', 'warning');
+  adminToast('Add-on eliminado', 'warning');
 }
 
 /* ============================================================
@@ -490,17 +706,18 @@ function saveSettings() {
   settings.storeName     = document.getElementById('setting-store-name').value.trim();
   settings.storeSubtitle = document.getElementById('setting-store-subtitle').value.trim();
   DB.setObj(DB_KEYS.SETTINGS, settings);
-  adminToast('Configuración guardada ✅', 'success');
+  adminToast('Configuración guardada', 'success');
 }
 
 function clearAllData() {
   if (!isAdminAuthenticated) return;
-  if (!confirm('⚠️ ¿Borrar TODOS los datos? Add-ons, usuarios, pedidos, todo se perderá.')) return;
-  if (!confirm('🔴 Última confirmación: ¿Realmente quieres borrar TODO?')) return;
+  if (!confirm('ADVERTENCIA: ¿Borrar TODOS los datos? Add-ons, usuarios, pedidos, todo se perderá.')) return;
+  if (!confirm('Última confirmación: ¿Realmente quieres borrar TODO?')) return;
 
-  localStorage.removeItem(DB_KEYS.ADDONS);
-  localStorage.removeItem(DB_KEYS.USERS);
-  localStorage.removeItem(DB_KEYS.ORDERS);
+  // Borrar tanto localmente como en la nube (Firebase)
+  DB.set(DB_KEYS.ADDONS, []);
+  DB.set(DB_KEYS.USERS, []);
+  DB.set(DB_KEYS.ORDERS, []);
   adminToast('Todos los datos han sido eliminados.', 'error');
   loadAllData();
   refreshDashboard();
@@ -537,6 +754,9 @@ window.switchPage        = switchPage;
 window.toggleSidebar     = toggleSidebar;
 window.openAddonForm     = openAddonForm;
 window.closeAddonForm    = closeAddonForm;
+window.handleImageUpload = handleImageUpload;
+window.clearImageUpload  = clearImageUpload;
+window.handleDownloadUpload = handleDownloadUpload;
 window.saveAddon         = saveAddon;
 window.editAddon         = editAddon;
 window.deleteAddon       = deleteAddon;

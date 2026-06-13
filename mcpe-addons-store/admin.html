@@ -20,7 +20,7 @@
 <!-- ========== LOGIN GATE (blocks everything until admin logs in) ========== -->
 <div class="admin-login-gate" id="admin-login-gate">
   <div class="login-gate-card">
-    <div class="login-gate-icon">🔒</div>
+    <div class="login-gate-icon"><i class="fas fa-lock"></i></div>
     <h1>Panel de Administración</h1>
     <p>Solo el Owner/Admin puede acceder</p>
 
@@ -62,7 +62,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <a href="index.html" class="sidebar-logo">
-        <span class="sidebar-logo-icon">⛏</span>
+        <span class="sidebar-logo-icon"><i class="fas fa-cube"></i></span>
         <span class="sidebar-logo-text">MCPE <span>Admin</span></span>
       </a>
       <button class="sidebar-close" onclick="toggleSidebar()">
@@ -125,6 +125,9 @@
       </button>
       <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
       <div class="topbar-actions">
+        <span class="cloud-status" id="cloud-status" title="Estado de la sincronización en la nube">
+          <i class="fas fa-circle"></i> <span id="cloud-status-text">Conectando…</span>
+        </span>
         <button class="topbar-btn" onclick="location.reload()" title="Refrescar">
           <i class="fas fa-sync-alt"></i>
         </button>
@@ -353,13 +356,13 @@
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form class="admin-modal-body" id="addon-form" onsubmit="saveAddon(event)">
+    <form class="admin-modal-body" id="addon-form">
       <input type="hidden" id="addon-form-id" />
 
       <div class="form-row">
         <div class="form-group">
           <label>Nombre *</label>
-          <input type="text" id="addon-form-name" class="form-input" required placeholder="Ej: Dragon Mod" />
+          <input type="text" id="addon-form-name" class="form-input" required placeholder="Ej: Dragon Add-on" />
         </div>
         <div class="form-group">
           <label>Categoría *</label>
@@ -398,38 +401,60 @@
           <input type="text" id="addon-form-mcversion" class="form-input" placeholder="1.20+" />
         </div>
         <div class="form-group">
-          <label>Emoji/Ícono</label>
-          <input type="text" id="addon-form-emoji" class="form-input" placeholder="📦 🐉 🗡️" maxlength="4" />
+          <label>Símbolo/Ícono (opcional)</label>
+          <input type="text" id="addon-form-emoji" class="form-input" placeholder="Ej: ◆ ★ ✦ (o deja vacío)" maxlength="4" />
         </div>
       </div>
 
       <div class="form-group">
-        <label>URL de Imagen (opcional)</label>
+        <label>Imagen del Add-on</label>
+        <div class="file-upload">
+          <input type="file" id="addon-form-image-file" accept="image/*" onchange="handleImageUpload(this)" hidden />
+          <button type="button" class="file-upload-btn" onclick="document.getElementById('addon-form-image-file').click()">
+            <i class="fas fa-image"></i> Subir imagen
+          </button>
+          <span class="file-upload-name" id="addon-form-image-filename">Ningún archivo seleccionado</span>
+        </div>
+        <div class="image-preview" id="addon-form-image-preview" style="display:none">
+          <img id="addon-form-image-preview-img" alt="Vista previa" />
+          <button type="button" class="image-preview-remove" onclick="clearImageUpload()" title="Quitar imagen">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="form-or"><span>o pega una URL</span></div>
         <input type="url" id="addon-form-image" class="form-input" placeholder="https://ejemplo.com/imagen.png" />
-        <p class="form-hint">Puedes usar URLs de Imgur, Discord CDN, o cualquier imagen pública.</p>
+        <p class="form-hint">Sube una imagen desde tu dispositivo o pega una URL pública (Imgur, Discord CDN, etc.).</p>
       </div>
 
       <div class="form-group">
-        <label>URL de Descarga *</label>
-        <input type="url" id="addon-form-download" class="form-input" required placeholder="https://mediafire.com/... o enlace directo .mcpack" />
-        <p class="form-hint">Enlace directo al archivo .mcpack o .mcaddon.</p>
+        <label>Archivo del Add-on *</label>
+        <div class="file-upload">
+          <input type="file" id="addon-form-download-file" accept=".mcaddon,.mcpack,.zip" onchange="handleDownloadUpload(this)" hidden />
+          <button type="button" class="file-upload-btn" onclick="document.getElementById('addon-form-download-file').click()">
+            <i class="fas fa-cloud-arrow-up"></i> Subir .mcaddon
+          </button>
+          <span class="file-upload-name" id="addon-form-download-filename">Ningún archivo seleccionado</span>
+        </div>
+        <div class="form-or"><span>o pega un enlace de descarga</span></div>
+        <input type="url" id="addon-form-download" class="form-input" placeholder="https://mediafire.com/... o enlace directo .mcaddon" />
+        <p class="form-hint">Sube el archivo <strong>.mcaddon</strong> / <strong>.mcpack</strong> directamente, o pega un enlace de descarga.</p>
       </div>
 
       <div class="form-row checkboxes">
         <label class="checkbox-label">
           <input type="checkbox" id="addon-form-featured" />
-          <span>⭐ Destacado</span>
+          <span><i class="fas fa-star"></i> Destacado</span>
         </label>
         <label class="checkbox-label">
           <input type="checkbox" id="addon-form-new" checked />
-          <span>✨ Nuevo</span>
+          <span><i class="fas fa-certificate"></i> Nuevo</span>
         </label>
       </div>
 
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="closeAddonForm()">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="addon-form-submit-btn">
-          <i class="fas fa-save"></i> Guardar Add-on
+          <i class="fas fa-cloud-arrow-up"></i> Publicar Add-on
         </button>
       </div>
     </form>
@@ -438,6 +463,10 @@
 
 <!-- ========== TOAST ========== -->
 <div class="toast-container" id="admin-toast-container"></div>
+
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <!-- Scripts -->
 <script src="firebase-config.js"></script>

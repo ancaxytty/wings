@@ -62,7 +62,7 @@ function renderPayPalButton(addon) {
     onApprove: function(data, actions) {
       return actions.order.capture().then(function(details) {
         // Payment successful
-        showToast(`¡Pago completado! Gracias, ${details.payer.name.given_name}! 🎉`, 'success');
+        showToast(`¡Pago completado! Gracias, ${details.payer.name.given_name}!`, 'success');
 
         // Save purchase
         savePurchase(addon, details);
