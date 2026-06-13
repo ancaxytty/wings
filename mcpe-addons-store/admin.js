@@ -383,7 +383,8 @@ function openAddonForm(addonId = null) {
     // Fill form
     document.getElementById('addon-form-id').value        = addon.id;
     document.getElementById('addon-form-name').value      = addon.name || '';
-    document.getElementById('addon-form-category').value  = addon.category || '';
+    document.getElementById('addon-form-category').value  = addon.category || addon.contentType || '';
+    document.getElementById('addon-form-platform').value  = addon.platform || 'bedrock';
     document.getElementById('addon-form-desc').value      = addon.description || '';
     document.getElementById('addon-form-price').value     = addon.price || 0;
     document.getElementById('addon-form-version').value   = addon.version || '';
@@ -544,6 +545,7 @@ function saveAddon(e) {
     const id          = document.getElementById('addon-form-id').value;
     const name        = document.getElementById('addon-form-name').value.trim();
     const category    = document.getElementById('addon-form-category').value;
+    const platform    = (document.getElementById('addon-form-platform') || {}).value || 'bedrock';
     const description = document.getElementById('addon-form-desc').value.trim();
     const price       = parseFloat(document.getElementById('addon-form-price').value) || 0;
     const version     = document.getElementById('addon-form-version').value.trim();
@@ -581,7 +583,7 @@ function saveAddon(e) {
       if (idx !== -1) {
         addons[idx] = {
           ...addons[idx],
-          name, category, description, price, version, mcVersion,
+          name, category, contentType: category, platform, description, price, version, mcVersion,
           emoji, image, downloadUrl, downloadName, isFeatured, isNew,
           updatedAt: new Date().toISOString()
         };
@@ -590,7 +592,7 @@ function saveAddon(e) {
     } else {
       const newAddon = {
         id: 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-        name, category, description, price, version, mcVersion,
+        name, category, contentType: category, platform, description, price, version, mcVersion,
         emoji: emoji || '', image, downloadUrl, downloadName, isFeatured, isNew,
         downloads: 0, purchases: 0,
         createdAt: new Date().toISOString()

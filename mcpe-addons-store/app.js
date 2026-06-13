@@ -11,12 +11,17 @@ const State = {
   addons:          [],
   filteredAddons:  [],
   currentCategory: 'all',
+  currentPlatform: 'all',
   searchQuery:     '',
   page:            1,
   perPage:         12,
   currentAddon:    null,
   purchases:       [],
 };
+
+// Subidas de usuario en memoria (data URLs)
+let _upImage = null, _upFile = null, _upFileName = null;
+let _profAvatar = null, _profFrame = 'none';
 
 // ─── DOM Ready ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateStats();
   restoreSession();
   listenRealtime();
+  renderPlans();
+  populateUploadTypes();
 });
 
 /* ============================================================
@@ -275,20 +282,30 @@ function parseJwt(token) {
 }
 
 function loginUser(user) {
-  State.user = user;
-  localStorage.setItem('mcpe_current_user', JSON.stringify(user));
-
-  // Save to users list
+  // Conservar datos de perfil existentes (plan, marco, país, bio, etc.)
   const users = DB.get(DB_KEYS.USERS);
   const idx   = users.findIndex(u => u.id === user.id);
-  if (idx === -1) users.push(user); else users[idx] = { ...users[idx], ...user };
+  const existing = idx !== -1 ? users[idx] : {};
+  const merged = { ...existing, ...user };
+  merged.plan        = existing.plan        || 'free';
+  merged.frame       = existing.frame       || 'none';
+  merged.country     = existing.country     || '';
+  merged.bio         = existing.bio         || '';
+  if (existing.displayName)  merged.displayName  = existing.displayName;
+  if (existing.customAvatar) merged.customAvatar = existing.customAvatar;
+
+  State.user = merged;
+  localStorage.setItem('mcpe_current_user', JSON.stringify(merged));
+
+  if (idx === -1) users.push(merged); else users[idx] = merged;
   DB.set(DB_KEYS.USERS, users);
 
-  updateAuthUI(user);
+  updateAuthUI(merged);
   closeModal('auth-modal');
-  showToast(`¡Bienvenido, ${user.name}!`, 'success');
+  showToast(`¡Bienvenido, ${userDisplayName(merged)}!`, 'success');
   loadPurchases();
   updateStats();
+  renderPlans();
 }
 
 function restoreSession() {
@@ -308,20 +325,27 @@ function restoreSession() {
 }
 
 function updateAuthUI(user) {
+  const av    = userAvatar(user);
+  const dname = userDisplayName(user);
+  const fcls  = frameClass(user.frame);
+
   // Mobile menu
   document.getElementById('logged-out-btns').style.display = 'none';
   document.getElementById('logged-in-btns').style.display  = 'block';
-  document.getElementById('menu-user-avatar').src  = user.avatar || '';
-  document.getElementById('menu-user-name').textContent   = user.name;
+  const mAv = document.getElementById('menu-user-avatar');
+  mAv.src = av; mAv.className = 'user-avatar-small ' + fcls;
+  document.getElementById('menu-user-name').textContent   = dname;
   document.getElementById('menu-user-email').textContent  = user.email;
 
   // Desktop
   document.getElementById('desktop-logged-out').style.display = 'none';
   document.getElementById('desktop-logged-in').style.display  = 'flex';
-  document.getElementById('nav-user-avatar').src  = user.avatar || '';
-  document.getElementById('nav-user-name').textContent   = user.name.split(' ')[0];
-  document.getElementById('dropdown-avatar').src  = user.avatar || '';
-  document.getElementById('dropdown-name').textContent   = user.name;
+  const nAv = document.getElementById('nav-user-avatar');
+  nAv.src = av; nAv.className = 'user-avatar-small ' + fcls;
+  document.getElementById('nav-user-name').textContent   = dname.split(' ')[0];
+  const dAv = document.getElementById('dropdown-avatar');
+  dAv.src = av; dAv.className = fcls;
+  document.getElementById('dropdown-name').textContent   = dname;
   document.getElementById('dropdown-email').textContent  = user.email;
 }
 
@@ -340,6 +364,7 @@ function logout() {
 
   if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
   showToast('Sesión cerrada correctamente', 'info');
+  renderPlans();
 }
 
 /* ============================================================
@@ -423,10 +448,16 @@ function listenRealtime() {
 function applyFilters() {
   let list = [...State.addons];
 
-  // Category filter
-  if (State.currentCategory === 'free')    list = list.filter(a => a.price == 0 || a.price === '0');
-  else if (State.currentCategory === 'premium') list = list.filter(a => parseFloat(a.price) > 0);
-  else if (State.currentCategory !== 'all') list = list.filter(a => a.category === State.currentCategory);
+  // Platform filter
+  if (State.currentPlatform !== 'all') {
+    list = list.filter(a => (a.platform || 'bedrock') === State.currentPlatform);
+  }
+
+  // Category / content-type filter
+  const cat = State.currentCategory;
+  if (cat === 'free')         list = list.filter(a => a.price == 0 || a.price === '0');
+  else if (cat === 'premium') list = list.filter(a => parseFloat(a.price) > 0);
+  else if (cat !== 'all')     list = list.filter(a => (a.contentType || a.category) === cat);
 
   // Search filter
   if (State.searchQuery) {
@@ -434,7 +465,8 @@ function applyFilters() {
     list = list.filter(a =>
       a.name.toLowerCase().includes(q) ||
       (a.description || '').toLowerCase().includes(q) ||
-      (a.category || '').toLowerCase().includes(q)
+      (a.category || '').toLowerCase().includes(q) ||
+      (a.authorName || '').toLowerCase().includes(q)
     );
   }
 
@@ -442,6 +474,13 @@ function applyFilters() {
   State.page = 1;
   renderAddons();
   renderFeatured();
+}
+
+function setPlatform(p, btn) {
+  State.currentPlatform = p;
+  document.querySelectorAll('.ptab').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  applyFilters();
 }
 
 function setCategory(cat, btn) {
@@ -502,12 +541,14 @@ function buildAddonCard(addon, index) {
     <div class="addon-card-body">
       <div class="addon-card-badges">
         <span class="badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '<i class="fas fa-gift"></i> Gratis' : '<i class="fas fa-crown"></i> Premium'}</span>
+        ${addon.platform ? `<span class="badge badge-platform"><i class="fas ${addon.platform === 'java' ? 'fa-desktop' : 'fa-mobile-screen-button'}"></i> ${platformShort(addon.platform)}</span>` : ''}
+        ${(addon.contentType || addon.category) ? `<span class="badge badge-category">${escHtml(typeName(addon.contentType || addon.category))}</span>` : ''}
         ${addon.isNew     ? '<span class="badge badge-new"><i class="fas fa-certificate"></i> Nuevo</span>' : ''}
         ${addon.isFeatured? '<span class="badge badge-hot"><i class="fas fa-fire"></i> Top</span>'  : ''}
-        ${addon.category  ? `<span class="badge badge-category">${escHtml(addon.category)}</span>` : ''}
       </div>
       <h3 class="addon-card-title">${escHtml(addon.name)}</h3>
       <p class="addon-card-desc">${escHtml(addon.description || 'Sin descripción disponible.')}</p>
+      ${addon.authorName ? `<div class="addon-card-author"><i class="fas fa-user"></i> ${escHtml(addon.authorName)}</div>` : ''}
       <div class="addon-card-meta">
         <span class="addon-card-price ${priceClass}">${price}</span>
         <span class="addon-card-downloads">
@@ -794,6 +835,340 @@ function generateId() {
   return 'addon_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
 }
 
+/* ============================================================
+   V3.0 — Helpers de usuario, planes y marcos
+   ============================================================ */
+function userDisplayName(u){ return (u && (u.displayName || u.name)) || 'Usuario'; }
+function userAvatar(u){ return (u && (u.customAvatar || u.avatar)) || ''; }
+function frameClass(frameId){ return frameId && frameId !== 'none' ? ('av-frame av-' + frameId) : ''; }
+function platformShort(id){ const p=(window.PLATFORMS||[]).find(x=>x.id===id); return p?p.short:id; }
+function typeName(id){ const t=(window.CONTENT_TYPES||[]).find(x=>x.id===id); return t?t.name:id; }
+function userPlanId(u){ return (u && u.plan) || 'free'; }
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function countTodayUploads(userId){
+  const today = todayKey();
+  return DB.get(DB_KEYS.ADDONS).filter(a => a.authorId === userId && (a.createdAt||'').slice(0,10) === today).length;
+}
+function persistCurrentUser(){
+  if (!State.user) return;
+  localStorage.setItem('mcpe_current_user', JSON.stringify(State.user));
+  const users = DB.get(DB_KEYS.USERS);
+  const idx = users.findIndex(u => u.id === State.user.id);
+  if (idx === -1) users.push(State.user); else users[idx] = { ...users[idx], ...State.user };
+  DB.set(DB_KEYS.USERS, users);
+  updateAuthUI(State.user);
+}
+
+/* ============================================================
+   PLANES
+   ============================================================ */
+function renderPlans(){
+  const grid = document.getElementById('plans-grid');
+  if (!grid || !window.PLANS) return;
+  const currentPlan = State.user ? userPlanId(State.user) : null;
+  grid.innerHTML = window.PLANS.map(p => `
+    <div class="plan-card ${p.popular ? 'plan-popular' : ''} ${currentPlan===p.id?'plan-current':''}" style="--plan-color:${p.color}">
+      ${p.popular ? '<div class="plan-tag"><i class="fas fa-star"></i> Más popular</div>' : ''}
+      ${currentPlan===p.id ? '<div class="plan-current-tag"><i class="fas fa-check"></i> Tu plan</div>' : ''}
+      <div class="plan-icon"><i class="fas ${p.icon}"></i></div>
+      <h3 class="plan-name">${p.name}</h3>
+      <div class="plan-price">${p.price === 0 ? 'Gratis' : '$'+p.price.toFixed(2)}<span>${p.price===0?'':'/mes'}</span></div>
+      <div class="plan-uploads"><i class="fas fa-cloud-arrow-up"></i> ${p.dailyUploads} add-ons por día</div>
+      <ul class="plan-features">
+        ${p.features.map(f => `<li><i class="fas fa-check"></i> ${escHtml(f)}</li>`).join('')}
+      </ul>
+      <button class="btn ${p.popular?'btn-primary btn-glow':'btn-outline'} btn-full" onclick="selectPlan('${p.id}')">
+        ${currentPlan===p.id ? 'Plan actual' : (p.price===0 ? 'Usar Gratis' : 'Elegir '+p.name)}
+      </button>
+    </div>
+  `).join('');
+}
+
+function selectPlan(planId){
+  if (!State.user){ openAuthModal('login'); showToast('Inicia sesión para elegir un plan.', 'info'); return; }
+  const plan = getPlanById(planId);
+  State.user.plan = planId;
+  persistCurrentUser();
+  renderPlans();
+  if (planId === 'free') showToast('Estás en el plan Gratis.', 'info');
+  else showToast(`¡Plan ${plan.name} activado! Sube hasta ${plan.dailyUploads} add-ons al día.`, 'success');
+}
+
+/* ============================================================
+   SUBIR ADD-ON (usuarios registrados, con límite diario)
+   ============================================================ */
+function populateUploadTypes(){
+  const sel = document.getElementById('up-type');
+  if (!sel || !window.CONTENT_TYPES) return;
+  const platform = (document.getElementById('up-platform')||{}).value || 'bedrock';
+  const types = window.CONTENT_TYPES.filter(t => t.platform === 'both' || t.platform === platform);
+  sel.innerHTML = types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+}
+function onUploadPlatformChange(){ populateUploadTypes(); }
+
+function openUploadModal(){
+  document.getElementById('user-dropdown')?.classList.remove('open');
+  if (!State.user){ openAuthModal('login'); showToast('Inicia sesión para subir add-ons.', 'info'); return; }
+  _upImage=null; _upFile=null; _upFileName=null;
+  const f = document.getElementById('user-upload-form'); if (f) f.reset();
+  document.getElementById('up-image-name').textContent = 'Ningún archivo';
+  document.getElementById('up-file-name').textContent  = 'Ningún archivo';
+  document.getElementById('up-image-preview').style.display = 'none';
+  populateUploadTypes();
+  const limit = getDailyLimit(userPlanId(State.user));
+  const used  = countTodayUploads(State.user.id);
+  const info  = document.getElementById('upload-limit-info');
+  if (info) info.innerHTML = `Plan <strong>${getPlanById(userPlanId(State.user)).name}</strong> &middot; Hoy: <strong>${used}/${limit}</strong> add-ons`;
+  openModal('upload-modal');
+}
+
+function handleUploadImage(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')){ showToast('Selecciona una imagen válida.', 'error'); input.value=''; return; }
+  document.getElementById('up-image-name').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX=800; let w=img.width, h=img.height;
+      if (w>MAX||h>MAX){ if(w>=h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      try{ _upImage=c.toDataURL('image/jpeg',0.85); }catch(err){ _upImage=e.target.result; }
+      document.getElementById('up-image-url').value='';
+      document.getElementById('up-image-preview-img').src=_upImage;
+      document.getElementById('up-image-preview').style.display='block';
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleUploadFile(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const mb = file.size/(1024*1024);
+  if (mb>8){ showToast(`El archivo pesa ${mb.toFixed(1)} MB. Máximo 8 MB; usa un enlace para archivos más grandes.`, 'error'); input.value=''; return; }
+  document.getElementById('up-file-name').textContent = `${file.name} (${mb.toFixed(2)} MB)`;
+  const reader=new FileReader();
+  reader.onload=e=>{ _upFile=e.target.result; _upFileName=file.name; document.getElementById('up-download-url').value=''; };
+  reader.readAsDataURL(file);
+}
+
+function submitUserAddon(e){
+  if (e && e.preventDefault) e.preventDefault();
+  try {
+    if (!State.user){ openAuthModal('login'); return; }
+    const limit = getDailyLimit(userPlanId(State.user));
+    const used  = countTodayUploads(State.user.id);
+    if (used >= limit){
+      showToast(`Alcanzaste tu límite de ${limit} add-ons por hoy. Mejora tu plan para subir más.`, 'warning', 7000);
+      return;
+    }
+    const name = document.getElementById('up-name').value.trim();
+    const platform = document.getElementById('up-platform').value;
+    const contentType = document.getElementById('up-type').value;
+    const description = document.getElementById('up-desc').value.trim();
+    const price = parseFloat(document.getElementById('up-price').value) || 0;
+    const version = document.getElementById('up-version').value.trim();
+    const mcVersion = document.getElementById('up-mcversion').value.trim();
+    const image = _upImage || document.getElementById('up-image-url').value.trim();
+    const downloadUrl = _upFile || document.getElementById('up-download-url').value.trim();
+    const downloadName = _upFile ? _upFileName : '';
+
+    if (!name){ showToast('Ponle un nombre a tu add-on.', 'error'); return; }
+    const fileInput = document.getElementById('up-file');
+    if (fileInput.files.length>0 && !_upFile){ showToast('El archivo aún se procesa, espera un momento.', 'warning'); return; }
+    if (!downloadUrl){ showToast('Sube un archivo o pega un enlace de descarga.', 'error'); return; }
+
+    const addons = DB.get(DB_KEYS.ADDONS);
+    addons.push({
+      id: 'addon_'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
+      name, platform, contentType, category: contentType,
+      description, price, version, mcVersion,
+      image, downloadUrl, downloadName,
+      emoji:'', isFeatured:false, isNew:true,
+      downloads:0, purchases:0,
+      authorId: State.user.id, authorName: userDisplayName(State.user), authorAvatar: userAvatar(State.user),
+      createdAt: new Date().toISOString()
+    });
+
+    Promise.resolve(DB.set(DB_KEYS.ADDONS, addons))
+      .then(()=>{
+        showToast('¡Add-on publicado! Ya es visible para todos.', 'success');
+        closeModal('upload-modal');
+        loadAddons(); updateStats();
+      })
+      .catch(err=>{
+        if (err && err.message==='LOCAL_STORAGE_FULL') showToast('El archivo es muy grande. Usa un enlace de descarga.', 'error', 7000);
+        else showToast('Publicado localmente, pero la nube falló. Revisa las reglas de Firebase.', 'warning', 8000);
+      });
+  } catch(err){
+    console.error('[Upload] error:', err);
+    showToast('Error al publicar: '+(err && err.message ? err.message : err), 'error');
+  }
+}
+
+/* ============================================================
+   PERFIL (ver / editar / marcos / selección)
+   ============================================================ */
+function openProfileModal(){
+  document.getElementById('user-dropdown')?.classList.remove('open');
+  if (!State.user){ openAuthModal('login'); showToast('Inicia sesión para ver tu perfil.', 'info'); return; }
+  renderProfile(false);
+  openModal('profile-modal');
+}
+
+function renderProfile(editMode){
+  const u = State.user;
+  const view = document.getElementById('profile-view');
+  if (!u || !view) return;
+  const plan = getPlanById(userPlanId(u));
+  const myAddons = DB.get(DB_KEYS.ADDONS).filter(a => a.authorId === u.id);
+  const totalDl = myAddons.reduce((s,a)=>s+(a.downloads||0),0);
+  const country = (window.COUNTRIES||[]).find(c=>c.code===u.country);
+
+  if (!editMode){
+    view.innerHTML = `
+      <div class="profile-cover"></div>
+      <div class="profile-head">
+        <div class="profile-avatar-wrap ${frameClass(u.frame)}">
+          <img src="${escHtml(userAvatar(u))}" alt="" onerror="this.style.opacity=0" />
+        </div>
+        ${country ? `<img class="profile-flag" src="${FLAG_URL(country.code)}" alt="${escHtml(country.name)}" title="${escHtml(country.name)}" />` : ''}
+        <h2 class="profile-name">${escHtml(userDisplayName(u))}</h2>
+        <span class="profile-plan-badge plan-${plan.id}"><i class="fas ${plan.icon}"></i> ${plan.name}</span>
+        <p class="profile-bio ${u.bio?'':'muted'}">${u.bio ? escHtml(u.bio) : 'Sin biografía aún.'}</p>
+      </div>
+      <div class="profile-stats">
+        <div><strong>${myAddons.length}</strong><span>Add-ons</span></div>
+        <div><strong>${totalDl.toLocaleString()}</strong><span>Descargas</span></div>
+        <div><strong>${plan.dailyUploads}</strong><span>Límite/día</span></div>
+      </div>
+      <div class="profile-actions">
+        <button class="btn btn-primary btn-full" onclick="renderProfile(true)"><i class="fas fa-pen"></i> Editar perfil</button>
+        <button class="btn btn-outline btn-full" onclick="closeModal('profile-modal');openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir add-on</button>
+      </div>
+      <h3 class="profile-section-title"><i class="fas fa-box"></i> Mis Add-ons (${myAddons.length})</h3>
+      <div class="profile-addons">
+        ${myAddons.length === 0 ? '<p class="muted" style="text-align:center;padding:14px 0">Aún no has subido add-ons.</p>' :
+          myAddons.map(a => `
+            <div class="profile-addon-item">
+              <div class="profile-addon-ic">${a.image ? `<img src="${escHtml(a.image)}" alt="" onerror="this.outerHTML='&#9638;'"/>` : '<i class="fas fa-cube"></i>'}</div>
+              <div class="profile-addon-info"><strong>${escHtml(a.name)}</strong><small>${(a.downloads||0).toLocaleString()} descargas</small></div>
+              <button class="btn btn-sm btn-danger" onclick="deleteMyAddon('${a.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+            </div>`).join('')}
+      </div>
+    `;
+    return;
+  }
+
+  _profAvatar = null; _profFrame = u.frame || 'none';
+  const isPremiumPlan = userPlanId(u) !== 'free';
+  view.innerHTML = `
+    <h2 class="profile-edit-title"><i class="fas fa-pen"></i> Editar perfil</h2>
+    <div class="pf-group">
+      <label>Nombre para mostrar</label>
+      <input type="text" id="pf-name" class="uinput" value="${escHtml(userDisplayName(u))}" maxlength="40" />
+    </div>
+    <div class="pf-group">
+      <label>Foto de perfil</label>
+      <div class="file-pick">
+        <input type="file" id="pf-avatar-file" accept="image/*" onchange="handleProfileAvatar(this)" hidden />
+        <button type="button" class="file-pick-btn" onclick="document.getElementById('pf-avatar-file').click()"><i class="fas fa-image"></i> Subir foto</button>
+        <span class="file-pick-name" id="pf-avatar-name">Actual</span>
+      </div>
+    </div>
+    <div class="pf-group">
+      <label>Biografía</label>
+      <textarea id="pf-bio" class="uinput utextarea" rows="2" maxlength="160" placeholder="Cuéntanos sobre ti...">${escHtml(u.bio||'')}</textarea>
+    </div>
+    <div class="pf-group">
+      <label>Selección (Mundial 2026)</label>
+      <select id="pf-country" class="uinput">
+        <option value="">Sin selección</option>
+        ${(window.COUNTRIES||[]).map(c=>`<option value="${c.code}" ${u.country===c.code?'selected':''}>${escHtml(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="pf-group">
+      <label>Marco del avatar</label>
+      <div class="frames-grid" id="frames-grid">
+        ${(window.FRAMES||[]).map(fr=>`
+          <button type="button" class="frame-pick ${_profFrame===fr.id?'active':''} ${fr.premium && !isPremiumPlan ? 'locked':''}" data-frame="${fr.id}" onclick="pickFrame('${fr.id}', ${fr.premium})">
+            <span class="frame-demo av-frame av-${fr.id}"><i class="fas fa-user"></i></span>
+            <small>${fr.name}${fr.premium?' <i class="fas fa-lock"></i>':''}</small>
+          </button>`).join('')}
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button class="btn btn-secondary btn-full" onclick="renderProfile(false)">Cancelar</button>
+      <button class="btn btn-primary btn-full" onclick="saveProfile()"><i class="fas fa-save"></i> Guardar</button>
+    </div>
+  `;
+}
+
+function pickFrame(frameId, premium){
+  if (premium && userPlanId(State.user) === 'free'){
+    showToast('Este marco es premium. Mejora a Creator o Pro para usarlo.', 'warning');
+    return;
+  }
+  _profFrame = frameId;
+  document.querySelectorAll('.frame-pick').forEach(b=>b.classList.toggle('active', b.dataset.frame===frameId));
+}
+
+function handleProfileAvatar(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')){ showToast('Selecciona una imagen.', 'error'); return; }
+  document.getElementById('pf-avatar-name').textContent = file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=400; let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>=h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      try{_profAvatar=c.toDataURL('image/jpeg',0.85);}catch(err){_profAvatar=e.target.result;}
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveProfile(){
+  if (!State.user) return;
+  const name = document.getElementById('pf-name').value.trim();
+  const bio  = document.getElementById('pf-bio').value.trim();
+  const country = document.getElementById('pf-country').value;
+  State.user.displayName = name || State.user.name;
+  State.user.bio = bio;
+  State.user.country = country;
+  State.user.frame = _profFrame || 'none';
+  if (_profAvatar) State.user.customAvatar = _profAvatar;
+  persistCurrentUser();
+  showToast('Perfil actualizado.', 'success');
+  renderProfile(false);
+}
+
+function deleteMyAddon(id){
+  if (!State.user) return;
+  const addons = DB.get(DB_KEYS.ADDONS);
+  const target = addons.find(a=>a.id===id);
+  if (!target || target.authorId !== State.user.id){ showToast('No puedes eliminar este add-on.', 'error'); return; }
+  if (!confirm('¿Eliminar este add-on? No se puede deshacer.')) return;
+  DB.set(DB_KEYS.ADDONS, addons.filter(a=>a.id!==id));
+  loadAddons(); updateStats(); renderProfile(false);
+  showToast('Add-on eliminado.', 'warning');
+}
+
+// Vincular el formulario de subida cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  const upForm = document.getElementById('user-upload-form');
+  if (upForm) upForm.addEventListener('submit', submitUserAddon);
+});
+
 // Expose globally
 window.toggleHamburger    = toggleHamburger;
 window.closeHamburger     = closeHamburger;
@@ -816,3 +1191,18 @@ window.savePurchase       = savePurchase;
 window.renderAddonAction  = renderAddonAction;
 window.hasPurchased       = hasPurchased;
 window.updateStats        = updateStats;
+window.setPlatform        = setPlatform;
+window.renderPlans        = renderPlans;
+window.selectPlan         = selectPlan;
+window.openUploadModal    = openUploadModal;
+window.onUploadPlatformChange = onUploadPlatformChange;
+window.handleUploadImage  = handleUploadImage;
+window.handleUploadFile   = handleUploadFile;
+window.submitUserAddon    = submitUserAddon;
+window.openProfileModal   = openProfileModal;
+window.renderProfile      = renderProfile;
+window.pickFrame          = pickFrame;
+window.handleProfileAvatar= handleProfileAvatar;
+window.saveProfile        = saveProfile;
+window.deleteMyAddon      = deleteMyAddon;
+window.populateUploadTypes= populateUploadTypes;

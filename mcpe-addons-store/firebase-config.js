@@ -266,3 +266,98 @@ if (FIREBASE_READY) {
     }
   });
 }
+
+
+/* ============================================================
+   V3.0 - Catálogos compartidos (plataformas, tipos, planes,
+   marcos de perfil y selecciones del Mundial 2026)
+   ============================================================ */
+
+// Plataformas
+const PLATFORMS = [
+  { id: 'bedrock', name: 'Minecraft PE / Bedrock', short: 'Bedrock', icon: 'fa-mobile-screen-button' },
+  { id: 'java',    name: 'Minecraft Java',         short: 'Java',    icon: 'fa-desktop' }
+];
+
+// Tipos de contenido
+const CONTENT_TYPES = [
+  { id: 'addon',   name: 'Add-on',          platform: 'bedrock', icon: 'fa-puzzle-piece' },
+  { id: 'world',   name: 'Mundo',           platform: 'both',    icon: 'fa-earth-americas' },
+  { id: 'texture', name: 'Texturas',        platform: 'both',    icon: 'fa-palette' },
+  { id: 'skin',    name: 'Skins',           platform: 'both',    icon: 'fa-user-astronaut' },
+  { id: 'map',     name: 'Mapa',            platform: 'both',    icon: 'fa-map-location-dot' },
+  { id: 'mod',     name: 'Mod',             platform: 'java',    icon: 'fa-screwdriver-wrench' },
+  { id: 'plugin',  name: 'Plugin (Server)', platform: 'java',    icon: 'fa-server' },
+  { id: 'shader',  name: 'Shaders',         platform: 'both',    icon: 'fa-wand-magic-sparkles' },
+  { id: 'other',   name: 'Otro',            platform: 'both',    icon: 'fa-cube' }
+];
+
+// Planes (límite de subidas diarias por plan)
+const PLANS = [
+  {
+    id: 'free', name: 'Gratis', price: 0, color: '#94a3b8', icon: 'fa-seedling',
+    dailyUploads: 3,
+    features: ['Descargas ilimitadas', 'Sube 3 add-ons por día', 'Perfil personalizable', 'Marcos básicos']
+  },
+  {
+    id: 'creator', name: 'Creator', price: 4.99, color: '#00d4ff', icon: 'fa-bolt', popular: true,
+    dailyUploads: 10,
+    features: ['Todo lo de Gratis', 'Sube 10 add-ons por día', 'Insignia de Creator', 'Marcos premium', 'Soporte prioritario']
+  },
+  {
+    id: 'pro', name: 'Pro', price: 9.99, color: '#f59e0b', icon: 'fa-crown',
+    dailyUploads: 50,
+    features: ['Todo lo de Creator', 'Sube 50 add-ons por día', 'Insignia Pro dorada', 'Todos los marcos', 'Destacado en la tienda', 'Soporte VIP']
+  }
+];
+
+// Marcos custom para avatar de perfil
+const FRAMES = [
+  { id: 'none',     name: 'Ninguno',     premium: false },
+  { id: 'neon',     name: 'Neón',        premium: false },
+  { id: 'gold',     name: 'Oro',         premium: false },
+  { id: 'worldcup', name: 'World Cup',   premium: false },
+  { id: 'fire',     name: 'Fuego',       premium: true  },
+  { id: 'champion', name: 'Campeón',     premium: true  },
+  { id: 'galaxy',   name: 'Galaxia',     premium: true  },
+  { id: 'rainbow',  name: 'Arcoíris',    premium: true  }
+];
+
+// Selecciones (códigos ISO para banderas vía flagcdn.com)
+const COUNTRIES = [
+  { code: 'ar', name: 'Argentina' }, { code: 'br', name: 'Brasil' },
+  { code: 'mx', name: 'México' },    { code: 'us', name: 'Estados Unidos' },
+  { code: 'ca', name: 'Canadá' },    { code: 'es', name: 'España' },
+  { code: 'fr', name: 'Francia' },   { code: 'de', name: 'Alemania' },
+  { code: 'gb', name: 'Inglaterra' },{ code: 'pt', name: 'Portugal' },
+  { code: 'it', name: 'Italia' },    { code: 'nl', name: 'Países Bajos' },
+  { code: 'uy', name: 'Uruguay' },   { code: 'co', name: 'Colombia' },
+  { code: 'cl', name: 'Chile' },     { code: 'pe', name: 'Perú' },
+  { code: 'ec', name: 'Ecuador' },   { code: 'jp', name: 'Japón' },
+  { code: 'kr', name: 'Corea del Sur' }, { code: 'ma', name: 'Marruecos' },
+  { code: 'sn', name: 'Senegal' },   { code: 'ng', name: 'Nigeria' },
+  { code: 'be', name: 'Bélgica' },   { code: 'hr', name: 'Croacia' },
+  { code: 'ch', name: 'Suiza' },     { code: 'pl', name: 'Polonia' },
+  { code: 'dk', name: 'Dinamarca' }, { code: 'au', name: 'Australia' },
+  { code: 'sa', name: 'Arabia Saudita' }, { code: 'qa', name: 'Catar' }
+];
+
+const FLAG_URL = (code) => `https://flagcdn.com/w40/${code}.png`;
+
+// Helpers de planes
+function getPlanById(id) {
+  return PLANS.find(p => p.id === id) || PLANS[0];
+}
+function getDailyLimit(planId) {
+  return getPlanById(planId).dailyUploads;
+}
+
+// Exponer en window
+window.PLATFORMS = PLATFORMS;
+window.CONTENT_TYPES = CONTENT_TYPES;
+window.PLANS = PLANS;
+window.FRAMES = FRAMES;
+window.COUNTRIES = COUNTRIES;
+window.FLAG_URL = FLAG_URL;
+window.getPlanById = getPlanById;
+window.getDailyLimit = getDailyLimit;

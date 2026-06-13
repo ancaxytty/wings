@@ -29,6 +29,15 @@
   <canvas id="particles-canvas"></canvas>
 </div>
 
+<!-- ========== FIFA WORLD CUP 2026 BANNER ========== -->
+<div class="wc-banner" id="wc-banner">
+  <div class="wc-banner-inner">
+    <i class="fas fa-futbol wc-ball"></i>
+    <span class="wc-text">FIFA World Cup 2026 — Edición Especial</span>
+    <span class="wc-sub">Elige tu selección en tu perfil</span>
+  </div>
+</div>
+
 <!-- ========== NAVBAR ========== -->
 <nav class="navbar" id="navbar">
   <div class="nav-container">
@@ -66,7 +75,7 @@
           <i class="fas fa-fire"></i> Destacados
         </a>
         <a href="#pricing" class="nav-link" onclick="closeHamburger()">
-          <i class="fas fa-tag"></i> Precios
+          <i class="fas fa-crown"></i> Planes
         </a>
         <a href="#contact" class="nav-link" onclick="closeHamburger()">
           <i class="fas fa-envelope"></i> Contacto
@@ -93,6 +102,12 @@
             </div>
           </div>
           <div class="nav-menu-user-actions">
+            <a href="#" onclick="openUploadModal();closeHamburger();" class="upload-link">
+              <i class="fas fa-cloud-arrow-up"></i> Subir Add-on
+            </a>
+            <a href="#" onclick="openProfileModal();closeHamburger();">
+              <i class="fas fa-id-badge"></i> Mi Perfil
+            </a>
             <a href="#" onclick="openPurchasesModal();closeHamburger();">
               <i class="fas fa-box"></i> Mis Compras
             </a>
@@ -129,6 +144,8 @@
             </div>
           </div>
           <hr />
+          <a href="#" onclick="openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir Add-on</a>
+          <a href="#" onclick="openProfileModal()"><i class="fas fa-id-badge"></i> Mi Perfil</a>
           <a href="#" onclick="openPurchasesModal()"><i class="fas fa-box"></i> Mis Compras</a>
           <hr />
           <a href="#" onclick="logout()" class="logout-link"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
@@ -212,22 +229,25 @@
     <div class="search-bar">
       <div class="search-input-wrap">
         <i class="fas fa-search"></i>
-        <input type="text" id="search-input" placeholder="Buscar add-ons..." oninput="filterAddons()" />
+        <input type="text" id="search-input" placeholder="Buscar add-ons, mods, mundos..." oninput="filterAddons()" />
+      </div>
+      <div class="platform-tabs" id="platform-tabs">
+        <button class="ptab active" onclick="setPlatform('all', this)"><i class="fas fa-layer-group"></i> Todo</button>
+        <button class="ptab" onclick="setPlatform('bedrock', this)"><i class="fas fa-mobile-screen-button"></i> Minecraft PE</button>
+        <button class="ptab" onclick="setPlatform('java', this)"><i class="fas fa-desktop"></i> Java</button>
       </div>
       <div class="filter-chips" id="filter-chips">
         <button class="chip active" onclick="setCategory('all', this)">Todos</button>
-        <button class="chip" onclick="setCategory('mobs', this)">Mobs</button>
-        <button class="chip" onclick="setCategory('weapons', this)">Armas</button>
-        <button class="chip" onclick="setCategory('maps', this)">Mapas</button>
-        <button class="chip" onclick="setCategory('textures', this)">Texturas</button>
-        <button class="chip" onclick="setCategory('tools', this)">Herramientas</button>
-        <button class="chip" onclick="setCategory('vehicles', this)">Vehículos</button>
-        <button class="chip" onclick="setCategory('free', this)">
-          <i class="fas fa-gift"></i> Gratis
-        </button>
-        <button class="chip chip-premium" onclick="setCategory('premium', this)">
-          <i class="fas fa-crown"></i> Premium
-        </button>
+        <button class="chip" onclick="setCategory('addon', this)"><i class="fas fa-puzzle-piece"></i> Add-ons</button>
+        <button class="chip" onclick="setCategory('world', this)"><i class="fas fa-earth-americas"></i> Mundos</button>
+        <button class="chip" onclick="setCategory('texture', this)"><i class="fas fa-palette"></i> Texturas</button>
+        <button class="chip" onclick="setCategory('skin', this)"><i class="fas fa-user-astronaut"></i> Skins</button>
+        <button class="chip" onclick="setCategory('map', this)"><i class="fas fa-map-location-dot"></i> Mapas</button>
+        <button class="chip" onclick="setCategory('mod', this)"><i class="fas fa-screwdriver-wrench"></i> Mods</button>
+        <button class="chip" onclick="setCategory('plugin', this)"><i class="fas fa-server"></i> Plugins</button>
+        <button class="chip" onclick="setCategory('shader', this)"><i class="fas fa-wand-magic-sparkles"></i> Shaders</button>
+        <button class="chip" onclick="setCategory('free', this)"><i class="fas fa-gift"></i> Gratis</button>
+        <button class="chip chip-premium" onclick="setCategory('premium', this)"><i class="fas fa-crown"></i> Premium</button>
       </div>
     </div>
   </div>
@@ -276,39 +296,15 @@
   </div>
 </section>
 
-<!-- ========== PRICING SECTION ========== -->
+<!-- ========== PRICING / PLANS SECTION ========== -->
 <section class="pricing-section" id="pricing">
   <div class="container">
     <div class="section-header">
-      <h2 class="section-title">Planes <span class="gradient-text">Simples</span></h2>
-      <p class="section-subtitle">Paga solo por lo que necesitas</p>
+      <h2 class="section-title">Elige tu <span class="gradient-text">Plan</span></h2>
+      <p class="section-subtitle">Sube tus propios add-ons y desbloquea más beneficios</p>
     </div>
-    <div class="pricing-cards">
-      <div class="pricing-card">
-        <div class="pricing-icon"><i class="fas fa-gift"></i></div>
-        <h3>Gratis</h3>
-        <div class="pricing-price">$0 <span>/siempre</span></div>
-        <ul class="pricing-features">
-          <li><i class="fas fa-check"></i> Add-ons gratuitos ilimitados</li>
-          <li><i class="fas fa-check"></i> Descarga directa</li>
-          <li><i class="fas fa-check"></i> Sin registro obligatorio</li>
-          <li><i class="fas fa-times muted"></i> Add-ons premium</li>
-        </ul>
-        <a href="#addons" class="btn btn-outline btn-full">Explorar gratis</a>
-      </div>
-      <div class="pricing-card pricing-card-featured">
-        <div class="pricing-badge-top"><i class="fas fa-star"></i> Más popular</div>
-        <div class="pricing-icon"><i class="fas fa-crown"></i></div>
-        <h3>Premium</h3>
-        <div class="pricing-price">Varía <span>/add-on</span></div>
-        <ul class="pricing-features">
-          <li><i class="fas fa-check"></i> Add-ons exclusivos</li>
-          <li><i class="fas fa-check"></i> Actualizaciones incluidas</li>
-          <li><i class="fas fa-check"></i> Soporte prioritario</li>
-          <li><i class="fas fa-check"></i> Pago seguro con PayPal</li>
-        </ul>
-        <a href="#addons" class="btn btn-primary btn-full btn-glow">Ver Premium</a>
-      </div>
+    <div class="plans-grid" id="plans-grid">
+      <!-- Renderizado por JS desde PLANS -->
     </div>
   </div>
 </section>
@@ -382,7 +378,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2024 MCPE Addons Store. Todos los derechos reservados.</p>
+      <p>© 2026 MCPE Addons Store v3.0 — Edición FIFA World Cup 2026. Todos los derechos reservados.</p>
       <p>No afiliado con Mojang Studios ni Microsoft.</p>
     </div>
   </div>
@@ -437,6 +433,97 @@
         <p>No tienes compras aún</p>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ========== UPLOAD ADD-ON MODAL (usuarios) ========== -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal upload-modal">
+    <button class="modal-close" onclick="closeModal('upload-modal')"><i class="fas fa-times"></i></button>
+    <div class="upload-modal-head">
+      <h2><i class="fas fa-cloud-arrow-up"></i> Subir Add-on</h2>
+      <p id="upload-limit-info" class="upload-limit-info"></p>
+    </div>
+    <form id="user-upload-form" class="upload-form">
+      <div class="uform-row">
+        <div class="uform-group">
+          <label>Nombre *</label>
+          <input type="text" id="up-name" class="uinput" required placeholder="Ej: Dragon Add-on" />
+        </div>
+        <div class="uform-group">
+          <label>Plataforma *</label>
+          <select id="up-platform" class="uinput" required onchange="onUploadPlatformChange()">
+            <option value="bedrock">Minecraft PE / Bedrock</option>
+            <option value="java">Minecraft Java</option>
+          </select>
+        </div>
+      </div>
+      <div class="uform-row">
+        <div class="uform-group">
+          <label>Tipo *</label>
+          <select id="up-type" class="uinput" required></select>
+        </div>
+        <div class="uform-group">
+          <label>Precio (USD) — 0 = Gratis</label>
+          <input type="number" id="up-price" class="uinput" min="0" step="0.01" value="0" />
+        </div>
+      </div>
+      <div class="uform-group">
+        <label>Descripción</label>
+        <textarea id="up-desc" class="uinput utextarea" rows="3" placeholder="Describe tu add-on..."></textarea>
+      </div>
+      <div class="uform-row">
+        <div class="uform-group">
+          <label>Versión</label>
+          <input type="text" id="up-version" class="uinput" placeholder="1.0.0" />
+        </div>
+        <div class="uform-group">
+          <label>Versión MC</label>
+          <input type="text" id="up-mcversion" class="uinput" placeholder="1.20+" />
+        </div>
+      </div>
+
+      <div class="uform-group">
+        <label>Imagen</label>
+        <div class="file-pick">
+          <input type="file" id="up-image-file" accept="image/*" onchange="handleUploadImage(this)" hidden />
+          <button type="button" class="file-pick-btn" onclick="document.getElementById('up-image-file').click()">
+            <i class="fas fa-image"></i> Subir imagen
+          </button>
+          <span class="file-pick-name" id="up-image-name">Ningún archivo</span>
+        </div>
+        <div class="up-preview" id="up-image-preview" style="display:none">
+          <img id="up-image-preview-img" alt="" />
+        </div>
+        <div class="uform-or"><span>o pega una URL</span></div>
+        <input type="url" id="up-image-url" class="uinput" placeholder="https://...imagen.png" />
+      </div>
+
+      <div class="uform-group">
+        <label>Archivo del Add-on *</label>
+        <div class="file-pick">
+          <input type="file" id="up-file" accept=".mcaddon,.mcpack,.mcworld,.zip,.jar" onchange="handleUploadFile(this)" hidden />
+          <button type="button" class="file-pick-btn" onclick="document.getElementById('up-file').click()">
+            <i class="fas fa-file-arrow-up"></i> Subir archivo
+          </button>
+          <span class="file-pick-name" id="up-file-name">Ningún archivo</span>
+        </div>
+        <div class="uform-or"><span>o pega un enlace de descarga</span></div>
+        <input type="url" id="up-download-url" class="uinput" placeholder="https://...descarga" />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-glow" id="up-submit-btn">
+        <i class="fas fa-cloud-arrow-up"></i> Publicar Add-on
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ========== PROFILE MODAL ========== -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal profile-modal">
+    <button class="modal-close" onclick="closeModal('profile-modal')"><i class="fas fa-times"></i></button>
+    <div id="profile-view"><!-- Renderizado por JS --></div>
   </div>
 </div>
 
