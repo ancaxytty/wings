@@ -46,13 +46,14 @@ const ADMIN_PASSWORD = "Vzomstudios2026";
    funcionando pero SOLO en este navegador (modo local).
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey:            "PEGA_TU_API_KEY",
-  authDomain:        "PEGA_TU_PROYECTO.firebaseapp.com",
-  databaseURL:       "https://PEGA_TU_PROYECTO-default-rtdb.firebaseio.com",
-  projectId:         "PEGA_TU_PROYECTO",
-  storageBucket:     "PEGA_TU_PROYECTO.appspot.com",
-  messagingSenderId: "PEGA_TU_SENDER_ID",
-  appId:             "PEGA_TU_APP_ID"
+  apiKey:            "AIzaSyCEz1tzEgwR_xa1Uw3v-UWQ4G-RydU1xg0",
+  authDomain:        "vzomapp.firebaseapp.com",
+  databaseURL:       "https://vzomapp-default-rtdb.firebaseio.com",
+  projectId:         "vzomapp",
+  storageBucket:     "vzomapp.firebasestorage.app",
+  messagingSenderId: "829125054145",
+  appId:             "1:829125054145:web:48db706972c727a9e38e40",
+  measurementId:     "G-TE96HMF0HM"
 };
 
 // --- Database Keys (se usan como rutas en la nube) -----------
@@ -78,30 +79,17 @@ const FIREBASE_READY =
 
 // --- Cache en memoria (mantiene la API sincrona DB.get/set) --
 const _cache = {};
-
-function _primeLocal(key, isObj) {
-  try {
-    const v = JSON.parse(localStorage.getItem(key));
-    _cache[key] = (v !== null && v !== undefined) ? v : (isObj ? {} : []);
-  } catch {
-    _cache[key] = isObj ? {} : [];
-  }
-}
-_primeLocal(DB_KEYS.ADDONS, false);
-_primeLocal(DB_KEYS.USERS,  false);
-_primeLocal(DB_KEYS.ORDERS, false);
-_primeLocal(DB_KEYS.SETTINGS, true);
-if (!_cache[DB_KEYS.SETTINGS] || !Object.keys(_cache[DB_KEYS.SETTINGS]).length) {
-  _cache[DB_KEYS.SETTINGS] = { ...DEFAULT_SETTINGS };
-}
-
-function _emit(key, data) {
-  window.dispatchEvent(new CustomEvent('db-updated', { detail: { key, data } }));
-}
-
 let _rtdb = null;
 
+function _emit(key, data) {
+  try {
+    window.dispatchEvent(new CustomEvent('db-updated', { detail: { key, data } }));
+  } catch (e) { /* noop */ }
+}
+
 // --- API publica de base de datos ----------------------------
+// IMPORTANTE: se define ANTES de cualquier acceso a localStorage,
+// para que DB siempre exista aunque el almacenamiento esté bloqueado.
 const DB = {
   // Arrays (addons, users, orders)
   get(key) {
@@ -113,11 +101,13 @@ const DB = {
   set(key, data) {
     _cache[key] = data;
     let localOk = true;
+    let quotaExceeded = false;
     try {
       localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
       localOk = false;
-      console.warn('[MCPE Store] No se pudo guardar en localStorage (posible límite de espacio):', e);
+      quotaExceeded = !!(e && (e.name === 'QuotaExceededError' || /quota|exceeded/i.test((e.name || '') + (e.message || ''))));
+      console.warn('[MCPE Store] No se pudo guardar en localStorage:', e);
     }
     _emit(key, data);
 
@@ -125,16 +115,18 @@ const DB = {
       return _rtdb.ref(key).set(data)
         .catch(err => {
           console.error('[MCPE Store] Error guardando en la nube:', err);
-          window.dispatchEvent(new CustomEvent('db-error', { detail: { key, error: err } }));
+          _safeDispatch('db-error', { key, error: err });
           throw err;
         });
     }
 
-    if (!localOk) {
+    // Sin nube: si el almacenamiento se llenó, avisamos (archivo muy grande).
+    if (!localOk && quotaExceeded) {
       const err = new Error('LOCAL_STORAGE_FULL');
-      window.dispatchEvent(new CustomEvent('db-error', { detail: { key, error: err } }));
+      _safeDispatch('db-error', { key, error: err });
       return Promise.reject(err);
     }
+    // Bloqueado pero no lleno: funciona en la sesión actual.
     return Promise.resolve();
   },
   // Objetos (settings)
@@ -146,6 +138,40 @@ const DB = {
     return this.set(key, data);
   }
 };
+
+// Exponer en window por seguridad (acceso garantizado desde otros scripts)
+window.DB = DB;
+window.DB_KEYS = DB_KEYS;
+window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+
+function _safeDispatch(name, detail) {
+  try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (e) { /* noop */ }
+}
+
+// --- Cargar datos guardados (todo protegido; nunca rompe) ----
+function _primeLocal(key, isObj) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    _cache[key] = (v !== null && v !== undefined) ? v : (isObj ? {} : []);
+  } catch (e) {
+    _cache[key] = isObj ? {} : [];
+  }
+}
+try {
+  _primeLocal(DB_KEYS.ADDONS, false);
+  _primeLocal(DB_KEYS.USERS,  false);
+  _primeLocal(DB_KEYS.ORDERS, false);
+  _primeLocal(DB_KEYS.SETTINGS, true);
+  if (!_cache[DB_KEYS.SETTINGS] || !Object.keys(_cache[DB_KEYS.SETTINGS]).length) {
+    _cache[DB_KEYS.SETTINGS] = { ...DEFAULT_SETTINGS };
+  }
+} catch (e) {
+  console.warn('[MCPE Store] No se pudo leer el almacenamiento local; se usa cache vacía.', e);
+  if (!_cache[DB_KEYS.ADDONS])   _cache[DB_KEYS.ADDONS]   = [];
+  if (!_cache[DB_KEYS.USERS])    _cache[DB_KEYS.USERS]    = [];
+  if (!_cache[DB_KEYS.ORDERS])   _cache[DB_KEYS.ORDERS]   = [];
+  if (!_cache[DB_KEYS.SETTINGS]) _cache[DB_KEYS.SETTINGS] = { ...DEFAULT_SETTINGS };
+}
 
 /* ============================================================
    CONEXION EN TIEMPO REAL
