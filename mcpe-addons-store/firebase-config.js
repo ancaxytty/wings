@@ -189,8 +189,35 @@ if (FIREBASE_READY) {
     ];
 
     _refs.forEach(([key, isObj]) => {
+      let firstSnapshot = true;
+
       _rtdb.ref(key).on('value', snap => {
         let val = snap.val();
+
+        const cloudEmpty =
+          val === null || val === undefined ||
+          (Array.isArray(val) && val.length === 0) ||
+          (isObj && (!val || Object.keys(val).length === 0));
+
+        // MIGRACIÓN: en la primera lectura, si la nube está vacía pero
+        // este navegador tiene datos locales, los subimos a la nube
+        // (así los add-ons ya creados se ven en todos los navegadores).
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          if (cloudEmpty) {
+            const local = _cache[key];
+            const localHasData = isObj
+              ? (local && typeof local === 'object' && Object.keys(local).length > 0)
+              : (Array.isArray(local) && local.length > 0);
+            if (localHasData) {
+              console.log('%c[MCPE Store] Subiendo datos locales a la nube (' + key + ')…', 'color:#00d4ff');
+              _rtdb.ref(key).set(local).catch(e => console.error('[MCPE Store] Migración a la nube falló:', e));
+              return; // mantener los datos locales; el set disparará otro 'value'
+            }
+          }
+        }
+
+        // Aplicar los datos de la nube
         if (isObj) {
           val = (val && Object.keys(val).length) ? val : { ...DEFAULT_SETTINGS };
         } else {
@@ -198,7 +225,7 @@ if (FIREBASE_READY) {
           else if (!Array.isArray(val)) val = Object.values(val);
         }
         _cache[key] = val;
-        try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+        try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* noop */ }
         _emit(key, val);
       });
     });
