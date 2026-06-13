@@ -79,6 +79,9 @@
         <a href="#" class="sidebar-link" data-page="addons" onclick="switchPage('addons',this)">
           <i class="fas fa-puzzle-piece"></i> Add-ons
         </a>
+        <a href="#" class="sidebar-link" data-page="pending" onclick="switchPage('pending',this)">
+          <i class="fas fa-clock"></i> Pendientes <span class="nav-badge" id="pending-badge" style="display:none">0</span>
+        </a>
         <a href="#" class="sidebar-link" data-page="orders" onclick="switchPage('orders',this)">
           <i class="fas fa-receipt"></i> Pedidos
         </a>
@@ -238,6 +241,17 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== PENDING PAGE ===== -->
+      <div class="page hidden" id="page-pending">
+        <div class="page-header">
+          <h2>Add-ons pendientes de aprobación</h2>
+          <span class="badge-info" id="pending-count">0 pendientes</span>
+        </div>
+        <div class="pending-list" id="pending-list">
+          <p class="empty-text">No hay add-ons pendientes.</p>
         </div>
       </div>
 

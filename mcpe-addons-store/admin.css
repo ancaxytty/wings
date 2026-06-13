@@ -1003,3 +1003,41 @@ img { max-width: 100%; display: block; }
   .cloud-status #cloud-status-text { display: none; }
   .cloud-status { padding: 8px; }
 }
+
+
+/* ============================================================
+   V3.0 — PENDING (aprobación) + nav badge
+   ============================================================ */
+.nav-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+  background: var(--gold); color: #1a1206;
+  border-radius: 999px; font-size: 0.66rem; font-weight: 700;
+}
+.pending-list { display: flex; flex-direction: column; gap: 14px; }
+.pending-card {
+  display: flex; gap: 16px; align-items: center;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px;
+}
+.pending-card-img {
+  width: 64px; height: 64px; flex-shrink: 0;
+  border-radius: 12px; overflow: hidden;
+  background: var(--bg-card2); display: flex; align-items: center; justify-content: center;
+  color: var(--primary); font-size: 1.4rem;
+}
+.pending-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.pending-card-info { flex: 1; min-width: 0; }
+.pending-card-info h3 { font-size: 1rem; margin-bottom: 4px; }
+.pending-card-info p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; }
+.pending-card-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.74rem; color: var(--text-light); }
+.pending-card-meta i { color: var(--primary); margin-right: 3px; }
+.pending-card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .pending-card { flex-direction: column; align-items: stretch; text-align: center; }
+  .pending-card-img { width: 100%; height: 120px; }
+  .pending-card-meta { justify-content: center; }
+  .pending-card-actions { flex-direction: row; }
+  .pending-card-actions .btn { flex: 1; justify-content: center; }
+}

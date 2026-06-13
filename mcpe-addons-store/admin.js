@@ -202,6 +202,7 @@ function switchPage(page, link) {
   const titles = {
     dashboard: 'Dashboard',
     addons: 'Gestionar Add-ons',
+    pending: 'Pendientes de aprobación',
     orders: 'Pedidos / Ventas',
     users: 'Usuarios',
     settings: 'Configuración'
@@ -211,6 +212,7 @@ function switchPage(page, link) {
   // Refresh data
   if (page === 'dashboard') refreshDashboard();
   if (page === 'addons')    renderAddonsTable();
+  if (page === 'pending')   renderPendingTable();
   if (page === 'orders')    renderOrdersTable();
   if (page === 'users')     renderUsersTable();
 
@@ -262,6 +264,7 @@ function refreshDashboard() {
   document.getElementById('dash-total-users').textContent   = adminUsers.length;
   const totalDl = adminAddons.reduce((s, a) => s + (a.downloads || 0), 0);
   document.getElementById('dash-total-downloads').textContent = totalDl.toLocaleString();
+  updatePendingBadge();
 
   // Recent orders
   const recentOrders = document.getElementById('dash-recent-orders');
@@ -358,6 +361,84 @@ function renderAddonsTable() {
 }
 
 function filterAdminAddons() { renderAddonsTable(); }
+
+/* ============================================================
+   PENDING ADD-ONS (aprobación)
+   ============================================================ */
+function updatePendingBadge() {
+  const pending = DB.get(DB_KEYS.ADDONS).filter(a => a.status === 'pending');
+  const badge = document.getElementById('pending-badge');
+  if (badge) {
+    badge.textContent = pending.length;
+    badge.style.display = pending.length > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+function renderPendingTable() {
+  loadAllData();
+  const cont  = document.getElementById('pending-list');
+  const count = document.getElementById('pending-count');
+  const pending = adminAddons.filter(a => a.status === 'pending');
+  if (count) count.textContent = `${pending.length} pendiente${pending.length !== 1 ? 's' : ''}`;
+  updatePendingBadge();
+
+  if (!cont) return;
+  if (pending.length === 0) {
+    cont.innerHTML = '<p class="empty-text">No hay add-ons pendientes. ¡Todo al día!</p>';
+    return;
+  }
+
+  cont.innerHTML = pending.map(a => {
+    const isFree = !a.price || parseFloat(a.price) === 0;
+    return `
+      <div class="pending-card">
+        <div class="pending-card-img">
+          ${a.image ? `<img src="${escHtml(a.image)}" alt="" onerror="this.outerHTML='&#9638;'" />` : '<i class="fas fa-cube"></i>'}
+        </div>
+        <div class="pending-card-info">
+          <h3>${escHtml(a.name)}</h3>
+          <p>${escHtml((a.description || 'Sin descripción').substring(0, 120))}</p>
+          <div class="pending-card-meta">
+            <span><i class="fas fa-user"></i> ${escHtml(a.authorName || 'Anónimo')}</span>
+            <span><i class="fas fa-${a.platform === 'java' ? 'desktop' : 'mobile-screen-button'}"></i> ${a.platform === 'java' ? 'Java' : 'Bedrock'}</span>
+            <span><i class="fas fa-tag"></i> ${escHtml(a.category || a.contentType || '—')}</span>
+            <span>${isFree ? 'Gratis' : '$' + parseFloat(a.price).toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="pending-card-actions">
+          <button class="btn btn-success btn-sm" onclick="approveAddon('${a.id}')"><i class="fas fa-check"></i> Aprobar</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectAddon('${a.id}')"><i class="fas fa-times"></i> Rechazar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function approveAddon(id) {
+  if (!isAdminAuthenticated) return;
+  const addons = DB.get(DB_KEYS.ADDONS);
+  const idx = addons.findIndex(a => a.id === id);
+  if (idx === -1) return;
+  addons[idx].status = 'approved';
+  addons[idx].approved = true;
+  addons[idx].approvedAt = new Date().toISOString();
+  DB.set(DB_KEYS.ADDONS, addons);
+  adminAddons = addons;
+  renderPendingTable();
+  refreshDashboard();
+  adminToast('Add-on aprobado y publicado.', 'success');
+}
+
+function rejectAddon(id) {
+  if (!isAdminAuthenticated) return;
+  if (!confirm('¿Rechazar y eliminar este add-on?')) return;
+  let addons = DB.get(DB_KEYS.ADDONS);
+  addons = addons.filter(a => a.id !== id);
+  DB.set(DB_KEYS.ADDONS, addons);
+  adminAddons = addons;
+  renderPendingTable();
+  refreshDashboard();
+  adminToast('Add-on rechazado.', 'warning');
+}
 
 /* ============================================================
    ADDON FORM (CREATE / EDIT)
@@ -595,6 +676,7 @@ function saveAddon(e) {
         name, category, contentType: category, platform, description, price, version, mcVersion,
         emoji: emoji || '', image, downloadUrl, downloadName, isFeatured, isNew,
         downloads: 0, purchases: 0,
+        status: 'approved', approved: true,
         createdAt: new Date().toISOString()
       };
       addons.push(newAddon);
@@ -756,6 +838,9 @@ window.switchPage        = switchPage;
 window.toggleSidebar     = toggleSidebar;
 window.openAddonForm     = openAddonForm;
 window.closeAddonForm    = closeAddonForm;
+window.renderPendingTable = renderPendingTable;
+window.approveAddon      = approveAddon;
+window.rejectAddon       = rejectAddon;
 window.handleImageUpload = handleImageUpload;
 window.clearImageUpload  = clearImageUpload;
 window.handleDownloadUpload = handleDownloadUpload;

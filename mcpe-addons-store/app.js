@@ -222,7 +222,8 @@ function initScrollReveal() {
    STATS (Real values from DB - starts at 0)
    ============================================================ */
 function updateStats() {
-  const addons  = DB.get(DB_KEYS.ADDONS);
+  const all     = DB.get(DB_KEYS.ADDONS);
+  const addons  = all.filter(a => a.status !== 'pending' && a.status !== 'rejected');
   const users   = DB.get(DB_KEYS.USERS);
   const totalDl = addons.reduce((s, a) => s + (a.downloads || 0), 0);
 
@@ -446,7 +447,9 @@ function listenRealtime() {
 }
 
 function applyFilters() {
-  let list = [...State.addons];
+  // Solo se muestran add-ons aprobados (los pendientes/rechazados se ocultan).
+  // Los add-ons sin estado (legacy o del admin) se consideran visibles.
+  let list = State.addons.filter(a => a.status !== 'pending' && a.status !== 'rejected');
 
   // Platform filter
   if (State.currentPlatform !== 'all') {
@@ -583,7 +586,7 @@ function loadMore() {
    ============================================================ */
 function renderFeatured() {
   const container = document.getElementById('featured-slider');
-  const featured  = State.addons.filter(a => a.isFeatured);
+  const featured  = State.addons.filter(a => a.isFeatured && a.status !== 'pending' && a.status !== 'rejected');
 
   if (featured.length === 0) {
     container.innerHTML = `
@@ -887,11 +890,66 @@ function renderPlans(){
 function selectPlan(planId){
   if (!State.user){ openAuthModal('login'); showToast('Inicia sesión para elegir un plan.', 'info'); return; }
   const plan = getPlanById(planId);
-  State.user.plan = planId;
+  if (planId === 'free'){
+    State.user.plan = 'free';
+    persistCurrentUser();
+    renderPlans();
+    showToast('Estás en el plan Gratis.', 'info');
+    return;
+  }
+  if (userPlanId(State.user) === planId){
+    showToast(`Ya tienes el plan ${plan.name}.`, 'info');
+    return;
+  }
+  openPlanCheckout(plan);
+}
+
+function openPlanCheckout(plan){
+  const body = document.getElementById('plan-modal-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="plan-checkout-head">
+      <div class="plan-icon" style="--plan-color:${plan.color};margin:0 auto 10px"><i class="fas ${plan.icon}"></i></div>
+      <h2>Plan ${plan.name}</h2>
+      <div class="plan-price" style="margin:4px 0">$${plan.price.toFixed(2)}<span>/mes</span></div>
+      <div class="plan-uploads" style="margin:8px auto"><i class="fas fa-cloud-arrow-up"></i> ${plan.dailyUploads} add-ons por día</div>
+    </div>
+    <ul class="plan-features" style="max-width:300px;margin:14px auto 18px">
+      ${plan.features.map(f => `<li><i class="fas fa-check"></i> ${escHtml(f)}</li>`).join('')}
+    </ul>
+    <p style="text-align:center;color:var(--text-muted);font-size:.78rem;margin-bottom:8px">Pago seguro con PayPal · 1 mes</p>
+    <div id="plan-paypal-container"></div>
+  `;
+  openModal('plan-modal');
+  if (typeof renderPlanPayPalButton === 'function') renderPlanPayPalButton(plan);
+}
+
+function activatePlanAfterPayment(plan, details){
+  if (!State.user) return;
+  State.user.plan = plan.id;
+  State.user.planSince = new Date().toISOString();
   persistCurrentUser();
+  // Registrar la orden del plan
+  try {
+    const orders = DB.get(DB_KEYS.ORDERS);
+    orders.push({
+      id: 'plan_' + Date.now(),
+      userId: State.user.id,
+      type: 'plan',
+      planId: plan.id,
+      addonName: `Plan ${plan.name} (mensual)`,
+      price: plan.price,
+      currency: 'USD',
+      paypalOrderId: details && details.id,
+      status: 'completed',
+      date: new Date().toISOString()
+    });
+    DB.set(DB_KEYS.ORDERS, orders);
+  } catch(e){ console.error(e); }
+  closeModal('plan-modal');
   renderPlans();
-  if (planId === 'free') showToast('Estás en el plan Gratis.', 'info');
-  else showToast(`¡Plan ${plan.name} activado! Sube hasta ${plan.dailyUploads} add-ons al día.`, 'success');
+  const name = (details && details.payer && details.payer.name && details.payer.name.given_name) || '';
+  showToast(`¡Plan ${plan.name} activado${name ? ', '+name : ''}! Ahora puedes subir ${plan.dailyUploads} add-ons al día.`, 'success', 6000);
 }
 
 /* ============================================================
@@ -990,13 +1048,14 @@ function submitUserAddon(e){
       image, downloadUrl, downloadName,
       emoji:'', isFeatured:false, isNew:true,
       downloads:0, purchases:0,
+      status: 'pending', approved: false,
       authorId: State.user.id, authorName: userDisplayName(State.user), authorAvatar: userAvatar(State.user),
       createdAt: new Date().toISOString()
     });
 
     Promise.resolve(DB.set(DB_KEYS.ADDONS, addons))
       .then(()=>{
-        showToast('¡Add-on publicado! Ya es visible para todos.', 'success');
+        showToast('¡Add-on enviado! Quedó pendiente de aprobación del administrador.', 'success', 6000);
         closeModal('upload-modal');
         loadAddons(); updateStats();
       })
@@ -1053,12 +1112,16 @@ function renderProfile(editMode){
       <h3 class="profile-section-title"><i class="fas fa-box"></i> Mis Add-ons (${myAddons.length})</h3>
       <div class="profile-addons">
         ${myAddons.length === 0 ? '<p class="muted" style="text-align:center;padding:14px 0">Aún no has subido add-ons.</p>' :
-          myAddons.map(a => `
+          myAddons.map(a => {
+            const st = a.status === 'pending' ? '<span class="st-badge st-pending"><i class="fas fa-clock"></i> Pendiente</span>'
+                     : a.status === 'rejected' ? '<span class="st-badge st-rejected"><i class="fas fa-ban"></i> Rechazado</span>'
+                     : '<span class="st-badge st-approved"><i class="fas fa-check"></i> Aprobado</span>';
+            return `
             <div class="profile-addon-item">
               <div class="profile-addon-ic">${a.image ? `<img src="${escHtml(a.image)}" alt="" onerror="this.outerHTML='&#9638;'"/>` : '<i class="fas fa-cube"></i>'}</div>
-              <div class="profile-addon-info"><strong>${escHtml(a.name)}</strong><small>${(a.downloads||0).toLocaleString()} descargas</small></div>
+              <div class="profile-addon-info"><strong>${escHtml(a.name)}</strong><small>${(a.downloads||0).toLocaleString()} descargas · ${st}</small></div>
               <button class="btn btn-sm btn-danger" onclick="deleteMyAddon('${a.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
-            </div>`).join('')}
+            </div>`; }).join('')}
       </div>
     `;
     return;
@@ -1194,6 +1257,8 @@ window.updateStats        = updateStats;
 window.setPlatform        = setPlatform;
 window.renderPlans        = renderPlans;
 window.selectPlan         = selectPlan;
+window.openPlanCheckout   = openPlanCheckout;
+window.activatePlanAfterPayment = activatePlanAfterPayment;
 window.openUploadModal    = openUploadModal;
 window.onUploadPlatformChange = onUploadPlatformChange;
 window.handleUploadImage  = handleUploadImage;

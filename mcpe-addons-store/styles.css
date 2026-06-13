@@ -1870,3 +1870,63 @@ ul { list-style: none; }
 @keyframes rainbow-rot { to { filter: hue-rotate(360deg); } }
 .upload-link { color: var(--primary) !important; }
 .upload-link i { color: var(--primary); }
+
+
+/* ============================================================
+   V3.0 — Status badges (perfil), plan checkout, nav badge
+   ============================================================ */
+.st-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; font-size: .66rem; font-weight: 700; }
+.st-pending  { background: rgba(245,158,11,.15); color: var(--gold); }
+.st-approved { background: rgba(16,185,129,.15); color: var(--green); }
+.st-rejected { background: rgba(239,68,68,.15);  color: var(--red); }
+
+.plan-checkout-modal { max-width: 440px; width: 100%; }
+.plan-checkout-head { text-align: center; }
+.plan-checkout-head h2 { font-family: var(--font-heading); font-size: 1.5rem; }
+
+/* ============================================================
+   V3.0 — PASE DE RESPONSIVIDAD TOTAL (100% mobile-safe)
+   ============================================================ */
+/* Evita desbordes horizontales en toda la página */
+html, body { max-width: 100%; overflow-x: hidden; }
+*, *::before, *::after { min-width: 0; }
+img, video, canvas { max-width: 100%; height: auto; }
+p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word; word-break: break-word; }
+
+/* Modales: siempre dentro de la pantalla */
+.modal-overlay { padding: 16px; }
+.modal { width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+
+@media (max-width: 768px) {
+  .container { padding-left: 16px; padding-right: 16px; }
+  .section-title { font-size: 1.6rem; }
+  .platform-tabs { gap: 6px; }
+  .ptab { padding: 8px 14px; font-size: .8rem; }
+  .plan-card { padding: 26px 18px; }
+  .profile-cover { margin-left: -20px; margin-right: -20px; }
+}
+
+@media (max-width: 480px) {
+  .wc-banner-inner { gap: 8px; }
+  .nav-container { padding: 0 14px; }
+  .modal { padding: 20px 16px; }
+  .modal-overlay { padding: 10px; }
+  .section-title { font-size: 1.4rem; }
+  .section-subtitle { font-size: .85rem; }
+  .uform-row { grid-template-columns: 1fr; }
+  .profile-stats { gap: 6px; }
+  .profile-stats strong { font-size: 1.1rem; }
+  .profile-actions { flex-direction: column; }
+  .profile-actions .btn { width: 100%; }
+  .frames-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .plan-price { font-size: 1.7rem; }
+  .featured-slider { gap: 14px; }
+  .addon-card-badges { gap: 4px; }
+  .badge { font-size: .66rem; padding: 2px 7px; }
+}
+
+@media (max-width: 360px) {
+  .frames-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-title { font-size: 1.5rem; }
+  .plan-card { padding: 22px 14px; }
+}
