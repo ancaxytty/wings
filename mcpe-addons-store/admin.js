@@ -511,12 +511,19 @@ function saveAddon(e) {
     adminToast('Completa el nombre y la categoría.', 'error');
     return;
   }
+  // Si hay un archivo seleccionado pero aún no terminó de leerse
+  const dlFileInput = document.getElementById('addon-form-download-file');
+  if (dlFileInput && dlFileInput.files.length > 0 && !_uploadedDownload) {
+    adminToast('El archivo aún se está procesando, espera un momento e intenta de nuevo.', 'warning');
+    return;
+  }
   if (!downloadUrl) {
     adminToast('Sube un archivo .mcaddon o pega un enlace de descarga.', 'error');
     return;
   }
 
   const addons = DB.get(DB_KEYS.ADDONS);
+  let successMsg;
 
   if (id) {
     // Edit existing
@@ -529,7 +536,7 @@ function saveAddon(e) {
         updatedAt: new Date().toISOString()
       };
     }
-    adminToast('Add-on publicado (cambios guardados)', 'success');
+    successMsg = 'Add-on publicado (cambios guardados)';
   } else {
     // Create new
     const newAddon = {
@@ -540,14 +547,33 @@ function saveAddon(e) {
       createdAt: new Date().toISOString()
     };
     addons.push(newAddon);
-    adminToast('Add-on publicado correctamente', 'success');
+    successMsg = 'Add-on publicado correctamente';
   }
 
-  DB.set(DB_KEYS.ADDONS, addons);
-  adminAddons = addons;
-  closeAddonForm();
-  renderAddonsTable();
-  refreshDashboard();
+  // Deshabilitar el botón mientras se publica
+  const submitBtn = document.getElementById('addon-form-submit-btn');
+  const prevBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publicando…';
+  }
+
+  Promise.resolve(DB.set(DB_KEYS.ADDONS, addons))
+    .then(() => {
+      adminAddons = DB.get(DB_KEYS.ADDONS);
+      adminToast(successMsg, 'success');
+      closeAddonForm();
+      renderAddonsTable();
+      refreshDashboard();
+    })
+    .catch((err) => {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevBtnHtml; }
+      if (err && err.message === 'LOCAL_STORAGE_FULL') {
+        adminToast('El archivo es demasiado grande para guardarse. Usa un archivo más liviano o un enlace de descarga.', 'error', 8000);
+      } else {
+        adminToast('No se pudo publicar en la nube. Revisa las reglas de tu Realtime Database (permiso denegado). Consulta la consola para más detalles.', 'error', 9000);
+      }
+    });
 }
 
 function editAddon(id) {

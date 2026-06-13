@@ -108,13 +108,34 @@ const DB = {
     const v = _cache[key];
     return Array.isArray(v) ? v : [];
   },
+  // Devuelve una promesa: se resuelve cuando se guarda en la nube
+  // (o de inmediato en modo local) y se rechaza si la nube falla.
   set(key, data) {
     _cache[key] = data;
-    try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
-    if (FIREBASE_READY && _rtdb) {
-      _rtdb.ref(key).set(data).catch(err => console.error('[MCPE Store] Error guardando en la nube:', err));
+    let localOk = true;
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      localOk = false;
+      console.warn('[MCPE Store] No se pudo guardar en localStorage (posible límite de espacio):', e);
     }
     _emit(key, data);
+
+    if (FIREBASE_READY && _rtdb) {
+      return _rtdb.ref(key).set(data)
+        .catch(err => {
+          console.error('[MCPE Store] Error guardando en la nube:', err);
+          window.dispatchEvent(new CustomEvent('db-error', { detail: { key, error: err } }));
+          throw err;
+        });
+    }
+
+    if (!localOk) {
+      const err = new Error('LOCAL_STORAGE_FULL');
+      window.dispatchEvent(new CustomEvent('db-error', { detail: { key, error: err } }));
+      return Promise.reject(err);
+    }
+    return Promise.resolve();
   },
   // Objetos (settings)
   getObj(key, def = {}) {
@@ -122,7 +143,7 @@ const DB = {
     return (v && typeof v === 'object' && !Array.isArray(v)) ? v : def;
   },
   setObj(key, data) {
-    this.set(key, data);
+    return this.set(key, data);
   }
 };
 
