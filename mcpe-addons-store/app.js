@@ -138,30 +138,14 @@ function initNavbar() {
    HAMBURGER MENU
    ============================================================ */
 function toggleHamburger() {
-  const btn     = document.getElementById('hamburger-btn');
-  const menu    = document.getElementById('nav-menu');
-  const overlay = document.getElementById('mobile-menu-overlay');
-
-  const isOpen = menu.classList.contains('open');
-
-  if (isOpen) {
-    closeHamburger();
-  } else {
-    btn.classList.add('open');
-    menu.classList.add('open');
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
+  // Compatibilidad: ahora el menú móvil es el bottom sheet
+  if (typeof openSheet === 'function') { openSheet(); return; }
 }
 
 function closeHamburger() {
-  const btn     = document.getElementById('hamburger-btn');
-  const menu    = document.getElementById('nav-menu');
-  const overlay = document.getElementById('mobile-menu-overlay');
-
-  btn.classList.remove('open');
-  menu.classList.remove('open');
-  overlay.classList.remove('open');
+  ['hamburger-btn', 'nav-menu', 'mobile-menu-overlay'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.classList.remove('open');
+  });
   document.body.style.overflow = '';
 }
 
@@ -294,6 +278,9 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.user-avatar-btn') && !e.target.closest('.user-dropdown')) {
     document.getElementById('user-dropdown')?.classList.remove('open');
     document.querySelector('.user-avatar-btn')?.classList.remove('open');
+  }
+  if (!e.target.closest('.search-input-wrap') && !e.target.closest('.search-suggest')) {
+    document.getElementById('search-suggest')?.classList.remove('open');
   }
 });
 
@@ -442,42 +429,31 @@ function restoreSession() {
 }
 
 function updateAuthUI(user) {
-  const av    = userAvatar(user);
-  const dname = userDisplayName(user);
-  const fcls  = frameClass(user.frame);
+  const av = userAvatar(user), dname = userDisplayName(user), fcls = frameClass(user.frame);
+  const hide = id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; };
+  const show = (id, d) => { const e = document.getElementById(id); if (e) e.style.display = d; };
+  const txt  = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  const img  = (id, src, cls) => { const e = document.getElementById(id); if (e) { e.src = src; if (cls != null) e.className = cls; } };
 
-  // Mobile menu
-  document.getElementById('logged-out-btns').style.display = 'none';
-  document.getElementById('logged-in-btns').style.display  = 'block';
-  const mAv = document.getElementById('menu-user-avatar');
-  mAv.src = av; mAv.className = 'user-avatar-small ' + fcls;
-  document.getElementById('menu-user-name').textContent   = dname;
-  document.getElementById('menu-user-email').textContent  = user.email;
+  hide('logged-out-btns'); show('logged-in-btns', 'block');
+  img('menu-user-avatar', av, 'user-avatar-small ' + fcls);
+  txt('menu-user-name', dname); txt('menu-user-email', user.email);
 
-  // Desktop
-  document.getElementById('desktop-logged-out').style.display = 'none';
-  document.getElementById('desktop-logged-in').style.display  = 'flex';
-  const nAv = document.getElementById('nav-user-avatar');
-  nAv.src = av; nAv.className = 'user-avatar-small ' + fcls;
-  document.getElementById('nav-user-name').textContent   = dname.split(' ')[0];
-  const dAv = document.getElementById('dropdown-avatar');
-  dAv.src = av; dAv.className = fcls;
-  document.getElementById('dropdown-name').textContent   = dname;
-  document.getElementById('dropdown-email').textContent  = user.email;
+  hide('desktop-logged-out'); show('desktop-logged-in', 'flex');
+  img('nav-user-avatar', av, 'user-avatar-small ' + fcls);
+  txt('nav-user-name', dname.split(' ')[0]);
+  img('dropdown-avatar', av, fcls);
+  txt('dropdown-name', dname); txt('dropdown-email', user.email);
 }
 
 function logout() {
   State.user = null;
   localStorage.removeItem('mcpe_current_user');
-
-  // Mobile menu
-  document.getElementById('logged-out-btns').style.display = 'block';
-  document.getElementById('logged-in-btns').style.display  = 'none';
-
-  // Desktop
-  document.getElementById('desktop-logged-out').style.display = 'block';
-  document.getElementById('desktop-logged-in').style.display  = 'none';
-  document.getElementById('user-dropdown').classList.remove('open');
+  const show = (id, d) => { const e = document.getElementById(id); if (e) e.style.display = d; };
+  const hide = id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; };
+  show('logged-out-btns', 'block'); hide('logged-in-btns');
+  show('desktop-logged-out', 'block'); hide('desktop-logged-in');
+  const dd = document.getElementById('user-dropdown'); if (dd) dd.classList.remove('open');
 
   if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
   showToast('Sesión cerrada correctamente', 'info');
@@ -850,6 +826,7 @@ function filterAddons() {
   State.searchQuery = document.getElementById('search-input').value.trim();
   const clr = document.getElementById('search-clear');
   if (clr) clr.style.display = State.searchQuery ? 'flex' : 'none';
+  updateSuggestions();
   applyFilters();
 }
 
@@ -859,7 +836,37 @@ function clearSearch() {
   State.searchQuery = '';
   const clr = document.getElementById('search-clear');
   if (clr) clr.style.display = 'none';
+  const box = document.getElementById('search-suggest');
+  if (box) box.classList.remove('open');
   applyFilters();
+}
+
+/* Sugerencias en vivo (autocompletado de nombres) */
+function updateSuggestions() {
+  const box = document.getElementById('search-suggest');
+  if (!box) return;
+  const q = (State.searchQuery || '').toLowerCase();
+  if (!q) { box.classList.remove('open'); box.innerHTML = ''; return; }
+  const pool = State.addons.filter(a => a.status !== 'pending' && a.status !== 'rejected');
+  const matches = pool.filter(a =>
+    a.name.toLowerCase().includes(q) ||
+    (a.category || '').toLowerCase().includes(q) ||
+    (a.contentType || '').toLowerCase().includes(q)
+  ).slice(0, 6);
+  if (!matches.length) { box.classList.remove('open'); box.innerHTML = ''; return; }
+  box.innerHTML = matches.map(a => `
+    <button type="button" class="suggest-item" onclick="pickSuggest('${a.id}')">
+      <span class="suggest-ic">${a.image ? `<img src="${escHtml(a.image)}" alt="" onerror="this.outerHTML='&#9638;'">` : '<i class="fas fa-cube"></i>'}</span>
+      <span class="suggest-info"><strong>${escHtml(a.name)}</strong><small>${escHtml(typeName(a.contentType || a.category) || 'Add-on')}</small></span>
+      <i class="fas fa-arrow-right suggest-go"></i>
+    </button>`).join('');
+  box.classList.add('open');
+}
+
+function pickSuggest(id) {
+  const box = document.getElementById('search-suggest');
+  if (box) box.classList.remove('open');
+  openAddonDetail(id);
 }
 
 /* ============================================================
@@ -1632,6 +1639,8 @@ window.subscribeNewsletter = subscribeNewsletter;
 window.updatePassStrength = updatePassStrength;
 window.checkPassMatch     = checkPassMatch;
 window.clearSearch        = clearSearch;
+window.updateSuggestions  = updateSuggestions;
+window.pickSuggest        = pickSuggest;
 window.closeModal         = closeModal;
 window.openModal          = openModal;
 window.toggleUserDropdown = toggleUserDropdown;

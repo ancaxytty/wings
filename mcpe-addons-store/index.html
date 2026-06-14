@@ -3,23 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MCPE Addons Store – Los mejores Add-ons para Minecraft PE</title>
-  <meta name="description" content="Descarga los mejores Add-ons para Minecraft Pocket Edition. Gratis y premium. Paga con PayPal." />
+  <title>MCPE Addons Store – Add-ons, Skins, Mundos y Mods para Minecraft</title>
+  <meta name="description" content="Descarga y sube add-ons, skins, mundos, texturas, mods y plugins para Minecraft PE (Bedrock) y Java. Gratis y premium." />
 
   <!-- Favicon (SVG) -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230d1a2a'/%3E%3Cpath%20d='M32%2011%20L51%2021.5%20L51%2042.5%20L32%2053%20L13%2042.5%20L13%2021.5%20Z'%20fill='none'%20stroke='%2300d4ff'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3Cpath%20d='M32%2011%20L32%2032%20L51%2021.5%20M32%2032%20L13%2021.5'%20fill='none'%20stroke='%237c3aed'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230b1020'/%3E%3Cpath%20d='M32%2011%20L51%2021.5%20L51%2042.5%20L32%2053%20L13%2042.5%20L13%2021.5%20Z'%20fill='none'%20stroke='%2300e0c6'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3Cpath%20d='M32%2011%20L32%2032%20L51%2021.5%20M32%2032%20L13%2021.5'%20fill='none'%20stroke='%237b6cff'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3C/svg%3E" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <!-- PayPal SDK -->
   <script src="https://www.paypal.com/sdk/js?client-id=AXNocpelnAuDkB3PfxMsD0q3ou7r0VJYQo1mk-1XmOEEDQE11HfiDdprWZpC3U3FTw1FGK1gS-eEeI-f&currency=USD" defer></script>
 
@@ -27,12 +26,10 @@
 </head>
 <body>
 
-<!-- ========== PARTICLES BACKGROUND ========== -->
-<div id="particles-bg">
-  <canvas id="particles-canvas"></canvas>
-</div>
+<!-- Fondo de partículas -->
+<div id="particles-bg"><canvas id="particles-canvas"></canvas></div>
 
-<!-- ========== FIFA WORLD CUP 2026 BANNER ========== -->
+<!-- Banner Mundial 2026 -->
 <div class="wc-banner" id="wc-banner">
   <div class="wc-banner-inner">
     <i class="fas fa-futbol wc-ball"></i>
@@ -41,111 +38,53 @@
   </div>
 </div>
 
-<!-- ========== NAVBAR ========== -->
+<!-- ===================== NAVBAR ===================== -->
 <nav class="navbar" id="navbar">
   <div class="nav-container">
-    <a href="#" class="nav-logo">
+    <a href="#hero" class="nav-logo">
       <span class="logo-icon"><i class="fas fa-cube"></i></span>
       <span class="logo-text">MCPE <span class="logo-accent">Addons</span></span>
     </a>
 
-    <!-- Hamburger Button -->
-    <button class="hamburger" id="hamburger-btn" onclick="openSheet()" aria-label="Menú">
-      <span class="hamburger-line"></span>
-      <span class="hamburger-line"></span>
-      <span class="hamburger-line"></span>
-    </button>
-
-    <!-- Mobile Menu Overlay -->
-    <div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="closeHamburger()"></div>
-
-    <!-- Nav Menu -->
     <div class="nav-menu" id="nav-menu">
-      <div class="nav-menu-grip" id="nav-menu-grip" aria-hidden="true"></div>
-      <div class="nav-menu-header">
-        <span class="nav-menu-title">Menú</span>
-        <button class="nav-menu-close" onclick="closeHamburger()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
       <div class="nav-links">
-        <a href="#hero" class="nav-link active" onclick="closeHamburger()">
-          <i class="fas fa-home"></i> Inicio
-        </a>
-        <a href="#addons" class="nav-link" onclick="closeHamburger()">
-          <i class="fas fa-puzzle-piece"></i> Add-ons
-        </a>
-        <a href="#featured" class="nav-link" onclick="closeHamburger()">
-          <i class="fas fa-fire"></i> Destacados
-        </a>
-        <a href="#pricing" class="nav-link" onclick="closeHamburger()">
-          <i class="fas fa-crown"></i> Planes
-        </a>
-        <a href="#contact" class="nav-link" onclick="closeHamburger()">
-          <i class="fas fa-envelope"></i> Contacto
-        </a>
-        <a href="admin.html" class="nav-link nav-link-admin">
-          <i class="fas fa-user-shield"></i> Admin
-        </a>
+        <a href="#hero" class="nav-link active" onclick="closeHamburger()"><i class="fas fa-house"></i> Inicio</a>
+        <a href="#addons" class="nav-link" onclick="closeHamburger()"><i class="fas fa-puzzle-piece"></i> Add-ons</a>
+        <a href="#featured" class="nav-link" onclick="closeHamburger()"><i class="fas fa-fire"></i> Destacados</a>
+        <a href="#pricing" class="nav-link" onclick="closeHamburger()"><i class="fas fa-crown"></i> Planes</a>
+        <a href="#contact" class="nav-link" onclick="closeHamburger()"><i class="fas fa-envelope"></i> Contacto</a>
       </div>
-
+      <!-- Estados de sesión (solo se usan/actualizan por JS) -->
       <div class="nav-menu-footer">
-        <!-- Logged out state -->
-        <div id="logged-out-btns">
-          <button class="btn btn-primary btn-full" onclick="openAuthModal('login')">
-            <i class="fab fa-google"></i> Iniciar Sesión con Google
-          </button>
-        </div>
-        <!-- Logged in state -->
+        <div id="logged-out-btns"></div>
         <div id="logged-in-btns" style="display:none">
           <div class="user-profile-mini">
-            <img id="menu-user-avatar" src="" alt="Avatar" class="user-avatar-small" />
-            <div>
-              <strong id="menu-user-name"></strong>
-              <small id="menu-user-email"></small>
-            </div>
-          </div>
-          <div class="nav-menu-user-actions">
-            <a href="#" onclick="openUploadModal();closeHamburger();" class="upload-link">
-              <i class="fas fa-cloud-arrow-up"></i> Subir Add-on
-            </a>
-            <a href="#" onclick="openProfileModal();closeHamburger();">
-              <i class="fas fa-id-badge"></i> Mi Perfil
-            </a>
-            <a href="#" onclick="openPurchasesModal();closeHamburger();">
-              <i class="fas fa-box"></i> Mis Compras
-            </a>
-            <a href="#" onclick="logout();closeHamburger();" class="logout-link">
-              <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </a>
+            <img id="menu-user-avatar" src="" alt="" class="user-avatar-small" />
+            <div><strong id="menu-user-name"></strong><small id="menu-user-email"></small></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Desktop User Area -->
     <div class="nav-desktop-user" id="nav-desktop-user">
-      <a href="admin.html" class="btn btn-outline btn-sm nav-admin-btn" title="Panel de administraci\u00f3n">
+      <a href="admin.html" class="btn btn-outline btn-sm nav-admin-btn" title="Panel de administración">
         <i class="fas fa-user-shield"></i> Admin
       </a>
       <div id="desktop-logged-out">
-        <button class="btn btn-outline btn-sm" onclick="openAuthModal('login')">
-          <i class="fab fa-google"></i> Iniciar Sesión
+        <button class="btn btn-primary btn-sm" onclick="openAuthModal('login')">
+          <i class="fas fa-right-to-bracket"></i> Entrar
         </button>
       </div>
       <div id="desktop-logged-in" style="display:none">
         <div class="user-avatar-btn" onclick="toggleUserDropdown()">
-          <img id="nav-user-avatar" src="" alt="Avatar" class="user-avatar-small" />
+          <img id="nav-user-avatar" src="" alt="" class="user-avatar-small" />
           <span id="nav-user-name"></span>
           <i class="fas fa-chevron-down"></i>
         </div>
         <div class="user-dropdown" id="user-dropdown">
           <div class="dropdown-header">
             <img id="dropdown-avatar" src="" alt="" />
-            <div>
-              <strong id="dropdown-name"></strong>
-              <small id="dropdown-email"></small>
-            </div>
+            <div><strong id="dropdown-name"></strong><small id="dropdown-email"></small></div>
           </div>
           <hr />
           <a href="#" onclick="openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir Add-on</a>
@@ -156,15 +95,20 @@
         </div>
       </div>
     </div>
+
+    <button class="hamburger" id="hamburger-btn" onclick="openSheet()" aria-label="Menú">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="closeHamburger()"></div>
   </div>
 </nav>
 
-<!-- ========== HERO SECTION ========== -->
+<!-- ===================== HERO ===================== -->
 <section class="hero" id="hero">
   <div class="hero-content">
-    <div class="hero-badge">
-      <i class="fas fa-star"></i> #1 Tienda de Add-ons para MCPE
-    </div>
+    <div class="hero-badge"><i class="fas fa-bolt"></i> Tienda #1 de contenido para Minecraft</div>
     <h1 class="hero-title">
       Potencia tu <span class="gradient-text">Minecraft</span><br />
       con los mejores<br />
@@ -183,31 +127,17 @@
       <button type="button" onclick="heroCategory('plugin')"><i class="fas fa-server"></i> Plugins</button>
     </div>
     <div class="hero-actions">
-      <a href="#addons" class="btn btn-primary btn-glow">
-        <i class="fas fa-download"></i> Explorar todo
-      </a>
-      <a href="#pricing" class="btn btn-secondary">
-        <i class="fas fa-crown"></i> Ver planes
-      </a>
+      <a href="#addons" class="btn btn-primary btn-glow"><i class="fas fa-download"></i> Explorar todo</a>
+      <a href="#pricing" class="btn btn-secondary"><i class="fas fa-crown"></i> Ver planes</a>
     </div>
     <div class="hero-stats">
-      <div class="stat">
-        <span class="stat-num" id="stat-addons">0</span>
-        <span class="stat-label">Add-ons</span>
-      </div>
+      <div class="stat"><span class="stat-num" id="stat-addons">0</span><span class="stat-label">Add-ons</span></div>
       <div class="stat-divider"></div>
-      <div class="stat">
-        <span class="stat-num" id="stat-users">0</span>
-        <span class="stat-label">Usuarios</span>
-      </div>
+      <div class="stat"><span class="stat-num" id="stat-users">0</span><span class="stat-label">Usuarios</span></div>
       <div class="stat-divider"></div>
-      <div class="stat">
-        <span class="stat-num" id="stat-downloads">0</span>
-        <span class="stat-label">Descargas</span>
-      </div>
+      <div class="stat"><span class="stat-num" id="stat-downloads">0</span><span class="stat-label">Descargas</span></div>
     </div>
   </div>
-
   <div class="hero-visual">
     <div class="hero-cube-wrapper">
       <div class="hero-cube">
@@ -220,28 +150,22 @@
       </div>
     </div>
     <div class="floating-particles">
-      <span class="fp fp1">✦</span>
-      <span class="fp fp2">◆</span>
-      <span class="fp fp3">★</span>
-      <span class="fp fp4">✦</span>
-      <span class="fp fp5">◆</span>
+      <span class="fp fp1">✦</span><span class="fp fp2">◆</span><span class="fp fp3">★</span>
+      <span class="fp fp4">✦</span><span class="fp fp5">◆</span>
     </div>
-  </div>
-
-  <div class="hero-scroll-indicator">
-    <span>Scroll</span>
-    <div class="scroll-line"></div>
   </div>
 </section>
 
-<!-- ========== SEARCH & FILTER BAR ========== -->
+<!-- ===================== BÚSQUEDA + FILTROS ===================== -->
 <section class="search-section" id="addons">
   <div class="container">
     <div class="search-bar">
       <div class="search-input-wrap">
         <i class="fas fa-search search-ic"></i>
-        <input type="text" id="search-input" placeholder="Buscar add-ons, skins, mundos, mods..." oninput="filterAddons()" autocomplete="off" />
+        <input type="text" id="search-input" placeholder="Buscar add-ons, skins, mundos, mapas, mods..." oninput="filterAddons()" autocomplete="off" />
         <button type="button" class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none" aria-label="Limpiar"><i class="fas fa-times"></i></button>
+        <!-- Sugerencias en vivo -->
+        <div class="search-suggest" id="search-suggest"></div>
       </div>
       <div class="platform-tabs" id="platform-tabs">
         <button class="ptab active" data-platform="all" onclick="setPlatform('all', this)"><i class="fas fa-layer-group"></i> Todo</button>
@@ -265,100 +189,69 @@
   </div>
 </section>
 
-<!-- ========== ADDONS GRID ========== -->
+<!-- ===================== GRID ADD-ONS ===================== -->
 <section class="addons-section">
   <div class="container">
     <div class="section-header">
-      <h2 class="section-title">
-        <span class="gradient-text">Add-ons</span> Disponibles
-      </h2>
-      <p class="section-subtitle">Explora nuestra colección completa</p>
+      <h2 class="section-title"><span class="gradient-text">Explora</span> el catálogo</h2>
+      <p class="section-subtitle">Todo el contenido publicado por la comunidad y el equipo</p>
     </div>
-
     <div class="results-count" id="results-count"></div>
-
     <div class="addons-grid" id="addons-grid">
-      <!-- Empty state -->
       <div class="empty-state" id="empty-state">
         <div class="empty-icon"><i class="fas fa-box-open"></i></div>
-        <h3>No hay add-ons todavía</h3>
-        <p>Pronto subiremos add-ons increíbles.<br />¡Vuelve pronto!</p>
+        <h3>No hay nada por aquí todavía</h3>
+        <p>Pronto habrá add-ons increíbles. ¡Vuelve pronto!</p>
       </div>
     </div>
-
     <div class="load-more-wrap" id="load-more-wrap" style="display:none">
-      <button class="btn btn-outline" onclick="loadMore()">
-        <i class="fas fa-plus"></i> Cargar más
-      </button>
+      <button class="btn btn-outline" onclick="loadMore()"><i class="fas fa-plus"></i> Cargar más</button>
     </div>
   </div>
 </section>
 
-<!-- ========== FEATURED SECTION ========== -->
+<!-- ===================== DESTACADOS ===================== -->
 <section class="featured-section" id="featured">
   <div class="container">
     <div class="section-header">
       <div class="section-badge"><i class="fas fa-fire"></i> Destacados</div>
-      <h2 class="section-title">Los más <span class="gradient-text">Populares</span></h2>
+      <h2 class="section-title">Los más <span class="gradient-text">populares</span></h2>
     </div>
     <div class="featured-slider" id="featured-slider">
-      <div class="no-featured">
-        <i class="fas fa-star"></i>
-        <p>Los add-ons destacados aparecerán aquí</p>
-      </div>
+      <div class="no-featured"><i class="fas fa-star"></i><p>Los destacados aparecerán aquí</p></div>
     </div>
   </div>
 </section>
 
-<!-- ========== PRICING / PLANS SECTION ========== -->
+<!-- ===================== PLANES ===================== -->
 <section class="pricing-section" id="pricing">
   <div class="container">
     <div class="section-header">
-      <h2 class="section-title">Elige tu <span class="gradient-text">Plan</span></h2>
-      <p class="section-subtitle">Sube tus propios add-ons y desbloquea más beneficios</p>
+      <h2 class="section-title">Elige tu <span class="gradient-text">plan</span></h2>
+      <p class="section-subtitle">Sube tu propio contenido y desbloquea más beneficios</p>
     </div>
-    <div class="plans-grid" id="plans-grid">
-      <!-- Renderizado por JS desde PLANS -->
-    </div>
+    <div class="plans-grid" id="plans-grid"></div>
     <p class="plans-note">
-      <i class="fas fa-lock"></i> Pago 100% seguro con PayPal
-      <span>·</span>
-      <i class="fas fa-bolt"></i> Activación inmediata
-      <span>·</span>
+      <i class="fas fa-lock"></i> Pago seguro con PayPal <span>·</span>
+      <i class="fas fa-bolt"></i> Activación inmediata <span>·</span>
       <i class="fas fa-xmark"></i> Cancela cuando quieras
     </p>
   </div>
 </section>
 
-<!-- ========== FEATURES BANNER ========== -->
+<!-- ===================== FEATURES ===================== -->
 <section class="features-section">
   <div class="container">
     <div class="features-grid">
-      <div class="feature-item">
-        <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-        <h4>100% Seguro</h4>
-        <p>Todos los add-ons verificados y libres de virus</p>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-        <h4>Descarga Rápida</h4>
-        <p>Servidores de alta velocidad</p>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon"><i class="fab fa-paypal"></i></div>
-        <h4>Pago Seguro</h4>
-        <p>Integración oficial con PayPal</p>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon"><i class="fas fa-sync-alt"></i></div>
-        <h4>Actualizaciones</h4>
-        <p>Add-ons siempre actualizados</p>
-      </div>
+      <div class="feature-item"><div class="feature-icon"><i class="fas fa-shield-halved"></i></div><h4>100% Seguro</h4><p>Contenido revisado por el equipo</p></div>
+      <div class="feature-item"><div class="feature-icon"><i class="fas fa-bolt"></i></div><h4>Descarga rápida</h4><p>Servidores de alta velocidad</p></div>
+      <div class="feature-item"><div class="feature-icon"><i class="fab fa-paypal"></i></div><h4>Pago seguro</h4><p>Integración oficial con PayPal</p></div>
+      <div class="feature-item"><div class="feature-icon"><i class="fas fa-users"></i></div><h4>Comunidad</h4><p>Sube y comparte tu contenido</p></div>
     </div>
   </div>
 </section>
 
-<!-- ========== CONTACT / FOOTER ========== -->
+<!-- ===================== FOOTER ===================== -->
 <footer class="footer" id="contact">
   <div class="container">
     <div class="footer-grid">
@@ -367,7 +260,7 @@
           <span class="logo-icon"><i class="fas fa-cube"></i></span>
           <span class="logo-text">MCPE <span class="logo-accent">Addons</span></span>
         </div>
-        <p>La tienda #1 de add-ons para Minecraft Pocket Edition.</p>
+        <p>La tienda de contenido para Minecraft PE y Java.</p>
         <div class="social-links">
           <a href="#"><i class="fab fa-youtube"></i></a>
           <a href="#"><i class="fab fa-tiktok"></i></a>
@@ -377,21 +270,19 @@
       </div>
       <div class="footer-links">
         <h4>Tienda</h4>
-        <a href="#addons">Add-ons Gratis</a>
-        <a href="#addons">Add-ons Premium</a>
+        <a href="#addons">Catálogo</a>
         <a href="#featured">Destacados</a>
-        <a href="#pricing">Precios</a>
+        <a href="#pricing">Planes</a>
       </div>
       <div class="footer-links">
         <h4>Soporte</h4>
         <a href="#">FAQ</a>
         <a href="#">Contacto</a>
-        <a href="#">Política de privacidad</a>
         <a href="#">Términos de uso</a>
       </div>
       <div class="footer-newsletter">
-        <h4>Mantente actualizado</h4>
-        <p>Recibe notificaciones de nuevos add-ons</p>
+        <h4>Novedades</h4>
+        <p>Recibe avisos de nuevo contenido</p>
         <div class="newsletter-form">
           <input type="email" id="newsletter-email" placeholder="tu@email.com" />
           <button class="btn btn-primary" type="button" onclick="subscribeNewsletter()" title="Suscribirse"><i class="fas fa-paper-plane"></i></button>
@@ -399,18 +290,16 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 MCPE Addons Store v3.0 — Edición FIFA World Cup 2026. Todos los derechos reservados.</p>
+      <p>© 2026 MCPE Addons Store v9.0. Todos los derechos reservados.</p>
       <p>No afiliado con Mojang Studios ni Microsoft.</p>
     </div>
   </div>
 </footer>
 
-<!-- ========== AUTH MODAL (Google for users) ========== -->
+<!-- ===================== AUTH MODAL ===================== -->
 <div class="modal-overlay" id="auth-modal">
   <div class="modal auth-modal">
-    <button class="modal-close" onclick="closeModal('auth-modal')">
-      <i class="fas fa-times"></i>
-    </button>
+    <button class="modal-close" onclick="closeModal('auth-modal')"><i class="fas fa-times"></i></button>
     <div class="auth-modal-content">
       <div class="auth-logo"><i class="fas fa-cube"></i></div>
       <h2 id="auth-modal-title">Bienvenido</h2>
@@ -423,60 +312,32 @@
 
       <div class="auth-msg" id="auth-msg" style="display:none"></div>
 
-      <!-- LOGIN -->
       <form class="auth-form" id="auth-login-form" onsubmit="loginEmail(event)">
-        <div class="auth-field">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="email" required />
-        </div>
-        <div class="auth-field">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required />
-          <button type="button" class="auth-eye" onclick="togglePass('login-pass',this)" aria-label="Mostrar/ocultar"><i class="fas fa-eye"></i></button>
-        </div>
+        <div class="auth-field"><i class="fas fa-envelope"></i><input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="email" required /></div>
+        <div class="auth-field"><i class="fas fa-lock"></i><input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required /><button type="button" class="auth-eye" onclick="togglePass('login-pass',this)"><i class="fas fa-eye"></i></button></div>
         <label class="auth-remember"><input type="checkbox" id="login-remember" checked /> <span>Mantener sesión iniciada</span></label>
         <button type="button" class="auth-forgot" onclick="switchAuthTab('recover')">¿Olvidaste tu contraseña?</button>
         <button type="submit" class="btn btn-primary btn-full" id="login-submit-btn"><i class="fas fa-right-to-bracket"></i> Iniciar sesión</button>
       </form>
 
-      <!-- REGISTER -->
       <form class="auth-form" id="auth-register-form" style="display:none" onsubmit="registerEmail(event)">
-        <div class="auth-field">
-          <i class="fas fa-user"></i>
-          <input type="text" id="reg-name" placeholder="Tu nombre" autocomplete="name" required />
-        </div>
-        <div class="auth-field">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="reg-email" placeholder="Correo electrónico" autocomplete="email" required />
-          <i class="fas fa-circle-check field-ok" id="reg-email-ok" style="display:none"></i>
-        </div>
-        <div class="auth-field">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="reg-pass" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" minlength="6" required oninput="updatePassStrength()" />
-          <button type="button" class="auth-eye" onclick="togglePass('reg-pass',this)" aria-label="Mostrar/ocultar"><i class="fas fa-eye"></i></button>
-        </div>
-        <div class="pass-strength" id="pass-strength" aria-hidden="true"><span id="pass-strength-bar"></span></div>
+        <div class="auth-field"><i class="fas fa-user"></i><input type="text" id="reg-name" placeholder="Tu nombre" autocomplete="name" required /></div>
+        <div class="auth-field"><i class="fas fa-envelope"></i><input type="email" id="reg-email" placeholder="Correo electrónico" autocomplete="email" required /><i class="fas fa-circle-check field-ok" id="reg-email-ok" style="display:none"></i></div>
+        <div class="auth-field"><i class="fas fa-lock"></i><input type="password" id="reg-pass" placeholder="Contraseña (mín. 6)" autocomplete="new-password" minlength="6" required oninput="updatePassStrength()" /><button type="button" class="auth-eye" onclick="togglePass('reg-pass',this)"><i class="fas fa-eye"></i></button></div>
+        <div class="pass-strength"><span id="pass-strength-bar"></span></div>
         <small class="pass-strength-text" id="pass-strength-text"></small>
-        <div class="auth-field">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="reg-pass2" placeholder="Repite la contraseña" autocomplete="new-password" required oninput="checkPassMatch()" />
-          <i class="fas fa-circle-check field-ok" id="reg-match-ic" style="display:none"></i>
-        </div>
+        <div class="auth-field"><i class="fas fa-lock"></i><input type="password" id="reg-pass2" placeholder="Repite la contraseña" autocomplete="new-password" required oninput="checkPassMatch()" /><i class="fas fa-circle-check field-ok" id="reg-match-ic" style="display:none"></i></div>
         <label class="auth-terms-check"><input type="checkbox" id="reg-terms" required /> <span>Acepto los <a href="#">Términos</a> y la <a href="#">Privacidad</a></span></label>
         <button type="submit" class="btn btn-primary btn-full" id="reg-submit-btn"><i class="fas fa-user-plus"></i> Crear cuenta</button>
       </form>
 
-      <!-- RECOVER -->
       <form class="auth-form auth-recover" id="auth-recover-form" style="display:none" onsubmit="recoverPassword(event)">
         <div class="recover-hero">
           <div class="recover-icon"><i class="fas fa-key"></i></div>
           <h3 class="recover-title">Recupera tu cuenta</h3>
-          <p class="auth-recover-text">No te preocupes. Escribe tu correo y te enviaremos un <strong>enlace seguro</strong> para crear una nueva contraseña.</p>
+          <p class="auth-recover-text">Escribe tu correo y te enviaremos un <strong>enlace seguro</strong> para crear una nueva contraseña.</p>
         </div>
-        <div class="auth-field">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="rec-email" placeholder="Tu correo electrónico" autocomplete="email" required />
-        </div>
+        <div class="auth-field"><i class="fas fa-envelope"></i><input type="email" id="rec-email" placeholder="Tu correo electrónico" autocomplete="email" required /></div>
         <button type="submit" class="btn btn-primary btn-full btn-glow" id="rec-submit-btn"><i class="fas fa-paper-plane"></i> Enviar enlace de recuperación</button>
         <div class="recover-steps">
           <span><i class="fas fa-envelope-open-text"></i> Revisa tu correo</span>
@@ -487,49 +348,32 @@
       </form>
 
       <div class="auth-divider"><span>o continúa con</span></div>
-
-      <div class="google-signin-wrapper">
-        <div id="google-signin-btn"></div>
-      </div>
-
-      <p class="auth-terms">
-        Al continuar aceptas nuestros
-        <a href="#">Términos de uso</a> y
-        <a href="#">Política de privacidad</a>
-      </p>
+      <div class="google-signin-wrapper"><div id="google-signin-btn"></div></div>
+      <p class="auth-terms">Al continuar aceptas nuestros <a href="#">Términos</a> y <a href="#">Privacidad</a></p>
     </div>
   </div>
 </div>
 
-<!-- ========== ADDON DETAIL MODAL ========== -->
+<!-- ===================== ADDON DETAIL MODAL ===================== -->
 <div class="modal-overlay" id="addon-modal">
   <div class="modal addon-modal">
-    <button class="modal-close" onclick="closeModal('addon-modal')">
-      <i class="fas fa-times"></i>
-    </button>
-    <div class="addon-modal-inner" id="addon-modal-inner">
-      <!-- Injected by JS -->
-    </div>
+    <button class="modal-close" onclick="closeModal('addon-modal')"><i class="fas fa-times"></i></button>
+    <div class="addon-modal-inner" id="addon-modal-inner"></div>
   </div>
 </div>
 
-<!-- ========== PURCHASES MODAL ========== -->
+<!-- ===================== PURCHASES MODAL ===================== -->
 <div class="modal-overlay" id="purchases-modal">
   <div class="modal purchases-modal">
-    <button class="modal-close" onclick="closeModal('purchases-modal')">
-      <i class="fas fa-times"></i>
-    </button>
+    <button class="modal-close" onclick="closeModal('purchases-modal')"><i class="fas fa-times"></i></button>
     <h2><i class="fas fa-box"></i> Mis Compras</h2>
     <div id="purchases-list">
-      <div class="empty-purchases">
-        <i class="fas fa-shopping-bag"></i>
-        <p>No tienes compras aún</p>
-      </div>
+      <div class="empty-purchases"><i class="fas fa-shopping-bag"></i><p>No tienes compras aún</p></div>
     </div>
   </div>
 </div>
 
-<!-- ========== UPLOAD ADD-ON MODAL (usuarios) ========== -->
+<!-- ===================== UPLOAD MODAL ===================== -->
 <div class="modal-overlay" id="upload-modal">
   <div class="modal upload-modal">
     <button class="modal-close" onclick="closeModal('upload-modal')"><i class="fas fa-times"></i></button>
@@ -539,12 +383,8 @@
     </div>
     <form id="user-upload-form" class="upload-form">
       <div class="uform-row">
-        <div class="uform-group">
-          <label>Nombre *</label>
-          <input type="text" id="up-name" class="uinput" required placeholder="Ej: Dragon Add-on" />
-        </div>
-        <div class="uform-group">
-          <label>Plataforma *</label>
+        <div class="uform-group"><label>Nombre *</label><input type="text" id="up-name" class="uinput" required placeholder="Ej: Dragon Add-on" /></div>
+        <div class="uform-group"><label>Plataforma *</label>
           <select id="up-platform" class="uinput" required onchange="onUploadPlatformChange()">
             <option value="bedrock">Minecraft PE / Bedrock</option>
             <option value="java">Minecraft Java</option>
@@ -552,83 +392,57 @@
         </div>
       </div>
       <div class="uform-row">
-        <div class="uform-group">
-          <label>Tipo *</label>
-          <select id="up-type" class="uinput" required></select>
-        </div>
-        <div class="uform-group">
-          <label>Precio (USD) — 0 = Gratis</label>
-          <input type="number" id="up-price" class="uinput" min="0" step="0.01" value="0" />
-        </div>
+        <div class="uform-group"><label>Tipo *</label><select id="up-type" class="uinput" required></select></div>
+        <div class="uform-group"><label>Precio (USD) — 0 = Gratis</label><input type="number" id="up-price" class="uinput" min="0" step="0.01" value="0" /></div>
       </div>
-      <div class="uform-group">
-        <label>Descripción</label>
-        <textarea id="up-desc" class="uinput utextarea" rows="3" placeholder="Describe tu add-on..."></textarea>
-      </div>
+      <div class="uform-group"><label>Descripción</label><textarea id="up-desc" class="uinput utextarea" rows="3" placeholder="Describe tu add-on..."></textarea></div>
       <div class="uform-row">
-        <div class="uform-group">
-          <label>Versión</label>
-          <input type="text" id="up-version" class="uinput" placeholder="1.0.0" />
-        </div>
-        <div class="uform-group">
-          <label>Versión MC</label>
-          <input type="text" id="up-mcversion" class="uinput" placeholder="1.20+" />
-        </div>
+        <div class="uform-group"><label>Versión</label><input type="text" id="up-version" class="uinput" placeholder="1.0.0" /></div>
+        <div class="uform-group"><label>Versión MC</label><input type="text" id="up-mcversion" class="uinput" placeholder="1.20+" /></div>
       </div>
-
       <div class="uform-group">
         <label>Imagen</label>
         <div class="file-pick">
           <input type="file" id="up-image-file" accept="image/*" onchange="handleUploadImage(this)" hidden />
-          <button type="button" class="file-pick-btn" onclick="document.getElementById('up-image-file').click()">
-            <i class="fas fa-image"></i> Subir imagen
-          </button>
+          <button type="button" class="file-pick-btn" onclick="document.getElementById('up-image-file').click()"><i class="fas fa-image"></i> Subir imagen</button>
           <span class="file-pick-name" id="up-image-name">Ningún archivo</span>
         </div>
-        <div class="up-preview" id="up-image-preview" style="display:none">
-          <img id="up-image-preview-img" alt="" />
-        </div>
+        <div class="up-preview" id="up-image-preview" style="display:none"><img id="up-image-preview-img" alt="" /></div>
         <div class="uform-or"><span>o pega una URL</span></div>
         <input type="url" id="up-image-url" class="uinput" placeholder="https://...imagen.png" />
       </div>
-
       <div class="uform-group">
         <label>Archivo del Add-on *</label>
         <div class="file-pick">
           <input type="file" id="up-file" accept=".mcaddon,.mcpack,.mcworld,.zip,.jar" onchange="handleUploadFile(this)" hidden />
-          <button type="button" class="file-pick-btn" onclick="document.getElementById('up-file').click()">
-            <i class="fas fa-file-arrow-up"></i> Subir archivo
-          </button>
+          <button type="button" class="file-pick-btn" onclick="document.getElementById('up-file').click()"><i class="fas fa-file-arrow-up"></i> Subir archivo</button>
           <span class="file-pick-name" id="up-file-name">Ningún archivo</span>
         </div>
         <div class="uform-or"><span>o pega un enlace de descarga</span></div>
         <input type="url" id="up-download-url" class="uinput" placeholder="https://...descarga" />
       </div>
-
-      <button type="submit" class="btn btn-primary btn-full btn-glow" id="up-submit-btn">
-        <i class="fas fa-cloud-arrow-up"></i> Publicar Add-on
-      </button>
+      <button type="submit" class="btn btn-primary btn-full btn-glow" id="up-submit-btn"><i class="fas fa-cloud-arrow-up"></i> Publicar Add-on</button>
     </form>
   </div>
 </div>
 
-<!-- ========== PROFILE MODAL ========== -->
+<!-- ===================== PROFILE MODAL ===================== -->
 <div class="modal-overlay" id="profile-modal">
   <div class="modal profile-modal">
     <button class="modal-close" onclick="closeModal('profile-modal')"><i class="fas fa-times"></i></button>
-    <div id="profile-view"><!-- Renderizado por JS --></div>
+    <div id="profile-view"></div>
   </div>
 </div>
 
-<!-- ========== PLAN CHECKOUT MODAL ========== -->
+<!-- ===================== PLAN CHECKOUT MODAL ===================== -->
 <div class="modal-overlay" id="plan-modal">
   <div class="modal plan-checkout-modal">
     <button class="modal-close" onclick="closeModal('plan-modal')"><i class="fas fa-times"></i></button>
-    <div id="plan-modal-body"><!-- Renderizado por JS --></div>
+    <div id="plan-modal-body"></div>
   </div>
 </div>
 
-<!-- ========== MOBILE MENU v6.0 (bottom sheet deslizable) ========== -->
+<!-- ===================== MENÚ MÓVIL (bottom sheet) ===================== -->
 <div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSheet()"></div>
 <div class="msheet" id="msheet" role="dialog" aria-label="Menú de navegación" aria-modal="true">
   <div class="msheet-grip" id="msheet-grip"></div>
@@ -637,13 +451,11 @@
     <span class="logo-text">MCPE <span class="logo-accent">Addons</span></span>
     <button class="msheet-close" onclick="closeSheet()" aria-label="Cerrar menú"><i class="fas fa-times"></i></button>
   </div>
-  <div class="msheet-body" id="msheet-body"><!-- Renderizado por JS --></div>
+  <div class="msheet-body" id="msheet-body"></div>
 </div>
 
-<!-- ========== TOAST NOTIFICATIONS ========== -->
+<!-- ===================== TOASTS + LOADING ===================== -->
 <div class="toast-container" id="toast-container"></div>
-
-<!-- ========== LOADING SCREEN ========== -->
 <div class="loading-screen" id="loading-screen">
   <div class="loading-content">
     <div class="loading-cube"><i class="fas fa-cube"></i></div>
@@ -652,15 +464,13 @@
   </div>
 </div>
 
-<!-- Firebase SDK (Realtime Database) -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
-<!-- EmailJS (correos con diseño propio) -->
+<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
-<!-- Scripts -->
+<!-- App scripts -->
 <script src="firebase-config.js"></script>
 <script src="emailjs-config.js"></script>
 <script src="paypal.js"></script>
