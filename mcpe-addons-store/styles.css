@@ -1930,3 +1930,46 @@ p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word
   .hero-title { font-size: 1.5rem; }
   .plan-card { padding: 22px 14px; }
 }
+
+
+/* ============================================================
+   V5.0 — Menú deslizable, anillo de banderas, pulido
+   ============================================================ */
+/* Barra de arrastre + scroll suave del menú */
+.nav-menu { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.nav-menu-grip {
+  width: 46px; height: 5px; border-radius: 999px;
+  background: var(--border-hover); margin: 10px auto 2px;
+  flex-shrink: 0; opacity: .8;
+}
+
+/* Anillo de banderas (marco "Banderas") */
+.flag-ring {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 1;
+}
+.ring-flag {
+  position: absolute; width: 16px; height: 11px; object-fit: cover;
+  border-radius: 2px; transform-origin: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+.av-flags { box-shadow: 0 0 0 2px var(--gold); }
+.profile-avatar-wrap.av-flags {
+  overflow: visible; background: transparent; border: none;
+  width: 128px; height: 128px; box-shadow: none;
+}
+.profile-avatar-wrap.av-flags .pf-avatar-img {
+  position: absolute; top: 50%; left: 50%;
+  width: 84px; height: 84px; transform: translate(-50%,-50%);
+  border-radius: 50%; border: 2px solid var(--bg-card);
+}
+/* Demo del marco de banderas en el selector */
+.frame-demo { position: relative; overflow: visible; }
+.frame-demo.av-flags { box-shadow: none; background: transparent; }
+.flag-ring-mini { position: absolute; inset: 0; }
+.flag-ring-mini .ring-flag { width: 9px; height: 6px; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+
+/* Pulido general */
+.btn { transition: var(--transition); }
+.addon-card { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }

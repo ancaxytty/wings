@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLoadingScreen();
   initParticles();
   initNavbar();
+  initMenuSwipe();
   initGoogleAuth();
   initScrollReveal();
   initTypingEffect();
@@ -162,6 +163,50 @@ function closeHamburger() {
   menu.classList.remove('open');
   overlay.classList.remove('open');
   document.body.style.overflow = '';
+}
+
+/* ============================================================
+   MENÚ DESLIZABLE (gestos táctiles)
+   - Deslizar vertical: scroll del contenido (nativo)
+   - Deslizar hacia la derecha: cerrar el menú
+   ============================================================ */
+function initMenuSwipe() {
+  const menu = document.getElementById('nav-menu');
+  if (!menu) return;
+  let sx = 0, sy = 0, dx = 0, dy = 0, dragging = false, decided = false, horizontal = false;
+
+  menu.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    dx = 0; dy = 0; dragging = true; decided = false; horizontal = false;
+    menu.style.transition = 'none';
+  }, { passive: true });
+
+  menu.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    dx = e.touches[0].clientX - sx;
+    dy = e.touches[0].clientY - sy;
+    if (!decided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      decided = true;
+      horizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if (horizontal && dx > 0) {
+      menu.style.transform = `translateX(${dx}px)`;
+      menu.style.opacity = String(Math.max(0.4, 1 - dx / 400));
+    }
+  }, { passive: true });
+
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    menu.style.transition = '';
+    menu.style.opacity = '';
+    const shouldClose = horizontal && dx > 80;
+    menu.style.transform = '';
+    if (shouldClose) closeHamburger();
+  };
+  menu.addEventListener('touchend', end);
+  menu.addEventListener('touchcancel', end);
 }
 
 /* ============================================================
@@ -847,6 +892,17 @@ function frameClass(frameId){ return frameId && frameId !== 'none' ? ('av-frame 
 function platformShort(id){ const p=(window.PLATFORMS||[]).find(x=>x.id===id); return p?p.short:id; }
 function typeName(id){ const t=(window.CONTENT_TYPES||[]).find(x=>x.id===id); return t?t.name:id; }
 function userPlanId(u){ return (u && u.plan) || 'free'; }
+function flagRingHTML(radius, count){
+  const list = (window.COUNTRIES || []);
+  if (!list.length) return '';
+  let html = '';
+  for (let i = 0; i < count; i++){
+    const c = list[i % list.length];
+    const ang = (360 / count) * i;
+    html += `<img class="ring-flag" src="${FLAG_URL(c.code)}" alt="" loading="lazy" style="transform:rotate(${ang}deg) translateY(-${radius}px) rotate(${-ang}deg)" />`;
+  }
+  return html;
+}
 function todayKey(){ return new Date().toISOString().slice(0,10); }
 function countTodayUploads(userId){
   const today = todayKey();
@@ -1093,7 +1149,8 @@ function renderProfile(editMode){
       <div class="profile-cover"></div>
       <div class="profile-head">
         <div class="profile-avatar-wrap ${frameClass(u.frame)}">
-          <img src="${escHtml(userAvatar(u))}" alt="" onerror="this.style.opacity=0" />
+          ${u.frame === 'flags' ? `<div class="flag-ring">${flagRingHTML(52, 16)}</div>` : ''}
+          <img class="pf-avatar-img" src="${escHtml(userAvatar(u))}" alt="" onerror="this.style.opacity=0" />
         </div>
         ${country ? `<img class="profile-flag" src="${FLAG_URL(country.code)}" alt="${escHtml(country.name)}" title="${escHtml(country.name)}" />` : ''}
         <h2 class="profile-name">${escHtml(userDisplayName(u))}</h2>
@@ -1159,7 +1216,7 @@ function renderProfile(editMode){
       <div class="frames-grid" id="frames-grid">
         ${(window.FRAMES||[]).map(fr=>`
           <button type="button" class="frame-pick ${_profFrame===fr.id?'active':''} ${fr.premium && !isPremiumPlan ? 'locked':''}" data-frame="${fr.id}" onclick="pickFrame('${fr.id}', ${fr.premium})">
-            <span class="frame-demo av-frame av-${fr.id}"><i class="fas fa-user"></i></span>
+            <span class="frame-demo av-frame av-${fr.id}">${fr.id==='flags' ? `<span class="flag-ring flag-ring-mini">${flagRingHTML(17,10)}</span><i class="fas fa-user"></i>` : '<i class="fas fa-user"></i>'}</span>
             <small>${fr.name}${fr.premium?' <i class="fas fa-lock"></i>':''}</small>
           </button>`).join('')}
       </div>

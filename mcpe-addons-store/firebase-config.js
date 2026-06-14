@@ -314,6 +314,7 @@ const PLANS = [
 // Marcos custom para avatar de perfil
 const FRAMES = [
   { id: 'none',     name: 'Ninguno',     premium: false },
+  { id: 'flags',    name: 'Banderas',    premium: false },
   { id: 'neon',     name: 'Neón',        premium: false },
   { id: 'gold',     name: 'Oro',         premium: false },
   { id: 'worldcup', name: 'World Cup',   premium: false },
