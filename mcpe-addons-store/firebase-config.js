@@ -190,6 +190,13 @@ if (FIREBASE_READY) {
     firebase.initializeApp(FIREBASE_CONFIG);
     _rtdb = firebase.database();
 
+    // Firebase Auth (login/registro/recuperación por correo)
+    try {
+      if (typeof firebase.auth === 'function') {
+        window.fbAuth = firebase.auth();
+      }
+    } catch (e) { console.warn('[MCPE Store] Firebase Auth no disponible:', e); }
+
     // Estado de conexión visible
     _rtdb.ref('.info/connected').on('value', s => {
       if (window.CLOUD_STATUS) window.CLOUD_STATUS.connected = (s.val() === true);

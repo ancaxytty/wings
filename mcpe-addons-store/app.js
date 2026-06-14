@@ -516,16 +516,124 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 function openAuthModal(mode = 'login') {
-  const title    = document.getElementById('auth-modal-title');
-  const subtitle = document.getElementById('auth-modal-subtitle');
-  if (mode === 'login') {
-    title.textContent    = 'Bienvenido de vuelta';
-    subtitle.textContent = 'Inicia sesión para descargar add-ons premium';
-  } else {
-    title.textContent    = 'Crear cuenta';
-    subtitle.textContent = 'Únete a miles de usuarios de MCPE';
-  }
   openModal('auth-modal');
+  switchAuthTab(mode === 'register' ? 'register' : 'login');
+}
+
+/* ============================================================
+   AUTENTICACIÓN POR CORREO (Firebase Auth) + recuperación
+   ============================================================ */
+function switchAuthTab(mode) {
+  const loginF = document.getElementById('auth-login-form');
+  const regF   = document.getElementById('auth-register-form');
+  const recF   = document.getElementById('auth-recover-form');
+  const tabL   = document.getElementById('tab-login');
+  const tabR   = document.getElementById('tab-register');
+  const tabs   = document.getElementById('auth-tabs');
+  const title  = document.getElementById('auth-modal-title');
+  const sub    = document.getElementById('auth-modal-subtitle');
+  [loginF, regF, recF].forEach(f => { if (f) f.style.display = 'none'; });
+  tabL && tabL.classList.remove('active');
+  tabR && tabR.classList.remove('active');
+  if (tabs) tabs.style.display = (mode === 'recover') ? 'none' : 'flex';
+
+  if (mode === 'register') {
+    if (regF) regF.style.display = 'flex';
+    tabR && tabR.classList.add('active');
+    if (title) title.textContent = 'Crear cuenta';
+    if (sub) sub.textContent = 'Únete a la comunidad de MCPE';
+  } else if (mode === 'recover') {
+    if (recF) recF.style.display = 'flex';
+    if (title) title.textContent = 'Recuperar cuenta';
+    if (sub) sub.textContent = 'Restablece tu contraseña por correo';
+  } else {
+    if (loginF) loginF.style.display = 'flex';
+    tabL && tabL.classList.add('active');
+    if (title) title.textContent = 'Bienvenido';
+    if (sub) sub.textContent = 'Inicia sesión o crea tu cuenta';
+  }
+}
+
+function togglePass(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const icon = btn.querySelector('i');
+  if (inp.type === 'password') { inp.type = 'text'; if (icon) icon.className = 'fas fa-eye-slash'; }
+  else { inp.type = 'password'; if (icon) icon.className = 'fas fa-eye'; }
+}
+
+function authAvatar(name) {
+  const n = encodeURIComponent(((name || 'U').trim()) || 'U');
+  return `https://ui-avatars.com/api/?name=${n}&background=00d4ff&color=041018&bold=true&size=128`;
+}
+
+function authErrorMsg(err) {
+  const c = (err && err.code) || '';
+  const map = {
+    'auth/invalid-email': 'Correo electrónico inválido.',
+    'auth/user-not-found': 'No existe una cuenta con ese correo.',
+    'auth/wrong-password': 'Contraseña incorrecta.',
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use': 'Ese correo ya está registrado. Inicia sesión.',
+    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+    'auth/too-many-requests': 'Demasiados intentos. Espera un momento.',
+    'auth/operation-not-allowed': 'El acceso por correo no está habilitado. Actívalo en Firebase → Authentication → Email/Password.',
+    'auth/network-request-failed': 'Error de red. Revisa tu conexión.'
+  };
+  return map[c] || ('Error: ' + (err && err.message ? err.message : (c || 'desconocido')));
+}
+
+function ensureAuth() {
+  if (!window.fbAuth) {
+    showToast('El acceso por correo requiere Firebase Auth. Por ahora usa Google, o habilita Email/Password en Firebase.', 'warning', 7000);
+    return false;
+  }
+  return true;
+}
+
+function loginEmail(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!ensureAuth()) return;
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  window.fbAuth.signInWithEmailAndPassword(email, pass)
+    .then(cred => {
+      const fu = cred.user;
+      loginUser({ id: fu.uid, name: fu.displayName || email.split('@')[0], email: fu.email || email, avatar: fu.photoURL || authAvatar(fu.displayName || email), loginAt: Date.now(), authProvider: 'email' });
+    })
+    .catch(err => showToast(authErrorMsg(err), 'error', 6000));
+}
+
+function registerEmail(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!ensureAuth()) return;
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  if (pass !== pass2) { showToast('Las contraseñas no coinciden.', 'error'); return; }
+  if (pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+  window.fbAuth.createUserWithEmailAndPassword(email, pass)
+    .then(cred => {
+      const fu = cred.user;
+      return fu.updateProfile({ displayName: name, photoURL: authAvatar(name) }).catch(() => {}).then(() => {
+        loginUser({ id: fu.uid, name: name, email: fu.email || email, avatar: authAvatar(name), loginAt: Date.now(), authProvider: 'email' });
+        showToast('¡Cuenta creada con éxito! Bienvenido.', 'success');
+      });
+    })
+    .catch(err => showToast(authErrorMsg(err), 'error', 6000));
+}
+
+function recoverPassword(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!ensureAuth()) return;
+  const email = document.getElementById('rec-email').value.trim();
+  window.fbAuth.sendPasswordResetEmail(email)
+    .then(() => {
+      showToast('Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja (y spam).', 'success', 8000);
+      switchAuthTab('login');
+    })
+    .catch(err => showToast(authErrorMsg(err), 'error', 6000));
 }
 
 function openPurchasesModal() {
@@ -630,6 +738,17 @@ function setCategory(cat, btn) {
 
 function filterAddons() {
   State.searchQuery = document.getElementById('search-input').value.trim();
+  const clr = document.getElementById('search-clear');
+  if (clr) clr.style.display = State.searchQuery ? 'flex' : 'none';
+  applyFilters();
+}
+
+function clearSearch() {
+  const inp = document.getElementById('search-input');
+  if (inp) inp.value = '';
+  State.searchQuery = '';
+  const clr = document.getElementById('search-clear');
+  if (clr) clr.style.display = 'none';
   applyFilters();
 }
 
@@ -640,6 +759,13 @@ function renderAddons() {
   const grid  = document.getElementById('addons-grid');
   const empty = document.getElementById('empty-state');
   const more  = document.getElementById('load-more-wrap');
+
+  // Contador de resultados
+  const rc = document.getElementById('results-count');
+  if (rc) {
+    const n = State.filteredAddons.length;
+    rc.textContent = n === 0 ? '' : `${n} resultado${n !== 1 ? 's' : ''}`;
+  }
 
   const visible = State.filteredAddons.slice(0, State.page * State.perPage);
 
@@ -1385,6 +1511,12 @@ window.closeHamburger     = closeHamburger;
 window.openSheet          = openSheet;
 window.closeSheet         = closeSheet;
 window.openAuthModal      = openAuthModal;
+window.switchAuthTab      = switchAuthTab;
+window.togglePass         = togglePass;
+window.loginEmail         = loginEmail;
+window.registerEmail      = registerEmail;
+window.recoverPassword    = recoverPassword;
+window.clearSearch        = clearSearch;
 window.closeModal         = closeModal;
 window.openModal          = openModal;
 window.toggleUserDropdown = toggleUserDropdown;
