@@ -467,13 +467,22 @@
       </form>
 
       <!-- RECOVER -->
-      <form class="auth-form" id="auth-recover-form" style="display:none" onsubmit="recoverPassword(event)">
-        <p class="auth-recover-text"><i class="fas fa-shield-halved"></i> Escribe tu correo y te enviaremos un enlace seguro para restablecer tu contraseña.</p>
+      <form class="auth-form auth-recover" id="auth-recover-form" style="display:none" onsubmit="recoverPassword(event)">
+        <div class="recover-hero">
+          <div class="recover-icon"><i class="fas fa-key"></i></div>
+          <h3 class="recover-title">Recupera tu cuenta</h3>
+          <p class="auth-recover-text">No te preocupes. Escribe tu correo y te enviaremos un <strong>enlace seguro</strong> para crear una nueva contraseña.</p>
+        </div>
         <div class="auth-field">
           <i class="fas fa-envelope"></i>
           <input type="email" id="rec-email" placeholder="Tu correo electrónico" autocomplete="email" required />
         </div>
-        <button type="submit" class="btn btn-primary btn-full" id="rec-submit-btn"><i class="fas fa-paper-plane"></i> Enviar enlace</button>
+        <button type="submit" class="btn btn-primary btn-full btn-glow" id="rec-submit-btn"><i class="fas fa-paper-plane"></i> Enviar enlace de recuperación</button>
+        <div class="recover-steps">
+          <span><i class="fas fa-envelope-open-text"></i> Revisa tu correo</span>
+          <span><i class="fas fa-link"></i> Abre el enlace</span>
+          <span><i class="fas fa-lock-open"></i> Nueva contraseña</span>
+        </div>
         <button type="button" class="auth-back" onclick="switchAuthTab('login')"><i class="fas fa-arrow-left"></i> Volver al inicio de sesión</button>
       </form>
 

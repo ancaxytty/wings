@@ -2188,3 +2188,41 @@ p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word
 .auth-remember input, .auth-terms-check input { width: 15px; height: 15px; accent-color: var(--primary); flex-shrink: 0; }
 .auth-terms-check a { color: var(--primary); }
 .auth-recover-text i { color: var(--primary); }
+
+
+/* ============================================================
+   V8.2 — Recuperación de cuenta (estilo llamativo)
+   ============================================================ */
+.auth-recover { animation: fadeInUp .35s ease; }
+.recover-hero { text-align: center; margin-bottom: 4px; }
+.recover-icon {
+  width: 78px; height: 78px; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 1.9rem; color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  box-shadow: 0 0 0 8px rgba(0,212,255,.10), 0 10px 30px rgba(0,212,255,.35);
+  animation: recover-pulse 2.2s ease-in-out infinite;
+}
+@keyframes recover-pulse {
+  0%, 100% { box-shadow: 0 0 0 8px rgba(0,212,255,.10), 0 10px 30px rgba(0,212,255,.35); transform: translateY(0); }
+  50%      { box-shadow: 0 0 0 14px rgba(124,58,237,.10), 0 14px 38px rgba(124,58,237,.45); transform: translateY(-3px); }
+}
+.recover-title {
+  font-family: var(--font-heading); font-size: 1.45rem; font-weight: 700; margin-bottom: 6px;
+  background: linear-gradient(135deg, var(--primary), var(--accent-light));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+.auth-recover .auth-recover-text { color: var(--text-light); font-size: .88rem; max-width: 330px; margin: 0 auto 6px; }
+.auth-recover .auth-recover-text strong { color: var(--primary); }
+.recover-steps {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin: 6px 0 2px; padding: 12px; border-radius: 12px;
+  background: var(--bg-card2); border: 1px solid var(--border);
+}
+.recover-steps span {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: .68rem; color: var(--text-muted); text-align: center; line-height: 1.2;
+}
+.recover-steps i { font-size: 1rem; color: var(--primary); }
+.recover-steps span:nth-child(2) i { color: var(--accent-light); }
+.recover-steps span:nth-child(3) i { color: var(--green); }
