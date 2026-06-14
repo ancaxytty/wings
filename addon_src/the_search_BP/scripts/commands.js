@@ -154,20 +154,44 @@ function cmdList(origin) {
   return ok(msg);
 }
 
+/**
+ * Resuelve un selector de objetivo a una lista de jugadores usando el motor
+ * de selectores de Minecraft (soporta @p, @a, @r, @s, @e[...] y nombres).
+ * Debe llamarse dentro de system.run (usa /tag, que muta el mundo).
+ */
+function resolveTargets(execEntity, selector) {
+  const all = world.getAllPlayers();
+  const s = String(selector || "").trim();
+  if (!s) return [];
+  if (s === "*") return all;
+
+  // Truco con tag temporal: dejamos que el juego evalue el selector real.
+  const tag = `tsr_${system.currentTick}_${Math.floor(Math.random() * 9999)}`;
+  let tagged = [];
+  try {
+    const runner = execEntity || world.getDimension("minecraft:overworld");
+    runner.runCommand(`tag ${s} add ${tag}`);
+    tagged = world.getAllPlayers().filter((p) => p.hasTag(tag));
+    for (const p of tagged) { try { p.removeTag(tag); } catch (e) {} }
+  } catch (e) {
+    tagged = [];
+  }
+  if (tagged.length) return tagged;
+
+  // Respaldo: coincidencia exacta por nombre.
+  return all.filter((p) => p.name.toLowerCase() === s.toLowerCase());
+}
+
 function cmdReset(origin, jugador, nombre) {
   const search = getSearch(nombre);
   if (!search) return fail(`No existe la busqueda "${nombre}".`);
   const wanted = String(jugador || "").trim();
-  if (!wanted) return fail("Debes indicar el nombre del jugador (o * / @a para todos).");
+  if (!wanted) return fail("Indica un jugador o selector: nombre, @p, @a, @r, @s o *.");
   const admin = requirePlayer(origin);
   system.run(() => {
-    const all = world.getAllPlayers();
-    const everyone = wanted === "*" || wanted === "@a";
-    const targets = everyone
-      ? all
-      : all.filter((p) => p.name.toLowerCase() === wanted.toLowerCase());
+    const targets = resolveTargets(origin.sourceEntity, wanted);
     if (targets.length === 0) {
-      if (admin) admin.sendMessage(`${PREFIX}§cNo se encontro al jugador "${wanted}" conectado.`);
+      if (admin) admin.sendMessage(`${PREFIX}§cNingun jugador coincide con "${wanted}".`);
       return;
     }
     let n = 0;
@@ -180,7 +204,7 @@ function cmdReset(origin, jugador, nombre) {
     }
     if (admin) admin.sendMessage(`${PREFIX}§aProgreso reiniciado para §f${n}§a jugador(es) en §f${search.name}§a.`);
   });
-  return ok(`Reiniciando progreso en "${nombre}"...`);
+  return ok(`Reiniciando progreso de "${wanted}" en "${nombre}"...`);
 }
 
 function cmdTp(origin, nombre, numeroCabeza) {

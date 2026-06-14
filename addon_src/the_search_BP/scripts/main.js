@@ -19,6 +19,7 @@ import { world } from "@minecraft/server";
 import { PREFIX } from "./config.js";
 import { registerCommands } from "./commands.js";
 import { registerInteractionListeners } from "./interaction.js";
+import { startAmbientTorches } from "./ambient.js";
 
 // 1) Los comandos deben registrarse en el evento startup -> se hace dentro.
 registerCommands();
@@ -26,11 +27,14 @@ registerCommands();
 // 2) Listeners de interaccion (encontrar cabezas).
 registerInteractionListeners();
 
-// 3) Mensaje de bienvenida / ayuda al entrar al mundo.
+// 3) Particulas-antorcha ambientales sobre las cabezas (pista visual).
+startAmbientTorches();
+
+// 4) Mensaje de bienvenida / ayuda al entrar al mundo.
 world.afterEvents.playerSpawn.subscribe((ev) => {
   if (!ev.initialSpawn) return;
   const p = ev.player;
-  p.sendMessage(`${PREFIX}§7The Search v2.0 PE cargado. Admins: §e/ts:create [nombre]§7, §e/ts:set [nombre]§7, §e/ts:edit [nombre]§7.`);
+  p.sendMessage(`${PREFIX}§7The Search v0.3 PE cargado. Admins: §e/ts:create [nombre]§7, §e/ts:set [nombre]§7, §e/ts:edit [nombre]§7.`);
 });
 
-console.warn("[The Search] v2.0 PE inicializado correctamente.");
+console.warn("[The Search] v0.3 PE inicializado correctamente.");

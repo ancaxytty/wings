@@ -19,7 +19,7 @@ import { HEAD_BLOCK_ID, HEAD_CATALOG, DEFAULT_TITLE, DEFAULT_SUBTITLE, PREFIX, c
 import { loadDB, listSearches, markFound } from "./data.js";
 import {
   showTitle, actionBar, applyTemplate,
-  spawnFoundParticles, playFoundSound, playCompleteSound
+  spawnFindEffect, playFoundSound, playCompleteSound
 } from "./effects.js";
 
 // Anti-duplicado: clave "playerId:x,y,z" -> tick en que se proceso.
@@ -85,7 +85,7 @@ export function processFind(player, block) {
 
   // --- Feedback al encontrar una cabeza nueva ---
   const center = { x: loc.x + 0.5, y: loc.y, z: loc.z + 0.5 };
-  spawnFoundParticles(block.dimension, center, head.skin);
+  spawnFindEffect(block.dimension, center, head.skin, search.effect || 0);
   playFoundSound(player);
 
   const ctx = {

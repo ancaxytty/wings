@@ -23,7 +23,7 @@
 import { world } from "@minecraft/server";
 import {
   DB_KEY, PROGRESS_KEY, DEFAULT_TITLE, DEFAULT_SUBTITLE,
-  clampSkin, clampSize, colorCode
+  clampSkin, clampSize, clampEffect, colorCode
 } from "./config.js";
 
 // ----------------------------- busquedas (global) -----------------------------
@@ -73,6 +73,7 @@ export function createSearch(name) {
     color: "e",
     defaultSkin: 0,
     defaultSize: 1,
+    effect: 0,
     title: DEFAULT_TITLE,
     subtitle: DEFAULT_SUBTITLE,
     rewards: [],
@@ -132,10 +133,11 @@ export function persist(search) {
 }
 
 /** Aplica saneamiento de campos editables de una busqueda. */
-export function updateSearchMeta(search, { color, defaultSkin, defaultSize, title, subtitle }) {
+export function updateSearchMeta(search, { color, defaultSkin, defaultSize, effect, title, subtitle }) {
   if (color !== undefined) search.color = colorCode(color);
   if (defaultSkin !== undefined) search.defaultSkin = clampSkin(defaultSkin);
   if (defaultSize !== undefined) search.defaultSize = clampSize(defaultSize);
+  if (effect !== undefined) search.effect = clampEffect(effect);
   if (title !== undefined) search.title = String(title).length ? String(title) : DEFAULT_TITLE;
   if (subtitle !== undefined) search.subtitle = String(subtitle).length ? String(subtitle) : DEFAULT_SUBTITLE;
   persist(search);

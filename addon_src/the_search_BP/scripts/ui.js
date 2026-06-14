@@ -13,7 +13,7 @@
  */
 
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
-import { HEAD_CATALOG, SIZE_NAMES, ICONS, headIcon, colorCode } from "./config.js";
+import { HEAD_CATALOG, SIZE_NAMES, EFFECT_NAMES, ICONS, headIcon, colorCode } from "./config.js";
 import { getSearch, updateSearchMeta, persist } from "./data.js";
 
 const HEAD_NAMES = HEAD_CATALOG.map((c) => c.name);
@@ -37,6 +37,7 @@ export function openEditForm(player, searchName) {
       `§7Cabezas: §f${search.heads.length}\n` +
       `§7Cabeza por defecto: §${colorCode(HEAD_CATALOG[search.defaultSkin].color)}${HEAD_NAMES[search.defaultSkin]}\n` +
       `§7Tamano por defecto: §f${SIZE_NAMES[search.defaultSize]}\n` +
+      `§7Efecto al encontrar: §f${EFFECT_NAMES[search.effect || 0]}\n` +
       `§7Recompensas: §f${(search.rewards || []).length}`
     )
     .button("§lApariencia\n§r§7skin · tamano · color", headIcon(search.defaultSkin))
@@ -66,12 +67,13 @@ function openAppearanceForm(player, searchName) {
     .title(`Apariencia: ${search.name}`)
     .dropdown("Cabeza por defecto (para /ts:set)", HEAD_NAMES, { defaultValueIndex: search.defaultSkin })
     .dropdown("Tamano por defecto", SIZE_NAMES, { defaultValueIndex: search.defaultSize })
+    .dropdown("Efecto 3D al encontrar", EFFECT_NAMES, { defaultValueIndex: search.effect || 0 })
     .textField("Color del nombre (0-9, a-f)", "e", { defaultValue: search.color });
 
   form.show(player).then((res) => {
     if (res.canceled) return;
-    const [skin, size, color] = res.formValues;
-    updateSearchMeta(search, { defaultSkin: skin, defaultSize: size, color });
+    const [skin, size, effect, color] = res.formValues;
+    updateSearchMeta(search, { defaultSkin: skin, defaultSize: size, effect, color });
     player.sendMessage(`§aApariencia de §f${search.name}§a actualizada.`);
     openEditForm(player, search.name);
   });

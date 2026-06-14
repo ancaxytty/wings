@@ -16,6 +16,33 @@ export const STATE_SIZE = "wings:size";
 // Particula custom 3D que se invoca al encontrar una cabeza.
 export const PARTICLE_FOUND = "ts:found";
 
+// Particula ambiental tipo antorcha que flota sobre cada cabeza (pista visual).
+export const PARTICLE_TORCH = "wings:torch";
+
+// Efectos 3D al encontrar una cabeza. El indice 0 = aleatorio.
+export const EFFECT_NAMES = [
+  "Aleatorio",
+  "Murcielagos",
+  "Volcan",
+  "Trineo de Santa",
+  "Fuegos Artificiales",
+  "Espiral Magica"
+];
+
+// Identificadores de las particulas de cada efecto tematico.
+export const PARTICLE_BATS = "ts:bats";
+export const PARTICLE_VOLCANO = "ts:volcano";
+export const PARTICLE_SLEIGH = "ts:sleigh";
+export const PARTICLE_FIREWORKS = "ts:fireworks";
+export const PARTICLE_MAGIC = "ts:magic";
+
+// Cada cuantos ticks se refresca la particula-antorcha sobre las cabezas.
+export const TORCH_INTERVAL_TICKS = 16;
+// Distancia maxima (bloques) a la que un jugador "activa" la antorcha de una cabeza.
+export const TORCH_RENDER_DISTANCE = 28;
+// Tope de cabezas procesadas por intervalo para evitar picos de lag.
+export const TORCH_MAX_PER_TICK = 80;
+
 // Sonidos custom registrados en sounds/sound_definitions.json del RP.
 export const SOUND_FOUND = "ts.found";       // al encontrar 1 cabeza
 export const SOUND_COMPLETE = "ts.complete"; // al completar la busqueda
@@ -95,6 +122,12 @@ export function clampSkin(n) {
 export function clampSize(n) {
   n = Math.floor(Number(n));
   return Number.isFinite(n) && n >= 0 && n <= 3 ? n : 1;
+}
+
+/** Limita el indice de efecto al rango valido (0 = aleatorio). */
+export function clampEffect(n) {
+  n = Math.floor(Number(n));
+  return Number.isFinite(n) && n >= 0 && n <= EFFECT_NAMES.length - 1 ? n : 0;
 }
 
 /** Valida un codigo de color Bedrock de 1 caracter (0-9, a-f). */
