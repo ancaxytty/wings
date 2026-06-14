@@ -2226,3 +2226,92 @@ p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word
 .recover-steps i { font-size: 1rem; color: var(--primary); }
 .recover-steps span:nth-child(2) i { color: var(--accent-light); }
 .recover-steps span:nth-child(3) i { color: var(--green); }
+
+
+/* ============================================================
+   V9.1 — BUSCADOR MODERNO / ANIMADO / RESPONSIVE
+   ============================================================ */
+.search-section { padding: 40px 0 22px; }
+
+.search-bar {
+  position: relative;
+  background: linear-gradient(180deg, rgba(13,26,42,.95), rgba(13,26,42,.72));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px;
+  gap: 14px;
+  box-shadow: 0 12px 42px rgba(0,0,0,.38);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  animation: searchIn .5s ease both;
+}
+@keyframes searchIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* Borde con degradado animado al enfocar */
+.search-bar::before {
+  content: ''; position: absolute; inset: 0; border-radius: 20px; padding: 1px;
+  background: linear-gradient(120deg, rgba(0,212,255,.6), rgba(124,58,237,.55), rgba(245,158,11,.45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity .35s ease; pointer-events: none;
+}
+.search-bar:focus-within::before { opacity: 1; }
+.search-bar:focus-within {
+  border-color: transparent;
+  box-shadow: 0 0 0 4px rgba(0,212,255,.12), 0 16px 48px rgba(0,212,255,.2);
+}
+
+/* Input como píldora */
+.search-input-wrap {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2px 8px 2px 16px;
+  gap: 12px;
+  transition: var(--transition);
+}
+.search-bar:focus-within .search-input-wrap { border-color: var(--primary); }
+.search-ic { color: var(--text-muted); font-size: 1.05rem; transition: var(--transition); }
+.search-bar:focus-within .search-ic { color: var(--primary); transform: scale(1.12); }
+.search-input-wrap input { padding: 13px 0; font-size: 1.02rem; }
+
+/* Chips modernos con degradado y elevación */
+.chip {
+  padding: 9px 16px; font-size: .82rem; font-weight: 600;
+  background: var(--bg-card2);
+  transition: transform .18s ease, box-shadow .25s ease, background .25s ease, color .25s ease, border-color .25s ease;
+}
+.chip i { font-size: .82rem; transition: var(--transition); }
+.chip:hover { transform: translateY(-2px); color: var(--text); border-color: var(--primary); box-shadow: 0 6px 16px rgba(0,212,255,.18); }
+.chip.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: transparent; color: #fff;
+  box-shadow: 0 6px 18px rgba(0,212,255,.35);
+}
+.chip.active i { color: #fff; }
+.chip-premium.active { background: linear-gradient(135deg, var(--gold), #f97316) !important; color: #1a1206 !important; }
+.chip-premium.active i { color: #1a1206; }
+
+.ptab { transition: transform .18s ease, box-shadow .25s ease, background .25s ease, color .25s ease, border-color .25s ease; }
+.ptab:hover { transform: translateY(-2px); }
+
+/* Móvil: scroll horizontal con desvanecido en los bordes */
+@media (max-width: 768px) {
+  .filter-chips {
+    flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch; padding-bottom: 6px; gap: 8px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .chip { scroll-snap-align: start; flex-shrink: 0; }
+  .platform-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
+  .platform-tabs::-webkit-scrollbar { display: none; }
+  .ptab { flex-shrink: 0; }
+  .search-bar { padding: 14px; border-radius: 16px; }
+}
+@media (max-width: 480px) {
+  .search-input-wrap input { font-size: .95rem; padding: 12px 0; }
+  .search-section { padding: 28px 0 18px; }
+}
