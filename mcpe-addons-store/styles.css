@@ -1973,3 +1973,94 @@ p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word
 /* Pulido general */
 .btn { transition: var(--transition); }
 .addon-card { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+
+
+/* ============================================================
+   V6.0 — MENÚ MÓVIL REHECHO (bottom sheet deslizable)
+   ============================================================ */
+/* El grip antiguo del panel lateral ya no se usa */
+.nav-menu-grip { display: none !important; }
+
+/* En móvil ocultamos el panel lateral viejo: ahora se usa el bottom sheet */
+@media (max-width: 900px) {
+  .nav-menu { display: none !important; }
+  .mobile-menu-overlay { display: none !important; }
+}
+
+/* Backdrop del sheet */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(3, 8, 15, .66);
+  backdrop-filter: blur(5px);
+  z-index: 1000; opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
+}
+.sheet-backdrop.open { opacity: 1; visibility: visible; }
+
+/* Panel deslizable */
+.msheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1001;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform .42s cubic-bezier(.22, 1, .36, 1);
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, .6);
+  padding-bottom: env(safe-area-inset-bottom, 10px);
+  will-change: transform;
+}
+.msheet.open { transform: translateY(0); }
+.msheet-grip {
+  width: 46px; height: 5px; border-radius: 999px;
+  background: var(--border-hover); margin: 12px auto 6px;
+  flex-shrink: 0; cursor: grab; touch-action: none;
+}
+.msheet-grip:active { cursor: grabbing; }
+.msheet-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 20px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.msheet-brand .logo-icon {
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 9px; color: #fff; font-size: 1rem;
+}
+.msheet-brand .logo-text { font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; }
+.msheet-brand .logo-accent { color: var(--primary); }
+.msheet-close {
+  margin-left: auto; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px; color: var(--text-muted); transition: var(--transition);
+}
+.msheet-close:hover { background: rgba(239, 68, 68, .12); color: var(--red); }
+.msheet-body {
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: 16px; 
+}
+.msheet-links { display: flex; flex-direction: column; gap: 4px; }
+.msheet-links a {
+  display: flex; align-items: center; gap: 15px;
+  padding: 14px 16px; border-radius: 13px;
+  color: var(--text-light); font-weight: 600; font-size: 1rem;
+  transition: var(--transition);
+}
+.msheet-links a i { width: 22px; text-align: center; color: var(--primary); font-size: 1.05rem; }
+.msheet-links a:active, .msheet-links a:hover { background: var(--bg-card2); color: var(--text); transform: translateX(3px); }
+.msheet-admin { color: var(--gold) !important; }
+.msheet-admin i { color: var(--gold) !important; }
+.msheet-divider { height: 1px; background: var(--border); margin: 16px 4px; }
+.msheet-user { display: flex; align-items: center; gap: 13px; padding: 2px 6px 16px; }
+.msheet-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: var(--bg-card2); flex-shrink: 0; }
+.msheet-user-info { min-width: 0; }
+.msheet-user-info strong { display: block; font-size: 1rem; }
+.msheet-user-info small { color: var(--text-muted); font-size: .8rem; word-break: break-all; }
+.msheet-actions { display: flex; flex-direction: column; gap: 10px; }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--text-light); }
+.btn-ghost:hover { background: var(--bg-card2); }
+
+/* En escritorio el sheet nunca aparece */
+@media (min-width: 901px) {
+  .msheet, .sheet-backdrop { display: none !important; }
+}

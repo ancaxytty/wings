@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLoadingScreen();
   initParticles();
   initNavbar();
-  initMenuSwipe();
+  initSheetDrag();
   initGoogleAuth();
   initScrollReveal();
   initTypingEffect();
@@ -166,47 +166,118 @@ function closeHamburger() {
 }
 
 /* ============================================================
-   MENÚ DESLIZABLE (gestos táctiles)
-   - Deslizar vertical: scroll del contenido (nativo)
-   - Deslizar hacia la derecha: cerrar el menú
+   MENÚ MÓVIL v6.0 — Bottom sheet deslizable y profesional
    ============================================================ */
-function initMenuSwipe() {
-  const menu = document.getElementById('nav-menu');
-  if (!menu) return;
-  let sx = 0, sy = 0, dx = 0, dy = 0, dragging = false, decided = false, horizontal = false;
+function renderSheet() {
+  const body = document.getElementById('msheet-body');
+  if (!body) return;
+  const u = State.user;
 
-  menu.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) return;
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-    dx = 0; dy = 0; dragging = true; decided = false; horizontal = false;
-    menu.style.transition = 'none';
-  }, { passive: true });
+  const links = `
+    <nav class="msheet-links">
+      <a href="#hero" onclick="closeSheet()"><i class="fas fa-house"></i> Inicio</a>
+      <a href="#addons" onclick="closeSheet()"><i class="fas fa-puzzle-piece"></i> Add-ons</a>
+      <a href="#featured" onclick="closeSheet()"><i class="fas fa-fire"></i> Destacados</a>
+      <a href="#pricing" onclick="closeSheet()"><i class="fas fa-crown"></i> Planes</a>
+      <a href="#contact" onclick="closeSheet()"><i class="fas fa-envelope"></i> Contacto</a>
+      <a href="admin.html" class="msheet-admin"><i class="fas fa-user-shield"></i> Panel Admin</a>
+    </nav>`;
 
-  menu.addEventListener('touchmove', e => {
+  let userSection;
+  if (u) {
+    userSection = `
+      <div class="msheet-user">
+        <img class="msheet-avatar ${frameClass(u.frame)}" src="${escHtml(userAvatar(u))}" alt="" onerror="this.style.opacity=0" />
+        <div class="msheet-user-info">
+          <strong>${escHtml(userDisplayName(u))}</strong>
+          <small>${escHtml(u.email || '')}</small>
+        </div>
+      </div>
+      <div class="msheet-actions">
+        <button class="btn btn-primary btn-full" onclick="closeSheet();openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir Add-on</button>
+        <button class="btn btn-outline btn-full" onclick="closeSheet();openProfileModal()"><i class="fas fa-id-badge"></i> Mi Perfil</button>
+        <button class="btn btn-outline btn-full" onclick="closeSheet();openPurchasesModal()"><i class="fas fa-box"></i> Mis Compras</button>
+        <button class="btn btn-ghost btn-full logout-link" onclick="closeSheet();logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+      </div>`;
+  } else {
+    userSection = `
+      <div class="msheet-actions">
+        <button class="btn btn-primary btn-full btn-glow" onclick="closeSheet();openAuthModal('login')"><i class="fab fa-google"></i> Iniciar sesión con Google</button>
+      </div>`;
+  }
+
+  body.innerHTML = links + '<div class="msheet-divider"></div>' + userSection;
+}
+
+function openSheet() {
+  renderSheet();
+  const sheet = document.getElementById('msheet');
+  const bd = document.getElementById('sheet-backdrop');
+  if (!sheet) return;
+  sheet.style.transform = '';
+  sheet.classList.add('open');
+  bd.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSheet() {
+  const sheet = document.getElementById('msheet');
+  const bd = document.getElementById('sheet-backdrop');
+  if (!sheet) return;
+  sheet.classList.remove('open');
+  bd.classList.remove('open');
+  sheet.style.transform = '';
+  document.body.style.overflow = '';
+}
+
+function initSheetDrag() {
+  const sheet = document.getElementById('msheet');
+  const grip  = document.getElementById('msheet-grip');
+  const body  = document.getElementById('msheet-body');
+  if (!sheet) return;
+
+  let sy = 0, dy = 0, dragging = false, fromGrip = false;
+
+  function start(y, isGrip) {
+    sy = y; dy = 0; dragging = true; fromGrip = !!isGrip;
+    sheet.style.transition = 'none';
+  }
+  function move(y) {
     if (!dragging) return;
-    dx = e.touches[0].clientX - sx;
-    dy = e.touches[0].clientY - sy;
-    if (!decided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-      decided = true;
-      horizontal = Math.abs(dx) > Math.abs(dy);
+    dy = y - sy;
+    const atTop = !body || body.scrollTop <= 0;
+    // Solo se cierra arrastrando hacia abajo (desde el grip, o desde arriba del contenido)
+    if (dy > 0 && (fromGrip || atTop)) {
+      sheet.style.transform = `translateY(${dy}px)`;
+    } else if (dy < 0) {
+      sheet.style.transform = '';
     }
-    if (horizontal && dx > 0) {
-      menu.style.transform = `translateX(${dx}px)`;
-      menu.style.opacity = String(Math.max(0.4, 1 - dx / 400));
-    }
-  }, { passive: true });
-
-  const end = () => {
+  }
+  function end() {
     if (!dragging) return;
     dragging = false;
-    menu.style.transition = '';
-    menu.style.opacity = '';
-    const shouldClose = horizontal && dx > 80;
-    menu.style.transform = '';
-    if (shouldClose) closeHamburger();
-  };
-  menu.addEventListener('touchend', end);
-  menu.addEventListener('touchcancel', end);
+    sheet.style.transition = '';
+    if (dy > 110) closeSheet();
+    else sheet.style.transform = '';
+  }
+
+  // Touch (móvil)
+  sheet.addEventListener('touchstart', e => start(e.touches[0].clientY, e.target === grip), { passive: true });
+  sheet.addEventListener('touchmove',  e => move(e.touches[0].clientY), { passive: true });
+  sheet.addEventListener('touchend', end);
+  sheet.addEventListener('touchcancel', end);
+
+  // Mouse en el grip (para escritorio/pruebas)
+  grip.addEventListener('mousedown', e => {
+    start(e.clientY, true); e.preventDefault();
+    const mm = ev => move(ev.clientY);
+    const mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
+  });
+
+  // Cerrar con tecla Escape
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 }
 
 /* ============================================================
@@ -1292,6 +1363,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // Expose globally
 window.toggleHamburger    = toggleHamburger;
 window.closeHamburger     = closeHamburger;
+window.openSheet          = openSheet;
+window.closeSheet         = closeSheet;
 window.openAuthModal      = openAuthModal;
 window.closeModal         = closeModal;
 window.openModal          = openModal;
