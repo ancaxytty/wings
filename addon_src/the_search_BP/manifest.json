@@ -2,29 +2,29 @@
   "format_version": 2,
   "header": {
     "name": "§6The Search §ePE §7BP",
-    "description": "§eThe Search v0.1 PE §7- Custom Commands API /ts:*\n§7Behavior Pack · API 1.21.100+",
+    "description": "§eThe Search v2.0 PE §7- Custom Commands API /ts:*\n§7Behavior Pack · API 1.21.100+",
     "uuid": "667b96ff-812f-431f-a402-30bec83431ca",
-    "version": [0, 1, 0],
+    "version": [2, 0, 0],
     "min_engine_version": [1, 21, 100]
   },
   "modules": [
     {
       "type": "data",
       "uuid": "22ed1363-d480-45bb-bf8d-88d993b0f820",
-      "version": [0, 1, 0]
+      "version": [2, 0, 0]
     },
     {
       "type": "script",
       "language": "javascript",
       "uuid": "aedc66b1-d061-4462-8a12-f0395c37cd24",
-      "version": [0, 1, 0],
+      "version": [2, 0, 0],
       "entry": "scripts/main.js"
     }
   ],
   "dependencies": [
     {
       "uuid": "d7ec506f-8843-40bb-93e9-3d4858340e4f",
-      "version": [0, 1, 0]
+      "version": [2, 0, 0]
     },
     {
       "module_name": "@minecraft/server",
@@ -32,7 +32,7 @@
     },
     {
       "module_name": "@minecraft/server-ui",
-      "version": "2.1.0"
+      "version": "2.0.0"
     }
   ]
 }

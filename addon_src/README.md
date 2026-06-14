@@ -106,13 +106,13 @@ zip -r -X ../dist/wings_search_v4.mcaddon wings_search_BP wings_search_RP -x "*.
 
 ---
 
-# The Search v0.1 PE — Custom Commands API (1.21.100+)
+# The Search v2.0 PE — Custom Commands API (1.21.100+)
 
 Nueva versión reescrita desde cero centrada en la **API nativa de comandos
 personalizados** (`/ts:*`) de Minecraft Bedrock **1.21.100+**, con código
 modular y limpio.
 
-- **Descarga:** `dist/The-search-v0.1-PE.mcaddon`
+- **Descarga:** `dist/The-search-v2.0-PE.mcaddon`
 - **Packs:** `the_search_BP/` (Behavior) + `the_search_RP/` (Resource).
 - Activa **ambos** packs y la opción **Beta APIs** del mundo. Necesitas
   **trucos / operador** para usar los comandos `/ts:*`.
@@ -156,5 +156,5 @@ modular y limpio.
 ## Re-empaquetar
 ```bash
 cd addon_src
-zip -r -X ../dist/The-search-v0.1-PE.mcaddon the_search_BP the_search_RP
+zip -r -X ../dist/The-search-v2.0-PE.mcaddon the_search_BP the_search_RP
 ```

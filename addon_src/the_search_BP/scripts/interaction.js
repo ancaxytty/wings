@@ -1,10 +1,17 @@
 /**
- * The Search v0.1 PE — interaction.js
+ * The Search v2.0 PE — interaction.js
  * -------------------------------------------------------------
  * Logica de interaccion: detecta cuando un jugador toca/interactua con
  * una cabeza oculta, verifica el progreso (dynamic properties por jugador),
  * lo actualiza, envia el title/actionbar, genera la particula 3D, reproduce
  * el sonido custom y entrega recompensas al completar.
+ *
+ * Deteccion (robusta en cualquier modo de juego, incluido Aventura):
+ *   1) COMPONENTE de bloque custom "ts:find_head" -> onPlayerInteract
+ *      (metodo principal, fiable al tocar/usar el bloque).
+ *   2) afterEvents.playerInteractWithBlock  (red de seguridad).
+ *   3) beforeEvents.playerBreakBlock        (golpear; se cancela la rotura).
+ * Un pequeno "debounce" evita procesar la misma cabeza dos veces por accion.
  */
 
 import { world, system } from "@minecraft/server";
@@ -14,6 +21,22 @@ import {
   showTitle, actionBar, applyTemplate,
   spawnFoundParticles, playFoundSound, playCompleteSound
 } from "./effects.js";
+
+// Anti-duplicado: clave "playerId:x,y,z" -> tick en que se proceso.
+const recentFinds = new Map();
+const DEBOUNCE_TICKS = 6;
+
+/** Indica si esta cabeza ya se proceso para este jugador hace muy poco. */
+function isDebounced(player, loc) {
+  const key = `${player.id}:${loc.x},${loc.y},${loc.z}`;
+  const now = system.currentTick;
+  const last = recentFinds.get(key);
+  if (last !== undefined && now - last < DEBOUNCE_TICKS) return true;
+  recentFinds.set(key, now);
+  // Limpieza simple para que el Map no crezca indefinidamente.
+  if (recentFinds.size > 256) recentFinds.clear();
+  return false;
+}
 
 /**
  * Busca a que busqueda + indice pertenece una cabeza situada en unas
@@ -41,7 +64,10 @@ function headName(head) {
  * Devuelve true si la posicion correspondia a una cabeza registrada.
  */
 export function processFind(player, block) {
+  if (!player || !block) return false;
   const loc = block.location; // coords enteras del bloque
+  if (isDebounced(player, loc)) return true;
+
   const match = findHeadAt(loc.x, loc.y, loc.z, block.dimension.id);
   if (!match) return false;
 
@@ -52,7 +78,7 @@ export function processFind(player, block) {
   const { added, foundCount } = markFound(player, search, index);
 
   if (!added) {
-    // Ya la habia encontrado: solo recordatorio sutil, sin spamear efectos.
+    // Ya la habia encontrado: solo recordatorio sutil, sin repetir efectos.
     actionBar(player, `§7Ya encontraste §f${headName(head)}§7 (${foundCount}/${total})`);
     return true;
   }
@@ -105,12 +131,35 @@ function completeSearch(player, search) {
 }
 
 /**
- * Registra el listener de interaccion. Se llama una vez desde main.js.
- * Usamos afterEvents.playerInteractWithBlock (clic derecho / toque) y
- * tambien capturamos el golpe inicial como alternativa de "tocar".
+ * Componente de bloque custom registrado en el bloque wings:head.
+ * onPlayerInteract es la forma fiable de detectar el toque/uso del bloque.
+ */
+const findHeadComponent = {
+  onPlayerInteract(e) {
+    try {
+      processFind(e.player, e.block);
+    } catch (err) {
+      console.warn(`[The Search] Error en onPlayerInteract: ${err}`);
+    }
+  }
+};
+
+/**
+ * Registra el componente de bloque y los listeners de respaldo.
+ * Se llama una vez desde main.js.
  */
 export function registerInteractionListeners() {
-  // Interaccion (clic derecho / toque) con el bloque-cabeza.
+  // 1) Componente de bloque custom (metodo principal, requiere el evento startup).
+  system.beforeEvents.startup.subscribe((init) => {
+    try {
+      init.blockComponentRegistry.registerCustomComponent("ts:find_head", findHeadComponent);
+      console.warn("[The Search] Componente de bloque 'ts:find_head' registrado.");
+    } catch (e) {
+      console.warn(`[The Search] No se pudo registrar el componente de bloque: ${e}`);
+    }
+  });
+
+  // 2) Red de seguridad: interaccion (clic derecho / uso) con el bloque-cabeza.
   world.afterEvents.playerInteractWithBlock.subscribe((ev) => {
     const { player, block } = ev;
     if (!block || block.typeId !== HEAD_BLOCK_ID) return;
@@ -121,12 +170,11 @@ export function registerInteractionListeners() {
     }
   });
 
-  // Alternativa: golpear la cabeza tambien cuenta como "tocarla" (sin romperla).
+  // 3) Golpear la cabeza tambien cuenta como "tocarla" (sin romperla).
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     const { player, block } = ev;
     if (!block || block.typeId !== HEAD_BLOCK_ID) return;
-    // Cancelamos la rotura: la cabeza permanece oculta para otros jugadores.
-    ev.cancel = true;
+    ev.cancel = true; // la cabeza permanece oculta para otros jugadores
     system.run(() => {
       try {
         processFind(player, block);

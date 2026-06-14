@@ -1,5 +1,5 @@
 {
-  "format_version": "1.21.0",
+  "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
       "identifier": "wings:head",
@@ -34,6 +34,7 @@
       }
     },
     "components": {
+      "minecraft:custom_components": ["ts:find_head"],
       "minecraft:geometry": "geometry.wings_head",
       "minecraft:collision_box": {
         "origin": [

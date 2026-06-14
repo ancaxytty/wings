@@ -6,8 +6,7 @@
       "materials": { "default": "entity_alphatest" },
       "textures": { "default": "textures/entity/wings_hologram" },
       "geometry": { "default": "geometry.wings_hologram" },
-      "render_controllers": ["controller.render.default"],
-      "scale": 0.01
+      "render_controllers": ["controller.render.default"]
     }
   }
 }

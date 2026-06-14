@@ -30,7 +30,7 @@ registerInteractionListeners();
 world.afterEvents.playerSpawn.subscribe((ev) => {
   if (!ev.initialSpawn) return;
   const p = ev.player;
-  p.sendMessage(`${PREFIX}§7The Search v0.1 PE cargado. Admins: §e/ts:create [nombre]§7, §e/ts:set [nombre]§7, §e/ts:edit [nombre]§7.`);
+  p.sendMessage(`${PREFIX}§7The Search v2.0 PE cargado. Admins: §e/ts:create [nombre]§7, §e/ts:set [nombre]§7, §e/ts:edit [nombre]§7.`);
 });
 
-console.warn("[The Search] v0.1 PE inicializado correctamente.");
+console.warn("[The Search] v2.0 PE inicializado correctamente.");
