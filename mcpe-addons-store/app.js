@@ -579,6 +579,8 @@ function authErrorMsg(err) {
     'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
     'auth/too-many-requests': 'Demasiados intentos. Espera un momento.',
     'auth/operation-not-allowed': 'El acceso por correo no está habilitado. Actívalo en Firebase → Authentication → Email/Password.',
+    'auth/configuration-not-found': 'Firebase Authentication no está activado. Entra a Firebase → Authentication → "Comenzar" y habilita Email/Password.',
+    'auth/admin-restricted-operation': 'Operación restringida. Activa Email/Password en Firebase → Authentication.',
     'auth/network-request-failed': 'Error de red. Revisa tu conexión.'
   };
   return map[c] || ('Error: ' + (err && err.message ? err.message : (c || 'desconocido')));
