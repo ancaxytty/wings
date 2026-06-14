@@ -166,21 +166,28 @@
       <i class="fas fa-star"></i> #1 Tienda de Add-ons para MCPE
     </div>
     <h1 class="hero-title">
-      Potencia tu<br />
-      <span class="gradient-text">Minecraft PE</span><br />
+      Potencia tu <span class="gradient-text">Minecraft</span><br />
       con los mejores<br />
-      <span class="typing-text" id="typing-text">Add-ons</span>
+      <span class="typing-text" id="typing-text"></span>
     </h1>
     <p class="hero-subtitle">
-      Descarga add-ons únicos creados por expertos. Gratis y premium.<br />
-      Compatible con todas las versiones de MCPE.
+      Add-ons, skins, mundos, texturas, mapas, mods y plugins creados por expertos.<br />
+      Para Minecraft PE (Bedrock) y Java — gratis y premium.
     </p>
+    <div class="hero-quick" id="hero-quick">
+      <button type="button" onclick="heroCategory('addon')"><i class="fas fa-puzzle-piece"></i> Add-ons</button>
+      <button type="button" onclick="heroCategory('skin')"><i class="fas fa-user-astronaut"></i> Skins</button>
+      <button type="button" onclick="heroCategory('world')"><i class="fas fa-earth-americas"></i> Mundos</button>
+      <button type="button" onclick="heroCategory('texture')"><i class="fas fa-palette"></i> Texturas</button>
+      <button type="button" onclick="heroCategory('mod')"><i class="fas fa-screwdriver-wrench"></i> Mods</button>
+      <button type="button" onclick="heroCategory('plugin')"><i class="fas fa-server"></i> Plugins</button>
+    </div>
     <div class="hero-actions">
       <a href="#addons" class="btn btn-primary btn-glow">
-        <i class="fas fa-download"></i> Explorar Add-ons
+        <i class="fas fa-download"></i> Explorar todo
       </a>
-      <a href="#featured" class="btn btn-secondary">
-        <i class="fas fa-fire"></i> Ver Destacados
+      <a href="#pricing" class="btn btn-secondary">
+        <i class="fas fa-crown"></i> Ver planes
       </a>
     </div>
     <div class="hero-stats">
@@ -236,22 +243,22 @@
         <input type="text" id="search-input" placeholder="Buscar add-ons, mods, mundos..." oninput="filterAddons()" />
       </div>
       <div class="platform-tabs" id="platform-tabs">
-        <button class="ptab active" onclick="setPlatform('all', this)"><i class="fas fa-layer-group"></i> Todo</button>
-        <button class="ptab" onclick="setPlatform('bedrock', this)"><i class="fas fa-mobile-screen-button"></i> Minecraft PE</button>
-        <button class="ptab" onclick="setPlatform('java', this)"><i class="fas fa-desktop"></i> Java</button>
+        <button class="ptab active" data-platform="all" onclick="setPlatform('all', this)"><i class="fas fa-layer-group"></i> Todo</button>
+        <button class="ptab" data-platform="bedrock" onclick="setPlatform('bedrock', this)"><i class="fas fa-mobile-screen-button"></i> Minecraft PE</button>
+        <button class="ptab" data-platform="java" onclick="setPlatform('java', this)"><i class="fas fa-desktop"></i> Java</button>
       </div>
       <div class="filter-chips" id="filter-chips">
-        <button class="chip active" onclick="setCategory('all', this)">Todos</button>
-        <button class="chip" onclick="setCategory('addon', this)"><i class="fas fa-puzzle-piece"></i> Add-ons</button>
-        <button class="chip" onclick="setCategory('world', this)"><i class="fas fa-earth-americas"></i> Mundos</button>
-        <button class="chip" onclick="setCategory('texture', this)"><i class="fas fa-palette"></i> Texturas</button>
-        <button class="chip" onclick="setCategory('skin', this)"><i class="fas fa-user-astronaut"></i> Skins</button>
-        <button class="chip" onclick="setCategory('map', this)"><i class="fas fa-map-location-dot"></i> Mapas</button>
-        <button class="chip" onclick="setCategory('mod', this)"><i class="fas fa-screwdriver-wrench"></i> Mods</button>
-        <button class="chip" onclick="setCategory('plugin', this)"><i class="fas fa-server"></i> Plugins</button>
-        <button class="chip" onclick="setCategory('shader', this)"><i class="fas fa-wand-magic-sparkles"></i> Shaders</button>
-        <button class="chip" onclick="setCategory('free', this)"><i class="fas fa-gift"></i> Gratis</button>
-        <button class="chip chip-premium" onclick="setCategory('premium', this)"><i class="fas fa-crown"></i> Premium</button>
+        <button class="chip active" data-cat="all" onclick="setCategory('all', this)">Todos</button>
+        <button class="chip" data-cat="addon" onclick="setCategory('addon', this)"><i class="fas fa-puzzle-piece"></i> Add-ons</button>
+        <button class="chip" data-cat="world" onclick="setCategory('world', this)"><i class="fas fa-earth-americas"></i> Mundos</button>
+        <button class="chip" data-cat="texture" onclick="setCategory('texture', this)"><i class="fas fa-palette"></i> Texturas</button>
+        <button class="chip" data-cat="skin" onclick="setCategory('skin', this)"><i class="fas fa-user-astronaut"></i> Skins</button>
+        <button class="chip" data-cat="map" onclick="setCategory('map', this)"><i class="fas fa-map-location-dot"></i> Mapas</button>
+        <button class="chip" data-cat="mod" onclick="setCategory('mod', this)"><i class="fas fa-screwdriver-wrench"></i> Mods</button>
+        <button class="chip" data-cat="plugin" onclick="setCategory('plugin', this)"><i class="fas fa-server"></i> Plugins</button>
+        <button class="chip" data-cat="shader" onclick="setCategory('shader', this)"><i class="fas fa-wand-magic-sparkles"></i> Shaders</button>
+        <button class="chip" data-cat="free" onclick="setCategory('free', this)"><i class="fas fa-gift"></i> Gratis</button>
+        <button class="chip chip-premium" data-cat="premium" onclick="setCategory('premium', this)"><i class="fas fa-crown"></i> Premium</button>
       </div>
     </div>
   </div>
@@ -310,6 +317,13 @@
     <div class="plans-grid" id="plans-grid">
       <!-- Renderizado por JS desde PLANS -->
     </div>
+    <p class="plans-note">
+      <i class="fas fa-lock"></i> Pago 100% seguro con PayPal
+      <span>·</span>
+      <i class="fas fa-bolt"></i> Activación inmediata
+      <span>·</span>
+      <i class="fas fa-xmark"></i> Cancela cuando quieras
+    </p>
   </div>
 </section>
 

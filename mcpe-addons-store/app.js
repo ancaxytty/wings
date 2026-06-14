@@ -301,7 +301,7 @@ document.addEventListener('click', e => {
    TYPING EFFECT
    ============================================================ */
 function initTypingEffect() {
-  const words = ['Add-ons', 'Texturas', 'Mapas', 'Mods', 'Skins'];
+  const words = ['Add-ons', 'Skins', 'Mundos', 'Texturas', 'Mapas', 'Mods', 'Plugins', 'Shaders'];
   const el    = document.getElementById('typing-text');
   if (!el) return;
   let wi = 0, ci = 0, deleting = false;
@@ -599,13 +599,32 @@ function setPlatform(p, btn) {
   State.currentPlatform = p;
   document.querySelectorAll('.ptab').forEach(c => c.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  else syncFilterUI();
   applyFilters();
+}
+
+// Sincroniza el estado visual de chips y pestañas con el State
+function syncFilterUI() {
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.cat === State.currentCategory));
+  document.querySelectorAll('.ptab').forEach(t => t.classList.toggle('active', t.dataset.platform === State.currentPlatform));
+}
+
+// Acceso rápido desde el inicio: muestra exactamente esa categoría
+function heroCategory(cat) {
+  const javaOnly = ['mod', 'plugin'].includes(cat);
+  State.currentPlatform = javaOnly ? 'java' : 'all';
+  State.currentCategory = cat;
+  syncFilterUI();
+  applyFilters();
+  const target = document.getElementById('addons');
+  if (target) target.scrollIntoView({ behavior: 'smooth' });
 }
 
 function setCategory(cat, btn) {
   State.currentCategory = cat;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
+  else syncFilterUI();
   applyFilters();
 }
 
@@ -1385,6 +1404,8 @@ window.renderAddonAction  = renderAddonAction;
 window.hasPurchased       = hasPurchased;
 window.updateStats        = updateStats;
 window.setPlatform        = setPlatform;
+window.heroCategory       = heroCategory;
+window.syncFilterUI       = syncFilterUI;
 window.renderPlans        = renderPlans;
 window.selectPlan         = selectPlan;
 window.openPlanCheckout   = openPlanCheckout;

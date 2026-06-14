@@ -2064,3 +2064,48 @@ p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word
 @media (min-width: 901px) {
   .msheet, .sheet-backdrop { display: none !important; }
 }
+
+
+/* ============================================================
+   V7.0 — Hero mejorado + accesos rápidos + pulido de planes
+   ============================================================ */
+/* Palabra animada con degradado y cursor */
+.typing-text {
+  display: inline-block;
+  min-height: 1.1em;
+  background: linear-gradient(135deg, var(--primary), var(--accent-light));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  border-right: 3px solid var(--primary);
+  padding-right: 6px;
+  animation: caret-blink 1s step-end infinite;
+}
+@keyframes caret-blink { 0%, 100% { border-color: var(--primary); } 50% { border-color: transparent; } }
+
+/* Accesos rápidos del hero */
+.hero-quick { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 26px; }
+.hero-quick button {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 15px; border-radius: 999px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-light); font-weight: 600; font-size: .82rem; cursor: pointer;
+  transition: var(--transition); font-family: var(--font-main);
+}
+.hero-quick button i { color: var(--primary); }
+.hero-quick button:hover {
+  border-color: var(--primary); color: var(--text);
+  transform: translateY(-2px); box-shadow: var(--shadow-glow);
+}
+@media (max-width: 1024px) { .hero-quick { justify-content: center; } }
+
+/* Pulido de planes */
+.plan-card { overflow: hidden; }
+.plan-popular::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+.plans-note {
+  text-align: center; color: var(--text-muted); font-size: .82rem;
+  margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+}
+.plans-note i { color: var(--green); }
