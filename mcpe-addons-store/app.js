@@ -524,6 +524,7 @@ function openAuthModal(mode = 'login') {
    AUTENTICACIÓN POR CORREO (Firebase Auth) + recuperación
    ============================================================ */
 function switchAuthTab(mode) {
+  authMsg('');
   const loginF = document.getElementById('auth-login-form');
   const regF   = document.getElementById('auth-register-form');
   const recF   = document.getElementById('auth-recover-form');
@@ -591,28 +592,91 @@ function ensureAuth() {
   return true;
 }
 
+/* --- Detalles UX: mensajes, carga, fuerza de contraseña --- */
+function authMsg(text, type) {
+  const el = document.getElementById('auth-msg');
+  if (!el) return;
+  if (!text) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const ic = type === 'error' ? 'circle-exclamation' : (type === 'success' ? 'circle-check' : 'circle-info');
+  el.className = 'auth-msg ' + (type || 'info');
+  el.innerHTML = `<i class="fas fa-${ic}"></i> <span>${text}</span>`;
+  el.style.display = 'flex';
+}
+
+function setAuthLoading(btnId, loading, label) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (loading) {
+    btn.dataset.html = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label || 'Procesando…'}`;
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.html) btn.innerHTML = btn.dataset.html;
+  }
+}
+
+function passScore(p) {
+  let s = 0; if (!p) return 0;
+  if (p.length >= 6) s++;
+  if (p.length >= 10) s++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+  if (/\d/.test(p)) s++;
+  if (/[^A-Za-z0-9]/.test(p)) s++;
+  return Math.min(s, 4);
+}
+function updatePassStrength() {
+  const p = (document.getElementById('reg-pass') || {}).value || '';
+  const bar = document.getElementById('pass-strength-bar');
+  const txt = document.getElementById('pass-strength-text');
+  const score = passScore(p);
+  const pct = [0, 30, 55, 80, 100][score];
+  const colors = ['#ef4444', '#ef4444', '#f59e0b', '#00d4ff', '#10b981'];
+  const labels = ['', 'Débil', 'Media', 'Buena', 'Fuerte'];
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = colors[score]; }
+  if (txt) { txt.textContent = p ? ('Seguridad: ' + labels[score]) : ''; txt.style.color = colors[score]; }
+}
+function checkPassMatch() {
+  const p  = (document.getElementById('reg-pass') || {}).value || '';
+  const p2 = (document.getElementById('reg-pass2') || {}).value || '';
+  const ic = document.getElementById('reg-match-ic');
+  if (ic) ic.style.display = (p2 && p === p2) ? 'block' : 'none';
+}
+function checkRegEmail() {
+  const v = (document.getElementById('reg-email') || {}).value || '';
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+  const ic = document.getElementById('reg-email-ok');
+  if (ic) ic.style.display = ok ? 'block' : 'none';
+}
+
 function loginEmail(e) {
   if (e && e.preventDefault) e.preventDefault();
+  authMsg('');
   if (!ensureAuth()) return;
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
+  setAuthLoading('login-submit-btn', true, 'Entrando…');
   window.fbAuth.signInWithEmailAndPassword(email, pass)
     .then(cred => {
       const fu = cred.user;
       loginUser({ id: fu.uid, name: fu.displayName || email.split('@')[0], email: fu.email || email, avatar: fu.photoURL || authAvatar(fu.displayName || email), loginAt: Date.now(), authProvider: 'email' });
     })
-    .catch(err => showToast(authErrorMsg(err), 'error', 6000));
+    .catch(err => authMsg(authErrorMsg(err), 'error'))
+    .finally(() => setAuthLoading('login-submit-btn', false));
 }
 
 function registerEmail(e) {
   if (e && e.preventDefault) e.preventDefault();
+  authMsg('');
   if (!ensureAuth()) return;
   const name  = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass  = document.getElementById('reg-pass').value;
   const pass2 = document.getElementById('reg-pass2').value;
-  if (pass !== pass2) { showToast('Las contraseñas no coinciden.', 'error'); return; }
-  if (pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+  if (!name) { authMsg('Escribe tu nombre.', 'error'); return; }
+  if (pass !== pass2) { authMsg('Las contraseñas no coinciden.', 'error'); return; }
+  if (pass.length < 6) { authMsg('La contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+  setAuthLoading('reg-submit-btn', true, 'Creando cuenta…');
   window.fbAuth.createUserWithEmailAndPassword(email, pass)
     .then(cred => {
       const fu = cred.user;
@@ -621,19 +685,23 @@ function registerEmail(e) {
         showToast('¡Cuenta creada con éxito! Bienvenido.', 'success');
       });
     })
-    .catch(err => showToast(authErrorMsg(err), 'error', 6000));
+    .catch(err => authMsg(authErrorMsg(err), 'error'))
+    .finally(() => setAuthLoading('reg-submit-btn', false));
 }
 
 function recoverPassword(e) {
   if (e && e.preventDefault) e.preventDefault();
+  authMsg('');
   if (!ensureAuth()) return;
   const email = document.getElementById('rec-email').value.trim();
+  setAuthLoading('rec-submit-btn', true, 'Enviando…');
   window.fbAuth.sendPasswordResetEmail(email)
     .then(() => {
-      showToast('Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja (y spam).', 'success', 8000);
-      switchAuthTab('login');
+      authMsg('Listo. Revisa tu correo (y la carpeta de spam) para restablecer tu contraseña.', 'success');
+      showToast('Correo de recuperación enviado.', 'success', 6000);
     })
-    .catch(err => showToast(authErrorMsg(err), 'error', 6000));
+    .catch(err => authMsg(authErrorMsg(err), 'error'))
+    .finally(() => setAuthLoading('rec-submit-btn', false));
 }
 
 function openPurchasesModal() {
@@ -1503,6 +1571,8 @@ function deleteMyAddon(id){
 document.addEventListener('DOMContentLoaded', () => {
   const upForm = document.getElementById('user-upload-form');
   if (upForm) upForm.addEventListener('submit', submitUserAddon);
+  const regEmail = document.getElementById('reg-email');
+  if (regEmail) regEmail.addEventListener('input', checkRegEmail);
 });
 
 // Expose globally
@@ -1516,6 +1586,8 @@ window.togglePass         = togglePass;
 window.loginEmail         = loginEmail;
 window.registerEmail      = registerEmail;
 window.recoverPassword    = recoverPassword;
+window.updatePassStrength = updatePassStrength;
+window.checkPassMatch     = checkPassMatch;
 window.clearSearch        = clearSearch;
 window.closeModal         = closeModal;
 window.openModal          = openModal;

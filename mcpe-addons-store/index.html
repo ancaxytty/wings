@@ -421,6 +421,8 @@
         <button type="button" class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Crear cuenta</button>
       </div>
 
+      <div class="auth-msg" id="auth-msg" style="display:none"></div>
+
       <!-- LOGIN -->
       <form class="auth-form" id="auth-login-form" onsubmit="loginEmail(event)">
         <div class="auth-field">
@@ -432,8 +434,9 @@
           <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required />
           <button type="button" class="auth-eye" onclick="togglePass('login-pass',this)" aria-label="Mostrar/ocultar"><i class="fas fa-eye"></i></button>
         </div>
+        <label class="auth-remember"><input type="checkbox" id="login-remember" checked /> <span>Mantener sesión iniciada</span></label>
         <button type="button" class="auth-forgot" onclick="switchAuthTab('recover')">¿Olvidaste tu contraseña?</button>
-        <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-right-to-bracket"></i> Iniciar sesión</button>
+        <button type="submit" class="btn btn-primary btn-full" id="login-submit-btn"><i class="fas fa-right-to-bracket"></i> Iniciar sesión</button>
       </form>
 
       <!-- REGISTER -->
@@ -445,27 +448,32 @@
         <div class="auth-field">
           <i class="fas fa-envelope"></i>
           <input type="email" id="reg-email" placeholder="Correo electrónico" autocomplete="email" required />
+          <i class="fas fa-circle-check field-ok" id="reg-email-ok" style="display:none"></i>
         </div>
         <div class="auth-field">
           <i class="fas fa-lock"></i>
-          <input type="password" id="reg-pass" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" minlength="6" required />
+          <input type="password" id="reg-pass" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" minlength="6" required oninput="updatePassStrength()" />
           <button type="button" class="auth-eye" onclick="togglePass('reg-pass',this)" aria-label="Mostrar/ocultar"><i class="fas fa-eye"></i></button>
         </div>
+        <div class="pass-strength" id="pass-strength" aria-hidden="true"><span id="pass-strength-bar"></span></div>
+        <small class="pass-strength-text" id="pass-strength-text"></small>
         <div class="auth-field">
           <i class="fas fa-lock"></i>
-          <input type="password" id="reg-pass2" placeholder="Repite la contraseña" autocomplete="new-password" required />
+          <input type="password" id="reg-pass2" placeholder="Repite la contraseña" autocomplete="new-password" required oninput="checkPassMatch()" />
+          <i class="fas fa-circle-check field-ok" id="reg-match-ic" style="display:none"></i>
         </div>
-        <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-user-plus"></i> Crear cuenta</button>
+        <label class="auth-terms-check"><input type="checkbox" id="reg-terms" required /> <span>Acepto los <a href="#">Términos</a> y la <a href="#">Privacidad</a></span></label>
+        <button type="submit" class="btn btn-primary btn-full" id="reg-submit-btn"><i class="fas fa-user-plus"></i> Crear cuenta</button>
       </form>
 
       <!-- RECOVER -->
       <form class="auth-form" id="auth-recover-form" style="display:none" onsubmit="recoverPassword(event)">
-        <p class="auth-recover-text">Escribe tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+        <p class="auth-recover-text"><i class="fas fa-shield-halved"></i> Escribe tu correo y te enviaremos un enlace seguro para restablecer tu contraseña.</p>
         <div class="auth-field">
           <i class="fas fa-envelope"></i>
           <input type="email" id="rec-email" placeholder="Tu correo electrónico" autocomplete="email" required />
         </div>
-        <button type="submit" class="btn btn-primary btn-full"><i class="fas fa-paper-plane"></i> Enviar enlace</button>
+        <button type="submit" class="btn btn-primary btn-full" id="rec-submit-btn"><i class="fas fa-paper-plane"></i> Enviar enlace</button>
         <button type="button" class="auth-back" onclick="switchAuthTab('login')"><i class="fas fa-arrow-left"></i> Volver al inicio de sesión</button>
       </form>
 

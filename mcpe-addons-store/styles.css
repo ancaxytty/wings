@@ -2161,3 +2161,30 @@ p, h1, h2, h3, h4, span, a, li, label, small, strong { overflow-wrap: break-word
   .auth-tab { font-size: .8rem; padding: 9px; }
   .auth-field input { padding: 12px 0; font-size: .88rem; }
 }
+
+
+/* ============================================================
+   V8.1 — Detalles pro del login/registro
+   ============================================================ */
+.auth-msg {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: 10px; font-size: .82rem;
+  margin-bottom: 14px; text-align: left; line-height: 1.4;
+  animation: fadeIn .25s ease;
+}
+.auth-msg.error   { background: rgba(239,68,68,.12);  color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+.auth-msg.success { background: rgba(16,185,129,.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+.auth-msg.info    { background: rgba(0,212,255,.1);   color: var(--primary); border: 1px solid rgba(0,212,255,.3); }
+
+.pass-strength { height: 5px; border-radius: 999px; background: var(--bg-card2); overflow: hidden; margin-top: 2px; }
+.pass-strength span { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .25s ease, background .25s ease; }
+.pass-strength-text { font-size: .72rem; font-weight: 700; min-height: 1em; display: block; }
+.field-ok { color: var(--green); }
+
+.auth-remember, .auth-terms-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .8rem; color: var(--text-light); cursor: pointer; user-select: none;
+}
+.auth-remember input, .auth-terms-check input { width: 15px; height: 15px; accent-color: var(--primary); flex-shrink: 0; }
+.auth-terms-check a { color: var(--primary); }
+.auth-recover-text i { color: var(--primary); }
