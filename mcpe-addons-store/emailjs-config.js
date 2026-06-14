@@ -30,7 +30,7 @@
 'use strict';
 
 const EMAILJS_CONFIG = {
-  publicKey:       "PEGA_TU_PUBLIC_KEY",
+  publicKey:       "GZEP5r7HMiyVRkwiw",
   serviceId:       "PEGA_TU_SERVICE_ID",
   templateWelcome: "PEGA_TU_TEMPLATE_BIENVENIDA",
   templateContact: "PEGA_TU_TEMPLATE_CONTACTO"
