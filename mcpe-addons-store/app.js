@@ -685,10 +685,50 @@ function registerEmail(e) {
       return fu.updateProfile({ displayName: name, photoURL: authAvatar(name) }).catch(() => {}).then(() => {
         loginUser({ id: fu.uid, name: name, email: fu.email || email, avatar: authAvatar(name), loginAt: Date.now(), authProvider: 'email' });
         showToast('¡Cuenta creada con éxito! Bienvenido.', 'success');
+        sendWelcomeEmail(name, email);
       });
     })
     .catch(err => authMsg(authErrorMsg(err), 'error'))
     .finally(() => setAuthLoading('reg-submit-btn', false));
+}
+
+/* ============================================================
+   EMAILJS — correos con diseño propio (bienvenida / contacto)
+   ============================================================ */
+function sendWelcomeEmail(name, email) {
+  if (!window.EMAILJS_READY || typeof emailjs === 'undefined') return;
+  emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateWelcome, {
+    to_name:  name,
+    to_email: email,
+    from_name: 'MCPE Addons Store',
+    message:  '¡Tu cuenta fue creada con éxito! Ya puedes descargar y subir add-ons.'
+  }).then(
+    () => console.log('[MCPE Store] Correo de bienvenida enviado.'),
+    (err) => console.warn('[MCPE Store] No se pudo enviar el correo de bienvenida:', err)
+  );
+}
+
+function subscribeNewsletter() {
+  const input = document.getElementById('newsletter-email');
+  const email = (input && input.value.trim()) || '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Escribe un correo válido.', 'error');
+    return;
+  }
+  if (!window.EMAILJS_READY || typeof emailjs === 'undefined') {
+    showToast('¡Gracias por suscribirte! (Configura EmailJS para recibir correos reales.)', 'info', 6000);
+    if (input) input.value = '';
+    return;
+  }
+  emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateContact, {
+    to_name:  'Suscriptor',
+    to_email: email,
+    from_name: 'MCPE Addons Store',
+    message:  'Te has suscrito para recibir novedades de MCPE Addons Store.'
+  }).then(
+    () => { showToast('¡Suscripción confirmada! Revisa tu correo.', 'success'); if (input) input.value = ''; },
+    (err) => { console.warn(err); showToast('No se pudo enviar. Intenta más tarde.', 'error'); }
+  );
 }
 
 function recoverPassword(e) {
@@ -1588,6 +1628,7 @@ window.togglePass         = togglePass;
 window.loginEmail         = loginEmail;
 window.registerEmail      = registerEmail;
 window.recoverPassword    = recoverPassword;
+window.subscribeNewsletter = subscribeNewsletter;
 window.updatePassStrength = updatePassStrength;
 window.checkPassMatch     = checkPassMatch;
 window.clearSearch        = clearSearch;

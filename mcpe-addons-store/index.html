@@ -393,8 +393,8 @@
         <h4>Mantente actualizado</h4>
         <p>Recibe notificaciones de nuevos add-ons</p>
         <div class="newsletter-form">
-          <input type="email" placeholder="tu@email.com" />
-          <button class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+          <input type="email" id="newsletter-email" placeholder="tu@email.com" />
+          <button class="btn btn-primary" type="button" onclick="subscribeNewsletter()" title="Suscribirse"><i class="fas fa-paper-plane"></i></button>
         </div>
       </div>
     </div>
@@ -657,8 +657,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
+<!-- EmailJS (correos con diseño propio) -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
 <!-- Scripts -->
 <script src="firebase-config.js"></script>
+<script src="emailjs-config.js"></script>
 <script src="paypal.js"></script>
 <script src="app.js"></script>
 </body>
