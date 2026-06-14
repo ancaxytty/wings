@@ -1,0 +1,23 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "§6The Search §ePE §7RP",
+    "description": "§eThe Search v0.1 PE §7- cabezas custom, particula 3D y sonidos.\n§7Resource Pack · API 1.21.100+",
+    "uuid": "d7ec506f-8843-40bb-93e9-3d4858340e4f",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 21, 100]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "78192a32-e7fc-4f42-b48f-7c17a1cea61c",
+      "version": [0, 1, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "667b96ff-812f-431f-a402-30bec83431ca",
+      "version": [0, 1, 0]
+    }
+  ]
+}

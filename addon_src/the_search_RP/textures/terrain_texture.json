@@ -1,0 +1,24 @@
+{
+  "resource_pack_name": "wings",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "wings_head0": { "textures": "textures/entity/heads/h0" },
+    "wings_head1": { "textures": "textures/entity/heads/h1" },
+    "wings_head2": { "textures": "textures/entity/heads/h2" },
+    "wings_head3": { "textures": "textures/entity/heads/h3" },
+    "wings_head4": { "textures": "textures/entity/heads/h4" },
+    "wings_head5": { "textures": "textures/entity/heads/h5" },
+    "wings_head6": { "textures": "textures/entity/heads/h6" },
+    "wings_head7": { "textures": "textures/entity/heads/h7" },
+    "wings_head8": { "textures": "textures/entity/heads/h8" },
+    "wings_head9": { "textures": "textures/entity/heads/h9" },
+    "wings_head10": { "textures": "textures/entity/heads/h10" },
+    "wings_head11": { "textures": "textures/entity/heads/h11" },
+    "wings_head12": { "textures": "textures/entity/heads/h12" },
+    "wings_head13": { "textures": "textures/entity/heads/h13" },
+    "wings_head14": { "textures": "textures/entity/heads/h14" },
+    "wings_head15": { "textures": "textures/entity/heads/h15" }
+  }
+}

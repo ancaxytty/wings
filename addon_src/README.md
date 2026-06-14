@@ -102,3 +102,59 @@ cd addon_src
 python3 _gen_textures.py
 zip -r -X ../dist/wings_search_v4.mcaddon wings_search_BP wings_search_RP -x "*.py"
 ```
+
+
+---
+
+# The Search v0.1 PE — Custom Commands API (1.21.100+)
+
+Nueva versión reescrita desde cero centrada en la **API nativa de comandos
+personalizados** (`/ts:*`) de Minecraft Bedrock **1.21.100+**, con código
+modular y limpio.
+
+- **Descarga:** `dist/The-search-v0.1-PE.mcaddon`
+- **Packs:** `the_search_BP/` (Behavior) + `the_search_RP/` (Resource).
+- Activa **ambos** packs y la opción **Beta APIs** del mundo. Necesitas
+  **trucos / operador** para usar los comandos `/ts:*`.
+
+## Comandos (`/ts:*`)
+| Comando | Descripción |
+|---|---|
+| `/ts:create [nombre]` | Crea una búsqueda. |
+| `/ts:delete [nombre]` | Elimina una búsqueda. |
+| `/ts:edit [nombre]` | Abre la UI de edición (apariencia, mensajes, recompensas, info). |
+| `/ts:set [nombre]` | Oculta una cabeza en el bloque que estás mirando. |
+| `/ts:rename [nombre] [nuevo]` | Renombra una búsqueda. |
+| `/ts:list` | Lista todas las búsquedas en el chat. |
+| `/ts:reset [jugador] [nombre]` | Reinicia el progreso de un jugador (usa `*` o `@a` para todos). |
+| `/ts:rewards [nombre]` | UI para configurar recompensas (comandos / items). |
+| `/ts:tp [nombre] [n]` | Te teletransporta a la cabeza nº `n`. |
+
+## Cómo jugar
+1. Admin: `/ts:create halloween` → `/ts:edit halloween` (elige cabeza/tamaño)
+   → mira un bloque y `/ts:set halloween` (repite para ocultar más cabezas).
+2. Opcional: `/ts:rewards halloween` para dar premios al completar.
+3. Jugadores: exploran y **tocan/interactúan** con las cabezas. Cada hallazgo
+   muestra un **title dinámico** (`¡Conseguiste 1/10 cabezas!`), una
+   **partícula 3D custom** (`ts:found`) y un **sonido custom** (`ts.found`).
+   Al completar suena un sonido épico (`ts.complete`) y se entregan recompensas.
+   El progreso es **por jugador** (Dynamic Properties).
+
+## Estructura del código (Behavior Pack)
+- `scripts/config.js` — constantes, catálogo de 16 cabezas, identificadores.
+- `scripts/data.js` — persistencia (Dynamic Properties): búsquedas + progreso.
+- `scripts/effects.js` — title/actionbar, partícula 3D, sonidos, bloques.
+- `scripts/interaction.js` — detección de hallazgo y entrega de recompensas.
+- `scripts/ui.js` — formularios `@minecraft/server-ui` (con iconos custom).
+- `scripts/commands.js` — registro de los comandos `/ts:*` (Custom Commands API).
+- `scripts/main.js` — punto de entrada que conecta todo.
+
+## Assets custom (Resource Pack)
+- `particles/ts_found.particle.json` — partícula 3D (esfera) tintada por cabeza.
+- `sounds/sound_definitions.json` — sonidos `ts.found` y `ts.complete`.
+
+## Re-empaquetar
+```bash
+cd addon_src
+zip -r -X ../dist/The-search-v0.1-PE.mcaddon the_search_BP the_search_RP
+```

@@ -1,0 +1,7 @@
+entity.wings:hologram.name=Holograma
+tile.wings:head.name=Cabeza de Búsqueda
+pack.name=The Search MCPE RP
+pack.description=The Search MCPE - bloques-cabeza custom, hologramas y partículas.
+
+action.interact.search=Interactuar
+action.hint.exit.search=Interactuar
