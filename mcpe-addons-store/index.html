@@ -107,6 +107,13 @@
 
 <!-- ===================== HERO ===================== -->
 <section class="hero" id="hero">
+  <div class="mc-scene" aria-hidden="true">
+    <div class="mc-block mc-a"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#7cc349"/><polygon points="3,14 24,25 24,46 3,35" fill="#6b4a2b"/><polygon points="45,14 24,25 24,46 45,35" fill="#553a22"/></svg></div>
+    <div class="mc-block mc-b"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#6fe6e0"/><polygon points="3,14 24,25 24,46 3,35" fill="#38b6b0"/><polygon points="45,14 24,25 24,46 45,35" fill="#2a8d88"/></svg></div>
+    <div class="mc-block mc-c"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#ffd93b"/><polygon points="3,14 24,25 24,46 3,35" fill="#d9a521"/><polygon points="45,14 24,25 24,46 45,35" fill="#b8861a"/></svg></div>
+    <div class="mc-block mc-d"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#36d77a"/><polygon points="3,14 24,25 24,46 3,35" fill="#1f9e57"/><polygon points="45,14 24,25 24,46 45,35" fill="#178045"/></svg></div>
+    <div class="mc-block mc-e"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#e05a52"/><polygon points="3,14 24,25 24,46 3,35" fill="#b23b34"/><polygon points="45,14 24,25 24,46 45,35" fill="#8c2a25"/></svg></div>
+  </div>
   <div class="hero-content">
     <div class="hero-badge"><i class="fas fa-bolt"></i> Tienda #1 de contenido para Minecraft</div>
     <h1 class="hero-title">
@@ -167,10 +174,22 @@
         <!-- Sugerencias en vivo -->
         <div class="search-suggest" id="search-suggest"></div>
       </div>
-      <div class="platform-tabs" id="platform-tabs">
-        <button class="ptab active" data-platform="all" onclick="setPlatform('all', this)"><i class="fas fa-layer-group"></i> Todo</button>
-        <button class="ptab" data-platform="bedrock" onclick="setPlatform('bedrock', this)"><i class="fas fa-mobile-screen-button"></i> Minecraft PE</button>
-        <button class="ptab" data-platform="java" onclick="setPlatform('java', this)"><i class="fas fa-desktop"></i> Java</button>
+      <div class="search-row">
+        <div class="platform-tabs" id="platform-tabs">
+          <button class="ptab active" data-platform="all" onclick="setPlatform('all', this)"><i class="fas fa-layer-group"></i> Todo</button>
+          <button class="ptab" data-platform="bedrock" onclick="setPlatform('bedrock', this)"><i class="fas fa-mobile-screen-button"></i> Minecraft PE</button>
+          <button class="ptab" data-platform="java" onclick="setPlatform('java', this)"><i class="fas fa-desktop"></i> Java</button>
+        </div>
+        <div class="search-tools">
+          <i class="fas fa-arrow-down-wide-short"></i>
+          <select id="sort-select" class="sort-select" onchange="setSort(this.value)" aria-label="Ordenar">
+            <option value="recent">Más recientes</option>
+            <option value="downloads">Más descargados</option>
+            <option value="name">Nombre (A-Z)</option>
+            <option value="price-low">Precio: menor a mayor</option>
+            <option value="price-high">Precio: mayor a menor</option>
+          </select>
+        </div>
       </div>
       <div class="filter-chips" id="filter-chips">
         <button class="chip active" data-cat="all" onclick="setCategory('all', this)">Todos</button>
@@ -300,6 +319,20 @@
 <div class="modal-overlay" id="auth-modal">
   <div class="modal auth-modal">
     <button class="modal-close" onclick="closeModal('auth-modal')"><i class="fas fa-times"></i></button>
+    <aside class="auth-aside">
+      <div class="auth-aside-art">
+        <div class="mc-block mc-float-1"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#7cc349"/><polygon points="3,14 24,25 24,46 3,35" fill="#6b4a2b"/><polygon points="45,14 24,25 24,46 45,35" fill="#553a22"/></svg></div>
+        <div class="mc-block mc-float-2"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#6fe6e0"/><polygon points="3,14 24,25 24,46 3,35" fill="#38b6b0"/><polygon points="45,14 24,25 24,46 45,35" fill="#2a8d88"/></svg></div>
+        <div class="mc-block mc-float-3"><svg viewBox="0 0 48 48"><polygon points="24,3 45,14 24,25 3,14" fill="#ffd93b"/><polygon points="3,14 24,25 24,46 3,35" fill="#d9a521"/><polygon points="45,14 24,25 24,46 45,35" fill="#b8861a"/></svg></div>
+      </div>
+      <h3>Únete a MCPE Addons</h3>
+      <p>Descarga y sube add-ons, skins, mundos, mods y mucho más.</p>
+      <ul class="auth-aside-list">
+        <li><i class="fas fa-check"></i> Sube tu propio contenido</li>
+        <li><i class="fas fa-check"></i> Perfil y marcos personalizados</li>
+        <li><i class="fas fa-check"></i> Planes con más beneficios</li>
+      </ul>
+    </aside>
     <div class="auth-modal-content">
       <div class="auth-logo"><i class="fas fa-cube"></i></div>
       <h2 id="auth-modal-title">Bienvenido</h2>

@@ -13,6 +13,7 @@ const State = {
   currentCategory: 'all',
   currentPlatform: 'all',
   searchQuery:     '',
+  sort:            'recent',
   page:            1,
   perPage:         12,
   currentAddon:    null,
@@ -784,9 +785,26 @@ function applyFilters() {
   }
 
   State.filteredAddons = list;
+  sortFilteredAddons();
   State.page = 1;
   renderAddons();
   renderFeatured();
+}
+
+function sortFilteredAddons() {
+  const s = State.sort || 'recent';
+  const list = State.filteredAddons;
+  const price = a => parseFloat(a.price) || 0;
+  if (s === 'recent')        list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  else if (s === 'downloads') list.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+  else if (s === 'name')      list.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  else if (s === 'price-low') list.sort((a, b) => price(a) - price(b));
+  else if (s === 'price-high')list.sort((a, b) => price(b) - price(a));
+}
+
+function setSort(val) {
+  State.sort = val;
+  applyFilters();
 }
 
 function setPlatform(p, btn) {
@@ -1660,6 +1678,7 @@ window.renderAddonAction  = renderAddonAction;
 window.hasPurchased       = hasPurchased;
 window.updateStats        = updateStats;
 window.setPlatform        = setPlatform;
+window.setSort            = setSort;
 window.heroCategory       = heroCategory;
 window.syncFilterUI       = syncFilterUI;
 window.renderPlans        = renderPlans;

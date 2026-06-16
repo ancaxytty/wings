@@ -2403,3 +2403,90 @@ body { background:
 .suggest-info small { font-size: .74rem; color: var(--text-muted); }
 .suggest-go { color: var(--text-muted); font-size: .8rem; }
 .suggest-item:hover .suggest-go { color: var(--primary); }
+
+
+/* ============================================================
+   V9.3 — Bloques Minecraft animados, orden, login con imagen,
+   y respiro responsive (sin amontonar)
+   ============================================================ */
+
+/* --- Bloques Minecraft flotantes en el hero --- */
+.mc-scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.hero-content { position: relative; z-index: 2; }
+.hero-visual { position: relative; z-index: 1; }
+.mc-block svg { width: 100%; height: auto; filter: drop-shadow(0 10px 16px rgba(0,0,0,.45)); display: block; }
+.mc-scene .mc-block { position: absolute; width: 54px; }
+@keyframes mcFloat  { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-22px) rotate(5deg); } }
+@keyframes mcFloat2 { 0%,100% { transform: translateY(0) rotate(6deg); } 50% { transform: translateY(-16px) rotate(-6deg); } }
+.mc-a { top: 15%; left: 6%;  width: 62px; animation: mcFloat 7s ease-in-out infinite; opacity: .9; }
+.mc-b { top: 64%; left: 11%; width: 44px; animation: mcFloat2 8s ease-in-out infinite; opacity: .8; }
+.mc-c { top: 20%; right: 8%; width: 52px; animation: mcFloat2 6.5s ease-in-out infinite; opacity: .85; }
+.mc-d { top: 70%; right: 13%; width: 40px; animation: mcFloat 9s ease-in-out infinite; opacity: .72; }
+.mc-e { top: 44%; right: 4%; width: 34px; animation: mcFloat 7.5s ease-in-out infinite; opacity: .65; }
+@media (max-width: 768px) {
+  .mc-scene .mc-block { opacity: .35 !important; }
+  .mc-a { width: 44px; left: 4%; } .mc-c { width: 38px; right: 5%; }
+  .mc-b, .mc-d, .mc-e { display: none; }
+}
+
+/* --- Fila de filtros + Ordenar --- */
+.search-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.search-tools { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: .82rem; }
+.search-tools > i { color: var(--primary); }
+.sort-select {
+  background: var(--bg-dark); color: var(--text); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 12px; font-size: .82rem; font-family: var(--font-main); cursor: pointer; outline: none;
+  transition: var(--transition);
+}
+.sort-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,212,255,.12); }
+@media (max-width: 600px) {
+  .search-row { flex-direction: column; align-items: stretch; }
+  .search-tools { justify-content: space-between; }
+  .sort-select { flex: 1; }
+}
+
+/* --- Login / Registro con ilustración (2 columnas) --- */
+.auth-modal { display: flex; padding: 0; max-width: 800px; width: 100%; overflow: hidden; }
+.auth-aside {
+  width: 42%; min-width: 230px; padding: 34px 26px;
+  background: linear-gradient(160deg, rgba(0,212,255,.18), rgba(139,92,255,.24)), var(--bg-card2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center; gap: 10px; position: relative; overflow: hidden;
+}
+.auth-aside::after {
+  content: ''; position: absolute; bottom: -40px; right: -40px; width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(0,212,255,.25), transparent 70%);
+}
+.auth-aside-art { position: relative; height: 120px; margin-bottom: 4px; }
+.auth-aside-art .mc-block { position: absolute; width: 56px; }
+.auth-aside-art .mc-block svg { filter: drop-shadow(0 8px 14px rgba(0,0,0,.4)); }
+.mc-float-1 { left: 6%;  top: 22px; animation: mcFloat 6s ease-in-out infinite; }
+.mc-float-2 { left: 40%; top: 0;    width: 46px; animation: mcFloat2 7s ease-in-out infinite; }
+.mc-float-3 { right: 6%; top: 32px; width: 40px; animation: mcFloat 8s ease-in-out infinite; }
+.auth-aside h3 { font-family: var(--font-heading); font-size: 1.4rem; position: relative; }
+.auth-aside p { color: var(--text-light); font-size: .88rem; position: relative; }
+.auth-aside-list { display: flex; flex-direction: column; gap: 9px; margin-top: 8px; position: relative; }
+.auth-aside-list li { display: flex; align-items: center; gap: 9px; font-size: .84rem; color: var(--text-light); }
+.auth-aside-list i { color: var(--green); }
+.auth-modal .auth-modal-content { flex: 1; padding: 30px 28px; overflow-y: auto; max-height: 92vh; }
+@media (max-width: 720px) {
+  .auth-modal { display: block; max-width: 460px; }
+  .auth-aside { display: none; }
+  .auth-modal .auth-modal-content { padding: 26px 20px; }
+}
+
+/* --- Respiro general (que no se amontone) --- */
+.addons-section { padding-top: 8px; }
+.addons-grid { gap: 22px; }
+.section-header { margin-bottom: 28px; }
+.search-bar { gap: 16px; }
+@media (max-width: 768px) {
+  .addons-grid { gap: 16px; }
+  .container { padding-left: 16px; padding-right: 16px; }
+  .section-title { font-size: 1.5rem; }
+}
+@media (max-width: 480px) {
+  .addons-grid { grid-template-columns: 1fr; }
+  .hero-quick button { padding: 8px 12px; font-size: .78rem; }
+  .hero { padding-top: 96px; }
+}
