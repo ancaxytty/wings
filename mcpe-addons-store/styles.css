@@ -2505,3 +2505,26 @@ body { background:
 /* El título animado ahora lleva frases largas: que respire bien */
 .typing-text { line-height: 1.15; }
 @media (max-width: 600px) { .hero-title { font-size: 1.7rem; } }
+
+
+/* ============================================================
+   V11.0 — Toggle de facturación (planes) + nota anual
+   ============================================================ */
+.billing-toggle {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg-card2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px; margin: 0 auto 26px; 
+}
+#pricing .container { text-align: center; }
+.billing-toggle { display: inline-flex; }
+.bt-opt {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border-radius: 999px; font-weight: 700; font-size: .85rem;
+  color: var(--text-muted); transition: var(--transition); font-family: var(--font-main);
+}
+.bt-opt.active { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #06101e; }
+.bt-save { font-size: .66rem; background: rgba(25,211,154,.2); color: var(--green); padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+.bt-opt.active .bt-save { background: rgba(255,255,255,.25); color: #06101e; }
+.plan-annual-note { font-size: .74rem; color: var(--text-muted); margin: -4px 0 8px; }
+/* La grilla de planes vuelve a alinear su texto a la izquierda donde corresponde */
+.plans-grid, .plans-note { text-align: center; }

@@ -14,6 +14,7 @@ const State = {
   currentPlatform: 'all',
   searchQuery:     '',
   sort:            'recent',
+  billing:         'monthly',
   page:            1,
   perPage:         12,
   currentAddon:    null,
@@ -23,6 +24,18 @@ const State = {
 // Subidas de usuario en memoria (data URLs)
 let _upImage = null, _upFile = null, _upFileName = null;
 let _profAvatar = null, _profFrame = 'none';
+
+// Palabras del buscador que corresponden a una categoría exacta
+const SEARCH_CAT_KEYWORDS = {
+  'addon':'addon','addons':'addon','add-on':'addon','add-ons':'addon',
+  'mundo':'world','mundos':'world','world':'world','worlds':'world',
+  'skin':'skin','skins':'skin',
+  'textura':'texture','texturas':'texture','texture':'texture','textures':'texture','pack':'texture',
+  'mapa':'map','mapas':'map','map':'map','maps':'map',
+  'mod':'mod','mods':'mod',
+  'plugin':'plugin','plugins':'plugin',
+  'shader':'shader','shaders':'shader'
+};
 
 // ─── DOM Ready ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -776,15 +789,19 @@ function applyFilters() {
   else if (cat === 'premium') list = list.filter(a => parseFloat(a.price) > 0);
   else if (cat !== 'all')     list = list.filter(a => (a.contentType || a.category) === cat);
 
-  // Search filter
+  // Search filter (vinculado a categorías: "mundo" => solo mundos, "skins" => solo skins, etc.)
   if (State.searchQuery) {
-    const q = State.searchQuery.toLowerCase();
-    list = list.filter(a =>
-      a.name.toLowerCase().includes(q) ||
-      (a.description || '').toLowerCase().includes(q) ||
-      (a.category || '').toLowerCase().includes(q) ||
-      (a.authorName || '').toLowerCase().includes(q)
-    );
+    const q = State.searchQuery.toLowerCase().trim();
+    const catKeyword = SEARCH_CAT_KEYWORDS[q];
+    if (catKeyword) {
+      list = list.filter(a => (a.contentType || a.category) === catKeyword);
+    } else {
+      list = list.filter(a =>
+        a.name.toLowerCase().includes(q) ||
+        (a.description || '').toLowerCase().includes(q) ||
+        (a.authorName || '').toLowerCase().includes(q)
+      );
+    }
   }
 
   State.filteredAddons = list;
@@ -866,13 +883,15 @@ function clearSearch() {
 function updateSuggestions() {
   const box = document.getElementById('search-suggest');
   if (!box) return;
-  const q = (State.searchQuery || '').toLowerCase();
+  const q = (State.searchQuery || '').toLowerCase().trim();
   if (!q) { box.classList.remove('open'); box.innerHTML = ''; return; }
   const pool = State.addons.filter(a => a.status !== 'pending' && a.status !== 'rejected');
-  const matches = pool.filter(a =>
-    a.name.toLowerCase().includes(q) ||
-    (a.category || '').toLowerCase().includes(q) ||
-    (a.contentType || '').toLowerCase().includes(q)
+  const catKeyword = SEARCH_CAT_KEYWORDS[q];
+  const matches = (catKeyword
+    ? pool.filter(a => (a.contentType || a.category) === catKeyword)
+    : pool.filter(a =>
+        a.name.toLowerCase().includes(q) ||
+        (a.contentType || '').toLowerCase().includes(q))
   ).slice(0, 6);
   if (!matches.length) { box.classList.remove('open'); box.innerHTML = ''; return; }
   box.innerHTML = matches.map(a => `
@@ -1279,13 +1298,20 @@ function renderPlans(){
   const grid = document.getElementById('plans-grid');
   if (!grid || !window.PLANS) return;
   const currentPlan = State.user ? userPlanId(State.user) : null;
-  grid.innerHTML = window.PLANS.map(p => `
+  const annual = State.billing === 'annual';
+  grid.innerHTML = window.PLANS.map(p => {
+    const eff = planPrice(p);
+    const priceHtml = p.price === 0
+      ? 'Gratis'
+      : `$${eff.toFixed(2)}<span>${annual ? '/año' : '/mes'}</span>`;
+    return `
     <div class="plan-card ${p.popular ? 'plan-popular' : ''} ${currentPlan===p.id?'plan-current':''}" style="--plan-color:${p.color}">
       ${p.popular ? '<div class="plan-tag"><i class="fas fa-star"></i> Más popular</div>' : ''}
       ${currentPlan===p.id ? '<div class="plan-current-tag"><i class="fas fa-check"></i> Tu plan</div>' : ''}
       <div class="plan-icon"><i class="fas ${p.icon}"></i></div>
       <h3 class="plan-name">${p.name}</h3>
-      <div class="plan-price">${p.price === 0 ? 'Gratis' : '$'+p.price.toFixed(2)}<span>${p.price===0?'':'/mes'}</span></div>
+      <div class="plan-price">${priceHtml}</div>
+      ${annual && p.price > 0 ? `<div class="plan-annual-note">Equivale a $${(eff/12).toFixed(2)}/mes</div>` : ''}
       <div class="plan-uploads"><i class="fas fa-cloud-arrow-up"></i> ${p.dailyUploads} add-ons por día</div>
       <ul class="plan-features">
         ${p.features.map(f => `<li><i class="fas fa-check"></i> ${escHtml(f)}</li>`).join('')}
@@ -1293,8 +1319,20 @@ function renderPlans(){
       <button class="btn ${p.popular?'btn-primary btn-glow':'btn-outline'} btn-full" onclick="selectPlan('${p.id}')">
         ${currentPlan===p.id ? 'Plan actual' : (p.price===0 ? 'Usar Gratis' : 'Elegir '+p.name)}
       </button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+// Precio efectivo según facturación (anual = 10 meses = 2 meses gratis)
+function planPrice(plan){
+  if (!plan || !plan.price) return 0;
+  return State.billing === 'annual' ? Math.round(plan.price * 10 * 100) / 100 : plan.price;
+}
+
+function setBilling(b){
+  State.billing = b;
+  document.querySelectorAll('.bt-opt').forEach(x => x.classList.toggle('active', x.dataset.bill === b));
+  renderPlans();
 }
 
 function selectPlan(planId){
@@ -1317,21 +1355,24 @@ function selectPlan(planId){
 function openPlanCheckout(plan){
   const body = document.getElementById('plan-modal-body');
   if (!body) return;
+  const eff = planPrice(plan);
+  const period = State.billing === 'annual' ? 'año' : 'mes';
+  const checkoutPlan = { ...plan, price: eff, period: State.billing };
   body.innerHTML = `
     <div class="plan-checkout-head">
       <div class="plan-icon" style="--plan-color:${plan.color};margin:0 auto 10px"><i class="fas ${plan.icon}"></i></div>
       <h2>Plan ${plan.name}</h2>
-      <div class="plan-price" style="margin:4px 0">$${plan.price.toFixed(2)}<span>/mes</span></div>
+      <div class="plan-price" style="margin:4px 0">$${eff.toFixed(2)}<span>/${period}</span></div>
       <div class="plan-uploads" style="margin:8px auto"><i class="fas fa-cloud-arrow-up"></i> ${plan.dailyUploads} add-ons por día</div>
     </div>
     <ul class="plan-features" style="max-width:300px;margin:14px auto 18px">
       ${plan.features.map(f => `<li><i class="fas fa-check"></i> ${escHtml(f)}</li>`).join('')}
     </ul>
-    <p style="text-align:center;color:var(--text-muted);font-size:.78rem;margin-bottom:8px">Pago seguro con PayPal · 1 mes</p>
+    <p style="text-align:center;color:var(--text-muted);font-size:.78rem;margin-bottom:8px">Pago seguro con PayPal · facturación ${State.billing === 'annual' ? 'anual' : 'mensual'}</p>
     <div id="plan-paypal-container"></div>
   `;
   openModal('plan-modal');
-  if (typeof renderPlanPayPalButton === 'function') renderPlanPayPalButton(plan);
+  if (typeof renderPlanPayPalButton === 'function') renderPlanPayPalButton(checkoutPlan);
 }
 
 function activatePlanAfterPayment(plan, details){
@@ -1682,6 +1723,8 @@ window.hasPurchased       = hasPurchased;
 window.updateStats        = updateStats;
 window.setPlatform        = setPlatform;
 window.setSort            = setSort;
+window.setBilling         = setBilling;
+window.planPrice          = planPrice;
 window.heroCategory       = heroCategory;
 window.syncFilterUI       = syncFilterUI;
 window.renderPlans        = renderPlans;

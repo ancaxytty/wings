@@ -307,12 +307,12 @@ const PLANS = [
     features: ['Descargas ilimitadas', 'Sube 3 add-ons por día', 'Perfil personalizable', 'Marcos básicos']
   },
   {
-    id: 'creator', name: 'Creator', price: 4.99, color: '#00d4ff', icon: 'fa-bolt', popular: true,
+    id: 'creator', name: 'Creator', price: 6.99, color: '#00d4ff', icon: 'fa-bolt', popular: true,
     dailyUploads: 10,
     features: ['Todo lo de Gratis', 'Sube 10 add-ons por día', 'Insignia de Creator', 'Marcos premium', 'Soporte prioritario']
   },
   {
-    id: 'pro', name: 'Pro', price: 9.99, color: '#f59e0b', icon: 'fa-crown',
+    id: 'pro', name: 'Pro', price: 14.99, color: '#f59e0b', icon: 'fa-crown',
     dailyUploads: 50,
     features: ['Todo lo de Creator', 'Sube 50 add-ons por día', 'Insignia Pro dorada', 'Todos los marcos', 'Destacado en la tienda', 'Soporte VIP']
   }
