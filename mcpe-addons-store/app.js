@@ -289,7 +289,10 @@ document.addEventListener('click', e => {
    TYPING EFFECT
    ============================================================ */
 function initTypingEffect() {
-  const words = ['Add-ons', 'Skins', 'Mundos', 'Texturas', 'Mapas', 'Mods', 'Plugins', 'Shaders'];
+  const words = [
+    'los mejores add-ons', 'las mejores skins', 'los mejores mundos',
+    'las mejores texturas', 'los mejores mapas', 'los mejores mods', 'los mejores plugins'
+  ];
   const el    = document.getElementById('typing-text');
   if (!el) return;
   let wi = 0, ci = 0, deleting = false;
@@ -1435,7 +1438,7 @@ function submitUserAddon(e){
     const platform = document.getElementById('up-platform').value;
     const contentType = document.getElementById('up-type').value;
     const description = document.getElementById('up-desc').value.trim();
-    const price = parseFloat(document.getElementById('up-price').value) || 0;
+    const price = 0; // Las subidas de usuarios son SIEMPRE gratis (solo el admin puede poner precio)
     const version = document.getElementById('up-version').value.trim();
     const mcVersion = document.getElementById('up-mcversion').value.trim();
     const image = _upImage || document.getElementById('up-image-url').value.trim();

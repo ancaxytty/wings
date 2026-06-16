@@ -2490,3 +2490,18 @@ body { background:
   .hero-quick button { padding: 8px 12px; font-size: .78rem; }
   .hero { padding-top: 96px; }
 }
+
+
+/* ============================================================
+   V10.0 — Subidas de usuario gratis + ajuste del titulo animado
+   ============================================================ */
+.free-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 14px; border-radius: 11px;
+  background: rgba(25,211,154,.12); border: 1px solid rgba(25,211,154,.35);
+  color: var(--green); font-weight: 700; font-size: .85rem; width: 100%;
+}
+.free-pill i { color: var(--green); }
+/* El título animado ahora lleva frases largas: que respire bien */
+.typing-text { line-height: 1.15; }
+@media (max-width: 600px) { .hero-title { font-size: 1.7rem; } }
