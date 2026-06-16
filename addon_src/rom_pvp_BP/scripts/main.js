@@ -9,11 +9,12 @@ import {
 import { ActionFormData, ModalFormData, MessageFormData } from "@minecraft/server-ui";
 
 /*
- * ROOM PvP Zones v0.2.0
+ * ROOM PvP Zones v3.0.0
  * ===========================================================================
  * - Zonas PvP 1v1 / 2v2 / 3v3. pos1/pos2 (Varita Nether) definen la zona.
- * - PAREDES AUTOMÁTICAS: cuando entran los jugadores necesarios, se construyen
- *   solas (cristal) y se quitan al terminar el combate.
+ * - ESTADO DE COMBATE: si falta gente muestra "§l§3∆ Falta un jugador más...",
+ *   cuando entran todos se construyen las PAREDES solas, y al quedar 1 se
+ *   anuncia el GANADOR y se retiran las paredes.
  * - DENTRO de la zona: NO se rompe ningún bloque, NO se construye...
  *   solo se pueden poner LANAS y TELAS (wool + carpet). La room no se rompe.
  * - 15 comandos custom /room: (create, delete, edit, rename, info, list, tp,
@@ -62,6 +63,13 @@ const T = {
     no_break: "§c⛔ No puedes romper bloques en §e{0}§c.",
     match_start: "§6⚔ ¡Combate en §e{0}§6! Paredes activadas.",
     match_end: "§a✔ Combate terminado en §e{0}§a. Paredes retiradas.",
+    wait_one: "§l§3∆ §bFalta 1 jugador más§3 para empezar...",
+    wait_many: "§l§3∆ §bFaltan {0} jugadores más§3 para empezar...",
+    fight_now: "§c⚔ §e{0} §8(§b{1}§8) §7· ¡En combate!",
+    title_fight: "§c§l⚔ ¡COMBATE!",
+    sub_fight: "§7¡Que gane el mejor!",
+    title_winner: "§6§l🏆 ¡{0} gana!",
+    winner_msg: "§6🏆 §e{0} §6ganó el combate en §e{1}§6!",
     lang_set: "§a✔ Idioma cambiado a §e{0}§a.",
     in_zone: "§c⚔ §eZona PvP: §f{0} §8(§b{1}§8)",
     tp_done: "§aTeletransportado a §e{0}§a.",
@@ -117,6 +125,13 @@ const T = {
     no_break: "§c⛔ You can't break blocks in §e{0}§c.",
     match_start: "§6⚔ Fight in §e{0}§6! Walls up.",
     match_end: "§a✔ Fight ended in §e{0}§a. Walls removed.",
+    wait_one: "§l§3∆ §bWaiting for 1 more player§3 to start...",
+    wait_many: "§l§3∆ §bWaiting for {0} more players§3 to start...",
+    fight_now: "§c⚔ §e{0} §8(§b{1}§8) §7· Fighting!",
+    title_fight: "§c§l⚔ FIGHT!",
+    sub_fight: "§7May the best win!",
+    title_winner: "§6§l🏆 {0} wins!",
+    winner_msg: "§6🏆 §e{0} §6won the fight in §e{1}§6!",
     lang_set: "§a✔ Language changed to §e{0}§a.",
     in_zone: "§c⚔ §ePvP Zone: §f{0} §8(§b{1}§8)",
     tp_done: "§aTeleported to §e{0}§a.",
@@ -172,6 +187,13 @@ const T = {
     no_break: "§c⛔ Vous ne pouvez pas casser de blocs dans §e{0}§c.",
     match_start: "§6⚔ Combat dans §e{0}§6! Murs activés.",
     match_end: "§a✔ Combat terminé dans §e{0}§a. Murs retirés.",
+    wait_one: "§l§3∆ §bEn attente de 1 joueur§3 pour commencer...",
+    wait_many: "§l§3∆ §bEn attente de {0} joueurs§3 pour commencer...",
+    fight_now: "§c⚔ §e{0} §8(§b{1}§8) §7· En combat!",
+    title_fight: "§c§l⚔ COMBAT!",
+    sub_fight: "§7Que le meilleur gagne!",
+    title_winner: "§6§l🏆 {0} gagne!",
+    winner_msg: "§6🏆 §e{0} §6a gagné le combat dans §e{1}§6!",
     lang_set: "§a✔ Langue changée en §e{0}§a.",
     in_zone: "§c⚔ §eZone PvP: §f{0} §8(§b{1}§8)",
     tp_done: "§aTéléporté vers §e{0}§a.",
@@ -227,6 +249,13 @@ const T = {
     no_break: "§c⛔ Você não pode quebrar blocos em §e{0}§c.",
     match_start: "§6⚔ Combate em §e{0}§6! Paredes ativadas.",
     match_end: "§a✔ Combate terminado em §e{0}§a. Paredes removidas.",
+    wait_one: "§l§3∆ §bFalta 1 jogador§3 para começar...",
+    wait_many: "§l§3∆ §bFaltam {0} jogadores§3 para começar...",
+    fight_now: "§c⚔ §e{0} §8(§b{1}§8) §7· Em combate!",
+    title_fight: "§c§l⚔ COMBATE!",
+    sub_fight: "§7Que vença o melhor!",
+    title_winner: "§6§l🏆 {0} venceu!",
+    winner_msg: "§6🏆 §e{0} §6venceu o combate em §e{1}§6!",
     lang_set: "§a✔ Idioma alterado para §e{0}§a.",
     in_zone: "§c⚔ §eZona PvP: §f{0} §8(§b{1}§8)",
     tp_done: "§aTeleportado para §e{0}§a.",
@@ -282,6 +311,13 @@ const T = {
     no_break: "§c⛔ Du kannst in §e{0} §ckeine Blöcke abbauen.",
     match_start: "§6⚔ Kampf in §e{0}§6! Wände aktiviert.",
     match_end: "§a✔ Kampf beendet in §e{0}§a. Wände entfernt.",
+    wait_one: "§l§3∆ §bWarte auf 1 weiteren Spieler§3 zum Start...",
+    wait_many: "§l§3∆ §bWarte auf {0} weitere Spieler§3 zum Start...",
+    fight_now: "§c⚔ §e{0} §8(§b{1}§8) §7· Im Kampf!",
+    title_fight: "§c§l⚔ KAMPF!",
+    sub_fight: "§7Möge der Beste gewinnen!",
+    title_winner: "§6§l🏆 {0} gewinnt!",
+    winner_msg: "§6🏆 §e{0} §6hat den Kampf in §e{1} §6gewonnen!",
     lang_set: "§a✔ Sprache geändert zu §e{0}§a.",
     in_zone: "§c⚔ §ePvP-Zone: §f{0} §8(§b{1}§8)",
     tp_done: "§aTeleportiert zu §e{0}§a.",
@@ -337,6 +373,13 @@ const T = {
     no_break: "§c⛔ 你不能在 §e{0} §c中破坏方块。",
     match_start: "§6⚔ §e{0} §6开始战斗！墙已生成。",
     match_end: "§a✔ §e{0} §a战斗结束。墙已移除。",
+    wait_one: "§l§3∆ §b还差 1 名玩家§3 才能开始...",
+    wait_many: "§l§3∆ §b还差 {0} 名玩家§3 才能开始...",
+    fight_now: "§c⚔ §e{0} §8(§b{1}§8) §7· 战斗中！",
+    title_fight: "§c§l⚔ 战斗！",
+    sub_fight: "§7愿最强者获胜！",
+    title_winner: "§6§l🏆 {0} 获胜！",
+    winner_msg: "§6🏆 §e{0} §6在 §e{1} §6中赢得了战斗！",
     lang_set: "§a✔ 语言已切换为 §e{0}§a。",
     in_zone: "§c⚔ §ePvP 区域：§f{0} §8(§b{1}§8)",
     tp_done: "§a已传送到 §e{0}§a。",
@@ -415,6 +458,14 @@ function tell(player, msg) {
 function actionbar(player, msg) {
   try {
     player.onScreenDisplay.setActionBar(msg);
+  } catch (e) {}
+}
+
+function titleTo(player, txt, sub) {
+  try {
+    const opts = { fadeInDuration: 5, stayDuration: 35, fadeOutDuration: 10 };
+    if (sub) opts.subtitle = sub;
+    player.onScreenDisplay.setTitle(txt, opts);
   } catch (e) {}
 }
 
@@ -655,11 +706,14 @@ function editZone(player, name) {
   const zones = loadZones();
   const z = zones.find((zz) => zz.name.toLowerCase() === String(name).toLowerCase());
   if (!z) return { ok: false, msg: t("notfound", name) };
-  if (z.active) removeWalls(z);
+  const oldWalls = z.active ? { dim: z.dim, box: z.box } : null;
   z.box = normalizeBox(sel.p1, sel.p2);
   z.dim = sel.p1.dim;
   z.active = false;
-  system.run(() => saveZones(zones));
+  system.run(() => {
+    if (oldWalls) removeWalls(oldWalls);
+    saveZones(zones);
+  });
   return { ok: true, msg: t("edited", z.name) };
 }
 
@@ -1217,38 +1271,65 @@ safeSub(world.beforeEvents.explosion, (ev) => {
   if (kept.length !== impacted.length) ev.setImpactedBlocks(kept);
 });
 
-// ----------------------------------------------------------------- bucle: paredes auto + aviso
+// ----------------------------------------------------------------- bucle: estado de combate
 system.runInterval(() => {
   const zones = loadZones();
   if (zones.length === 0) return;
 
-  const counts = new Map();
+  // agrupa jugadores por zona
+  const byZone = new Map();
   for (const player of world.getAllPlayers()) {
     const l = player.location;
     const z = zoneOf(player.dimension.id, Math.floor(l.x), Math.floor(l.y), Math.floor(l.z), zones);
-    if (z) {
-      actionbar(player, t("in_zone", z.name, z.size));
-      counts.set(z.name, (counts.get(z.name) || 0) + 1);
+    if (!z) continue;
+    if (!byZone.has(z.name)) byZone.set(z.name, []);
+    byZone.get(z.name).push(player);
+  }
+
+  const everyone = world.getAllPlayers();
+  let changed = false;
+
+  for (const z of zones) {
+    const players = byZone.get(z.name) || [];
+    const inside = players.length;
+    const needed = PER_TEAM[z.size] * 2; // jugadores para iniciar
+
+    if (z.active) {
+      if (inside <= 1) {
+        // ---- fin del combate ----
+        z.active = false;
+        changed = true;
+        removeWalls(z);
+        const winner = inside === 1 ? players[0] : null;
+        for (const p of everyone) {
+          tell(p, t("match_end", z.name));
+          if (winner) tell(p, t("winner_msg", winner.name, z.name));
+        }
+        if (winner) titleTo(winner, t("title_winner", winner.name));
+      } else {
+        // ---- en combate ----
+        for (const p of players) actionbar(p, t("fight_now", z.name, z.size));
+      }
+    } else {
+      if (inside >= needed) {
+        // ---- inicia el combate ----
+        z.active = true;
+        changed = true;
+        buildWalls(z);
+        for (const p of players) {
+          tell(p, t("match_start", z.name));
+          titleTo(p, t("title_fight"), t("sub_fight"));
+        }
+      } else if (inside >= 1) {
+        // ---- esperando jugadores: "Falta un jugador más" ----
+        const missing = needed - inside;
+        const msg = missing === 1 ? t("wait_one") : t("wait_many", missing);
+        for (const p of players) actionbar(p, msg);
+      }
     }
   }
 
-  let changed = false;
-  for (const z of zones) {
-    const inside = counts.get(z.name) || 0;
-    const needed = PER_TEAM[z.size] * 2; // jugadores para iniciar
-    if (!z.active && inside >= needed) {
-      z.active = true;
-      changed = true;
-      buildWalls(z);
-      for (const p of world.getAllPlayers()) tell(p, t("match_start", z.name));
-    } else if (z.active && inside <= 1) {
-      z.active = false;
-      changed = true;
-      removeWalls(z);
-      for (const p of world.getAllPlayers()) tell(p, t("match_end", z.name));
-    }
-  }
   if (changed) saveZones(zones);
 }, 20);
 
-system.run(() => log(`ROOM PvP Zones v0.2.0 cargado. Idioma: ${getLang()}, zonas: ${loadZones().length}`));
+system.run(() => log(`ROOM PvP Zones v3.0.0 cargado. Idioma: ${getLang()}, zonas: ${loadZones().length}`));
