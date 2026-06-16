@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "rom_pvp",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "rom_zone_wand": {
+      "textures": "textures/items/zone_wand"
+    },
+    "rom_wall_wand": {
+      "textures": "textures/items/wall_wand"
+    }
+  }
+}

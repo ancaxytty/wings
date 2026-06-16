@@ -1,0 +1,5 @@
+pack.name=ROM Zonas PvP RP
+pack.description=Varitas custom, iconos de formularios y texturas pro para ROM Zonas PvP.
+
+item.rom:zone_wand=Varita Nether de Zona
+item.rom:wall_wand=Palo Marcador de Pared

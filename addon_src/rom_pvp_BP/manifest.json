@@ -1,0 +1,58 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "§cROM §6PvP Zones §7BP",
+    "description": "§eCrea zonas PvP 1v1/2v2/3v3 protegidas con varitas y comandos /rom:.\n§7Behavior Pack v1.0.0",
+    "uuid": "7f3e9a10-2c4b-4d8e-9a1f-6b0c5d2e8f31",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      90
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "8a2d1c50-9b3e-4f6a-b1c2-3d4e5f607182",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "9b3e2d61-0c4f-4a7b-c2d3-4e5f60718293",
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "2c4b7f3e-9a10-4d8e-9a1f-6b0c5d2e8f42",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.1.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.0.0"
+    }
+  ]
+}

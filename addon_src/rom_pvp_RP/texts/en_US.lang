@@ -1,0 +1,5 @@
+pack.name=ROM PvP Zones RP
+pack.description=Custom wands, form icons and pro textures for ROM PvP Zones.
+
+item.rom:zone_wand=Nether Zone Wand
+item.rom:wall_wand=Wall Marker Stick
