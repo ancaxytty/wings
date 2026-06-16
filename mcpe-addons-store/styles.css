@@ -2528,3 +2528,40 @@ body { background:
 .plan-annual-note { font-size: .74rem; color: var(--text-muted); margin: -4px 0 8px; }
 /* La grilla de planes vuelve a alinear su texto a la izquierda donde corresponde */
 .plans-grid, .plans-note { text-align: center; }
+
+
+/* ============================================================
+   V12.0 — Paginación + Destacados slider rotativo continuo
+   ============================================================ */
+.pagination {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  flex-wrap: wrap; margin-top: 30px;
+}
+.pg-btn {
+  min-width: 40px; height: 40px; padding: 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-light); border-radius: 11px; font-weight: 700; font-size: .9rem;
+  transition: var(--transition);
+}
+.pg-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--text); transform: translateY(-2px); }
+.pg-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #06101e; border-color: transparent; box-shadow: 0 6px 18px rgba(0,212,255,.35);
+}
+.pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+.pg-dots { color: var(--text-muted); padding: 0 2px; }
+
+/* Destacados: carrusel rotativo (derecha -> izquierda, continuo) */
+.featured-marquee { display: block; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.featured-track { display: flex; gap: 22px; width: max-content; animation: featScroll linear infinite; }
+.featured-marquee:hover .featured-track { animation-play-state: paused; }
+.featured-marquee .featured-card { flex: 0 0 300px; width: 300px; cursor: pointer; }
+@keyframes featScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (max-width: 480px) {
+  .featured-marquee .featured-card { flex: 0 0 240px; width: 240px; }
+  .featured-track { gap: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .featured-track { animation: none; }
+}

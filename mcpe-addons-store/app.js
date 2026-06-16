@@ -16,7 +16,7 @@ const State = {
   sort:            'recent',
   billing:         'monthly',
   page:            1,
-  perPage:         12,
+  perPage:         10,
   currentAddon:    null,
   purchases:       [],
 };
@@ -787,14 +787,14 @@ function applyFilters() {
   const cat = State.currentCategory;
   if (cat === 'free')         list = list.filter(a => a.price == 0 || a.price === '0');
   else if (cat === 'premium') list = list.filter(a => parseFloat(a.price) > 0);
-  else if (cat !== 'all')     list = list.filter(a => (a.contentType || a.category) === cat);
+  else if (cat !== 'all')     list = list.filter(a => (a.contentType || a.category || 'addon') === cat);
 
   // Search filter (vinculado a categorías: "mundo" => solo mundos, "skins" => solo skins, etc.)
   if (State.searchQuery) {
     const q = State.searchQuery.toLowerCase().trim();
     const catKeyword = SEARCH_CAT_KEYWORDS[q];
     if (catKeyword) {
-      list = list.filter(a => (a.contentType || a.category) === catKeyword);
+      list = list.filter(a => (a.contentType || a.category || 'addon') === catKeyword);
     } else {
       list = list.filter(a =>
         a.name.toLowerCase().includes(q) ||
@@ -915,35 +915,62 @@ function pickSuggest(id) {
 function renderAddons() {
   const grid  = document.getElementById('addons-grid');
   const empty = document.getElementById('empty-state');
-  const more  = document.getElementById('load-more-wrap');
+  const total = State.filteredAddons.length;
+  const totalPages = Math.max(1, Math.ceil(total / State.perPage));
+  if (State.page > totalPages) State.page = totalPages;
 
-  // Contador de resultados
   const rc = document.getElementById('results-count');
-  if (rc) {
-    const n = State.filteredAddons.length;
-    rc.textContent = n === 0 ? '' : `${n} resultado${n !== 1 ? 's' : ''}`;
-  }
+  if (rc) rc.textContent = total === 0 ? '' : `${total} resultado${total !== 1 ? 's' : ''}`;
 
-  const visible = State.filteredAddons.slice(0, State.page * State.perPage);
-
-  if (State.filteredAddons.length === 0) {
-    empty.style.display = 'block';
+  if (total === 0) {
+    if (empty) empty.style.display = 'block';
     grid.innerHTML = '';
-    grid.appendChild(empty);
-    more.style.display = 'none';
+    if (empty) grid.appendChild(empty);
+    renderPagination(0);
     return;
   }
 
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
   grid.innerHTML = '';
-
-  visible.forEach((addon, i) => {
-    const card = buildAddonCard(addon, i);
-    grid.appendChild(card);
-  });
-
-  more.style.display = State.filteredAddons.length > visible.length ? 'block' : 'none';
+  const start = (State.page - 1) * State.perPage;
+  const visible = State.filteredAddons.slice(start, start + State.perPage);
+  visible.forEach((addon, i) => grid.appendChild(buildAddonCard(addon, i)));
+  renderPagination(totalPages);
 }
+
+function renderPagination(totalPages) {
+  const wrap = document.getElementById('pagination');
+  if (!wrap) return;
+  if (totalPages <= 1) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  const p = State.page;
+  let html = `<button class="pg-btn pg-nav" ${p <= 1 ? 'disabled' : ''} onclick="goToPage(${p - 1})" aria-label="Anterior"><i class="fas fa-chevron-left"></i></button>`;
+  let nums = [];
+  for (let i = 1; i <= totalPages; i++) nums.push(i);
+  if (totalPages > 7) {
+    const keep = new Set([1, 2, totalPages - 1, totalPages, p - 1, p, p + 1]);
+    nums = nums.filter(i => keep.has(i));
+  }
+  let last = 0;
+  nums.forEach(i => {
+    if (i - last > 1) html += `<span class="pg-dots">…</span>`;
+    html += `<button class="pg-btn ${i === p ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    last = i;
+  });
+  html += `<button class="pg-btn pg-nav" ${p >= totalPages ? 'disabled' : ''} onclick="goToPage(${p + 1})" aria-label="Siguiente"><i class="fas fa-chevron-right"></i></button>`;
+  wrap.innerHTML = html;
+}
+
+function goToPage(n) {
+  const total = State.filteredAddons.length;
+  const totalPages = Math.max(1, Math.ceil(total / State.perPage));
+  State.page = Math.min(Math.max(1, n), totalPages);
+  renderAddons();
+  const sec = document.getElementById('addons');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+}
+
+function loadMore() { goToPage(State.page + 1); }
 
 function buildAddonCard(addon, index) {
   const el   = document.createElement('div');
@@ -994,19 +1021,15 @@ function buildAddonCard(addon, index) {
   return el;
 }
 
-function loadMore() {
-  State.page++;
-  renderAddons();
-}
-
 /* ============================================================
-   RENDER FEATURED
+   RENDER FEATURED (slider rotativo continuo)
    ============================================================ */
 function renderFeatured() {
   const container = document.getElementById('featured-slider');
   const featured  = State.addons.filter(a => a.isFeatured && a.status !== 'pending' && a.status !== 'rejected');
 
   if (featured.length === 0) {
+    container.className = 'featured-slider';
     container.innerHTML = `
       <div class="no-featured">
         <i class="fas fa-star"></i>
@@ -1015,28 +1038,33 @@ function renderFeatured() {
     return;
   }
 
-  container.innerHTML = '';
-  featured.forEach(addon => {
+  function featuredCardHTML(addon) {
     const isFree = !addon.price || parseFloat(addon.price) === 0;
-    const card   = document.createElement('div');
-    card.className = 'featured-card';
-    card.onclick = () => openAddonDetail(addon.id);
-    card.innerHTML = `
-      ${addon.image
-        ? `<img class="featured-card-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" loading="lazy" onerror="this.style.display='none'" />`
-        : `<div class="featured-card-img" style="background:linear-gradient(135deg,var(--bg-card2),rgba(0,212,255,.05));display:flex;align-items:center;justify-content:center;font-size:4rem">${addon.emoji ? escHtml(addon.emoji) : '<i class=\"fas fa-cube\"></i>'}</div>`
-      }
-      <div class="featured-badge"><i class="fas fa-star"></i> Destacado</div>
-      <div class="featured-card-body">
-        <h3 class="featured-card-title">${escHtml(addon.name)}</h3>
-        <p style="color:var(--text-muted);font-size:.85rem;margin:.4rem 0 .8rem">${escHtml(addon.description||'').substring(0,80)}…</p>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span class="featured-card-price">${isFree ? '<i class="fas fa-gift"></i> Gratis' : `<i class="fas fa-dollar-sign"></i> $${parseFloat(addon.price).toFixed(2)}`}</span>
-          <span class="btn btn-primary btn-sm">Ver más</span>
+    return `
+      <div class="featured-card" onclick="openAddonDetail('${addon.id}')">
+        ${addon.image
+          ? `<img class="featured-card-img" src="${escHtml(addon.image)}" alt="${escHtml(addon.name)}" loading="lazy" onerror="this.style.display='none'" />`
+          : `<div class="featured-card-img" style="background:linear-gradient(135deg,var(--bg-card2),rgba(0,212,255,.05));display:flex;align-items:center;justify-content:center;font-size:4rem">${addon.emoji ? escHtml(addon.emoji) : '<i class=\"fas fa-cube\"></i>'}</div>`
+        }
+        <div class="featured-badge"><i class="fas fa-star"></i> Destacado</div>
+        <div class="featured-card-body">
+          <h3 class="featured-card-title">${escHtml(addon.name)}</h3>
+          <p style="color:var(--text-muted);font-size:.85rem;margin:.4rem 0 .8rem">${escHtml(addon.description||'').substring(0,80)}…</p>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="featured-card-price">${isFree ? '<i class="fas fa-gift"></i> Gratis' : `<i class="fas fa-dollar-sign"></i> $${parseFloat(addon.price).toFixed(2)}`}</span>
+            <span class="btn btn-primary btn-sm">Ver más</span>
+          </div>
         </div>
       </div>`;
-    container.appendChild(card);
-  });
+  }
+
+  // Slider rotativo continuo (marquee). Duplicamos las tarjetas para un loop sin cortes.
+  const loop = featured.concat(featured);
+  const cards = loop.map(featuredCardHTML).join('');
+  // Velocidad proporcional a la cantidad de tarjetas
+  const duration = Math.max(18, featured.length * 6);
+  container.className = 'featured-slider featured-marquee';
+  container.innerHTML = `<div class="featured-track" style="animation-duration:${duration}s">${cards}</div>`;
 }
 
 /* ============================================================
@@ -1713,6 +1741,7 @@ window.openAddonDetail    = openAddonDetail;
 window.downloadAddon      = downloadAddon;
 window.openPurchasesModal = openPurchasesModal;
 window.loadMore           = loadMore;
+window.goToPage           = goToPage;
 window.showToast          = showToast;
 window.escHtml            = escHtml;
 window.generateId         = generateId;
