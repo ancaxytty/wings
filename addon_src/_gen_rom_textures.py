@@ -265,7 +265,6 @@ if __name__ == "__main__":
     print("Generando texturas ROM PvP Zones...")
 
     w, h, im = item_zone_wand(); write_png(f"{RP}/textures/items/zone_wand.png", w, h, im)
-    w, h, im = item_wall_wand(); write_png(f"{RP}/textures/items/wall_wand.png", w, h, im)
 
     ICONS = {
         "create": ((70, 210, 120), sym_plus),

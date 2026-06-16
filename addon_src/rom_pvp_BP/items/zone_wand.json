@@ -1,28 +1,18 @@
 {
-  "format_version": "1.21.90",
+  "format_version": "1.21.0",
   "minecraft:item": {
     "description": {
-      "identifier": "rom:zone_wand",
+      "identifier": "room:zone_wand",
       "menu_category": {
-        "category": "equipment",
-        "group": "itemGroup.name.miscellaneous"
+        "category": "equipment"
       }
     },
     "components": {
       "minecraft:max_stack_size": 1,
       "minecraft:hand_equipped": true,
-      "minecraft:icon": {
-        "texture": "rom_zone_wand"
-      },
+      "minecraft:icon": "room_zone_wand",
       "minecraft:display_name": {
-        "value": "item.rom:zone_wand"
-      },
-      "minecraft:should_despawn": false,
-      "minecraft:foil": true,
-      "minecraft:tags": {
-        "tags": [
-          "rom:tool"
-        ]
+        "value": "item.room:zone_wand"
       }
     }
   }

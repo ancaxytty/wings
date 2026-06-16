@@ -1,12 +1,12 @@
 {
   "format_version": 2,
   "header": {
-    "name": "§cROM §6PvP Zones §7RP",
-    "description": "§eVaritas custom (nether + palo), iconos de formularios y texturas pro.\n§7Resource Pack v1.0.0",
+    "name": "§cROOM §6PvP Zones §7RP",
+    "description": "§eVarita nether custom, interfaz multi-idioma y texturas pro.\n§7Resource Pack v0.2.0",
     "uuid": "2c4b7f3e-9a10-4d8e-9a1f-6b0c5d2e8f42",
     "version": [
-      1,
       0,
+      2,
       0
     ],
     "min_engine_version": [
@@ -20,8 +20,8 @@
       "type": "resources",
       "uuid": "3d5c8042-ab21-4e9f-8b2c-7d1e6f3a9b54",
       "version": [
-        1,
         0,
+        2,
         0
       ]
     }
@@ -30,8 +30,8 @@
     {
       "uuid": "7f3e9a10-2c4b-4d8e-9a1f-6b0c5d2e8f31",
       "version": [
-        1,
         0,
+        2,
         0
       ]
     }
