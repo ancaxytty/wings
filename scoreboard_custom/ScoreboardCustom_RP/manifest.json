@@ -1,0 +1,23 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "§6Scoreboard Custom §7RP",
+    "description": "§eIconos/glyphs profesionales y UI para el scoreboard custom.\n§7Resource Pack v0.1.0",
+    "uuid": "438faa33-f181-43c5-99b1-a621d924c3bb",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 21, 90]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "9c446e17-d0f0-47df-9d34-ae6065a97e65",
+      "version": [0, 1, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "0dab5d68-b9be-4262-9228-132de0c93c5e",
+      "version": [0, 1, 0]
+    }
+  ]
+}
