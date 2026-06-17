@@ -1,0 +1,64 @@
+{
+  "namespace": "server_form",
+
+  "logros_bg_image": {
+    "type": "image",
+    "texture": "textures/ui/logros/form_bg",
+    "size": [ "100%", "100%" ],
+    "nineslice_size": [ 28, 30, 28, 30 ],
+    "tiled": false,
+    "layer": -6
+  },
+
+  "logros_header_image": {
+    "type": "image",
+    "texture": "textures/ui/logros/form_header",
+    "size": [ "100%", 46 ],
+    "anchor_from": "top_middle",
+    "anchor_to": "top_middle",
+    "layer": -4
+  },
+
+  "logros_glow": {
+    "type": "image",
+    "texture": "textures/ui/logros/form_glow",
+    "size": [ "100%", "100%" ],
+    "alpha": 0.55,
+    "layer": -5
+  },
+
+  "logros_background_panel": {
+    "type": "panel",
+    "size": [ "100%", "100%" ],
+    "controls": [
+      { "bg@server_form.logros_bg_image": {} },
+      { "glow@server_form.logros_glow": {} },
+      { "header@server_form.logros_header_image": {} }
+    ]
+  },
+
+  "main_screen_content": {
+    "modifications": [
+      {
+        "array_name": "controls",
+        "operation": "insert_front",
+        "value": [
+          { "logros_custom_background@server_form.logros_background_panel": {} }
+        ]
+      }
+    ]
+  },
+
+  "long_form": {
+    "$title_size": [ "100%", 14 ],
+    "$button_height": 36,
+    "force_render_below": true
+  },
+
+  "button_default_bg": {
+    "$pressed_button_name": "button.menu_select",
+    "$default_texture": "textures/ui/logros/btn_long",
+    "$hover_texture": "textures/ui/logros/btn_long_hover",
+    "$pressed_texture": "textures/ui/logros/btn_long_hover"
+  }
+}
