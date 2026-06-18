@@ -1,0 +1,159 @@
+/* ============================================================
+   MCPE ADDONS STORE — v14.0 FEATURE STYLES
+   Fondo caricaturesco · Texturizado · Bloque que se rompe al
+   hacer scroll · Emblemas profesionales para usuarios/creadores
+   ============================================================ */
+
+/* ============================================================
+   1) FONDO CARICATURESCO (capa fija detrás del contenido)
+   ============================================================ */
+#v14-cartoon-bg{
+  position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden;
+  background:
+    linear-gradient(180deg, rgba(13,22,46,.0) 0%, rgba(9,14,28,.0) 55%, rgba(7,11,22,.55) 100%),
+    radial-gradient(900px 420px at 78% 8%, rgba(255,206,90,.10), transparent 60%),
+    radial-gradient(820px 420px at 12% 14%, rgba(0,212,255,.08), transparent 60%);
+}
+/* textura de "grano" pixelado sobre todo el fondo */
+#v14-cartoon-bg::after{
+  content:""; position:absolute; inset:0; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='none'/%3E%3Crect x='0' y='0' width='2' height='2' fill='%23ffffff' opacity='0.04'/%3E%3Crect x='20' y='10' width='2' height='2' fill='%23ffffff' opacity='0.035'/%3E%3Crect x='32' y='26' width='2' height='2' fill='%23ffffff' opacity='0.03'/%3E%3Crect x='12' y='30' width='2' height='2' fill='%23ffffff' opacity='0.03'/%3E%3C/svg%3E");
+}
+/* Sol/luna pixelado */
+.v14-sun{
+  position:absolute; top:7%; right:9%; width:84px; height:84px; border-radius:14px;
+  background:
+    linear-gradient(135deg,#ffe08a,#ffb020);
+  box-shadow:0 0 60px 14px rgba(255,176,32,.25), inset 0 0 0 6px rgba(255,255,255,.12);
+  image-rendering:pixelated; animation:v14sun 9s ease-in-out infinite;
+}
+@keyframes v14sun{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+
+/* Nubes pixeladas */
+.v14-cloud{ position:absolute; opacity:.16; filter:drop-shadow(0 8px 0 rgba(0,0,0,.06)); }
+.v14-cloud svg{ display:block; }
+.v14-c1{ top:14%; left:-200px; animation:v14cloud 46s linear infinite; }
+.v14-c2{ top:30%; left:-260px; animation:v14cloud 62s linear infinite; animation-delay:-12s; }
+.v14-c3{ top:9%;  left:-220px; animation:v14cloud 78s linear infinite; animation-delay:-30s; }
+@keyframes v14cloud{ from{ transform:translateX(0); } to{ transform:translateX(calc(100vw + 320px)); } }
+
+/* Items flotantes (diamante, pico) */
+.v14-float{ position:absolute; opacity:.12; animation:v14float 12s ease-in-out infinite; }
+.v14-f1{ bottom:24%; left:6%;  animation-delay:-2s; }
+.v14-f2{ top:40%;    right:7%; animation-delay:-6s; }
+.v14-f3{ bottom:34%; right:18%; animation-delay:-9s; transform:scale(.8); }
+@keyframes v14float{ 0%,100%{ transform:translateY(0) rotate(-6deg);} 50%{ transform:translateY(-18px) rotate(6deg);} }
+
+/* Suelo de bloques caricaturesco al fondo */
+.v14-ground{
+  position:absolute; left:0; right:0; bottom:0; height:120px; opacity:.22;
+  background:
+    linear-gradient(180deg, transparent, rgba(0,0,0,.18)),
+    repeating-linear-gradient(90deg,#3f8f30 0 38px,#367f2a 38px 76px);
+  border-top:10px solid #6cbf4f;
+}
+.v14-ground::before{
+  content:""; position:absolute; left:0; right:0; top:10px; height:14px;
+  background:repeating-linear-gradient(90deg, rgba(0,0,0,.10) 0 38px, rgba(255,255,255,.06) 38px 76px);
+}
+@media (max-width:640px){ .v14-sun{ width:56px;height:56px } .v14-ground{ height:80px } }
+
+/* ============================================================
+   2) BLOQUE DE MINECRAFT QUE SE ROMPE / RECONSTRUYE CON SCROLL
+   ============================================================ */
+#v14-block{
+  position:fixed; right:18px; bottom:18px; width:108px; height:108px;
+  z-index:60; pointer-events:none; filter:drop-shadow(0 10px 18px rgba(0,0,0,.45));
+  transition:opacity .3s;
+}
+#v14-block svg{ width:100%; height:100%; overflow:visible; }
+#v14-block .v14-piece{ transition:transform .12s linear; transform-box:fill-box; transform-origin:center; }
+#v14-block .v14-crack{ opacity:0; transition:opacity .15s linear; }
+#v14-block .v14-bhint{
+  position:absolute; left:50%; bottom:-16px; transform:translateX(-50%);
+  font-size:.6rem; letter-spacing:.5px; text-transform:uppercase; color:var(--text-muted);
+  white-space:nowrap; opacity:.7;
+}
+@media (max-width:560px){ #v14-block{ width:74px; height:74px; right:10px; bottom:10px } #v14-block .v14-bhint{ display:none } }
+
+/* ============================================================
+   3) TEXTURIZADO de la interfaz (sutil, no afecta legibilidad)
+   ============================================================ */
+.addon-card, .featured-card, .plan-card, .ad-card, .setting-card,
+.game-slide, .cart-drawer, .modal{
+  position:relative;
+}
+.addon-card::after, .featured-card::after, .plan-card::after, .game-slide::after{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:0;
+  opacity:.5; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect width='6' height='6' fill='none'/%3E%3Crect width='1' height='1' fill='%23ffffff' opacity='0.05'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23000000' opacity='0.06'/%3E%3C/svg%3E");
+}
+/* mantener el contenido por encima de la textura */
+.addon-card > *, .featured-card > *, .plan-card > *, .game-slide-info, .game-slide-logo{ position:relative; z-index:1; }
+
+/* textura tipo "relieve" en botones principales */
+.btn-primary, .btn-gold, .btn-success{
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 42%),
+    var(--btn-tex, none);
+}
+
+/* ============================================================
+   4) EMBLEMAS PROFESIONALES
+   ============================================================ */
+.v14-emblem{
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  vertical-align:middle; flex-shrink:0; line-height:0;
+}
+.v14-emblem svg{ width:100%; height:100%; display:block; }
+.v14-emblem .v14-em-ic{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.45); pointer-events:none;
+}
+.v14-emblem.sm{ width:22px; height:22px; }
+.v14-emblem.sm .v14-em-ic{ font-size:.6rem; }
+.v14-emblem.md{ width:34px; height:34px; }
+.v14-emblem.md .v14-em-ic{ font-size:.85rem; }
+.v14-emblem.lg{ width:96px; height:96px; }
+.v14-emblem.lg .v14-em-ic{ font-size:2.1rem; }
+.v14-emblem.shine svg .v14-em-ring{ animation:v14ringspin 14s linear infinite; transform-box:fill-box; transform-origin:center; }
+@keyframes v14ringspin{ to{ transform:rotate(360deg); } }
+
+/* etiqueta del nivel junto al nombre */
+.v14-level-chip{
+  display:inline-flex; align-items:center; gap:5px; vertical-align:middle;
+  padding:2px 9px; border-radius:999px; font-size:.66rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:.5px; line-height:1;
+  background:var(--em-bg, rgba(0,212,255,.14)); color:var(--em-fg, var(--primary));
+  border:1px solid var(--em-bd, rgba(0,212,255,.3));
+}
+
+/* showcase grande en el perfil */
+.v14-emblem-showcase{
+  display:flex; gap:16px; align-items:center; margin:14px 0 4px;
+  padding:16px; border-radius:16px;
+  background:linear-gradient(135deg, var(--bg-card2), rgba(0,0,0,.12));
+  border:1px solid var(--border); position:relative; overflow:hidden;
+}
+.v14-emblem-showcase::before{
+  content:""; position:absolute; right:-30px; top:-30px; width:140px; height:140px;
+  background:radial-gradient(circle, var(--em-glow, rgba(0,212,255,.25)), transparent 70%);
+}
+.v14-es-info{ flex:1; min-width:0; position:relative; z-index:1; }
+.v14-es-name{ font-family:var(--font-heading); font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:8px; }
+.v14-es-sub{ font-size:.78rem; color:var(--text-muted); margin:2px 0 8px; }
+.v14-es-bar{ height:8px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; }
+.v14-es-fill{ height:100%; border-radius:999px; background:linear-gradient(90deg,var(--em-c1,#00d4ff),var(--em-c2,#8b5cff)); transition:width .6s ease; }
+.v14-es-next{ font-size:.72rem; color:var(--text-light); margin-top:6px; }
+.v14-es-stats{ display:flex; gap:14px; margin-top:8px; }
+.v14-es-stats div{ font-size:.72rem; color:var(--text-muted); }
+.v14-es-stats strong{ display:block; font-size:1rem; color:var(--text); }
+
+/* fila de todos los niveles (leyenda) */
+.v14-levels-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.v14-levels-row .v14-lv{ display:flex; flex-direction:column; align-items:center; gap:4px; width:62px; text-align:center; opacity:.45; transition:var(--transition); }
+.v14-levels-row .v14-lv.reached{ opacity:1; }
+.v14-levels-row .v14-lv small{ font-size:.6rem; color:var(--text-muted); }
+
+/* emblema junto a autor en tarjetas/comentarios */
+.addon-card-author .v14-emblem, .comment-author + .v14-emblem{ margin-left:2px; }
