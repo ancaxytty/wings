@@ -772,7 +772,7 @@ function renderUsersTable() {
       <td>
         <img src="${escHtml(u.avatar || '')}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--bg-card2)" onerror="this.style.display='none'" />
       </td>
-      <td><strong>${escHtml(u.name)}</strong></td>
+      <td><strong>${escHtml(u.name)}</strong>${typeof v14EmblemHTML === 'function' ? ' ' + v14EmblemHTML(u.id, 'sm', u) + ' ' + v14LevelChip(u.id, u) : ''}</td>
       <td style="color:var(--text-muted)">${escHtml(u.email)}</td>
       <td style="font-size:.78rem;color:var(--text-muted)">${u.loginAt ? new Date(u.loginAt).toLocaleDateString('es-ES') : '—'}</td>
     </tr>

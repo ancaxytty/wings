@@ -486,7 +486,7 @@ function renderComments(addonId) {
           <img class="c-avatar" src="${escHtml(c.avatar || '')}" alt="" onerror="this.style.opacity=0">
           <div class="comment-main">
             <div class="comment-top">
-              <span class="comment-author">${escHtml(c.author || 'Usuario')}</span>
+              <span class="comment-author">${escHtml(c.author || 'Usuario')}</span>${c.userId && typeof v14EmblemHTML === 'function' ? ' ' + v14EmblemHTML(c.userId) : ''}
               ${c.isAdmin ? '<span class="comment-badge admin"><i class="fas fa-shield-halved"></i> Staff</span>' : ''}
               <span class="comment-time">${timeAgo(c.date)}</span>
             </div>
@@ -531,7 +531,7 @@ function refreshCommentsUI() {
           <img class="c-avatar" src="${escHtml(c.avatar || '')}" alt="" onerror="this.style.opacity=0">
           <div class="comment-main">
             <div class="comment-top">
-              <span class="comment-author">${escHtml(c.author || 'Usuario')}</span>
+              <span class="comment-author">${escHtml(c.author || 'Usuario')}</span>${c.userId && typeof v14EmblemHTML === 'function' ? ' ' + v14EmblemHTML(c.userId) : ''}
               ${c.isAdmin ? '<span class="comment-badge admin"><i class="fas fa-shield-halved"></i> Staff</span>' : ''}
               <span class="comment-time">${timeAgo(c.date)}</span>
             </div>

@@ -999,7 +999,7 @@ function buildAddonCard(addon, index) {
       </div>
       <h3 class="addon-card-title">${escHtml(addon.name)}</h3>
       <p class="addon-card-desc">${escHtml(addon.description || 'Sin descripción disponible.')}</p>
-      ${addon.authorName ? `<div class="addon-card-author"><i class="fas fa-user"></i> ${escHtml(addon.authorName)}</div>` : ''}
+      ${addon.authorName ? `<div class="addon-card-author"><i class="fas fa-user"></i> ${escHtml(addon.authorName)}${addon.authorId && typeof v14EmblemHTML === 'function' ? ' ' + v14EmblemHTML(addon.authorId, 'sm') : ''}</div>` : ''}
       <div class="addon-card-meta">
         <span class="addon-card-price ${priceClass}">${price}</span>
         <span class="addon-card-downloads">
@@ -1598,6 +1598,7 @@ function renderProfile(editMode){
         <span class="profile-plan-badge plan-${plan.id}"><i class="fas ${plan.icon}"></i> ${plan.name}</span>
         <p class="profile-bio ${u.bio?'':'muted'}">${u.bio ? escHtml(u.bio) : 'Sin biografía aún.'}</p>
       </div>
+      ${typeof v14EmblemShowcase === 'function' ? v14EmblemShowcase(u.id, u) : ''}
       <div class="profile-stats">
         <div><strong>${myAddons.length}</strong><span>Add-ons</span></div>
         <div><strong>${totalDl.toLocaleString()}</strong><span>Descargas</span></div>
