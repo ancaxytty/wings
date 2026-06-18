@@ -1,0 +1,38 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "§6Scoreboard Custom §7BP",
+    "description": "§eScoreboard custom con iconos, menu editor y comandos /cs:.\n§7Behavior Pack v0.1.0",
+    "uuid": "0dab5d68-b9be-4262-9228-132de0c93c5e",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 21, 90]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "b5229a74-f2a1-429c-b931-5657062f9031",
+      "version": [0, 1, 0]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "841c9036-60ba-4fa6-9a7a-e7d1e3e5ee06",
+      "version": [0, 1, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "438faa33-f181-43c5-99b1-a621d924c3bb",
+      "version": [0, 1, 0]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.0.0"
+    }
+  ]
+}
