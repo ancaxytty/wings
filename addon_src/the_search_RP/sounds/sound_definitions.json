@@ -1,0 +1,23 @@
+{
+  "format_version": "1.14.0",
+  "sound_definitions": {
+    "ts.found": {
+      "category": "player",
+      "min_distance": 0.0,
+      "max_distance": 24.0,
+      "sounds": [
+        { "name": "sounds/random/orb", "volume": 1.0, "pitch": 1.2 },
+        { "name": "sounds/note/bell", "volume": 0.6, "pitch": 1.4 }
+      ]
+    },
+    "ts.complete": {
+      "category": "player",
+      "min_distance": 0.0,
+      "max_distance": 48.0,
+      "sounds": [
+        { "name": "sounds/random/levelup", "volume": 1.0, "pitch": 1.0 },
+        { "name": "sounds/respawn_anchor/charge", "volume": 0.7, "pitch": 1.1 }
+      ]
+    }
+  }
+}

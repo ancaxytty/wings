@@ -1,0 +1,7 @@
+entity.wings:hologram.name=Hologram
+tile.wings:head.name=Custom Search Head
+pack.name=The Search MCPE RP
+pack.description=The Search MCPE - custom head blocks, holograms and particles.
+
+action.interact.search=Interact
+action.hint.exit.search=Interact

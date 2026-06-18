@@ -102,3 +102,71 @@ cd addon_src
 python3 _gen_textures.py
 zip -r -X ../dist/wings_search_v4.mcaddon wings_search_BP wings_search_RP -x "*.py"
 ```
+
+
+---
+
+# The Search v0.3 PE — Custom Commands API (1.21.100+)
+
+Versión reescrita desde cero centrada en la **API nativa de comandos
+personalizados** (`/ts:*`) de Minecraft Bedrock **1.21.100+**, con código
+modular, partículas 3D temáticas y pistas visuales.
+
+- **Descarga:** `dist/The-search-v0.3-PE.mcaddon`
+- **Packs:** `the_search_BP/` (Behavior) + `the_search_RP/` (Resource).
+- Activa **ambos** packs. Necesitas **trucos / operador** para los comandos `/ts:*`.
+
+## Comandos (`/ts:*`)
+| Comando | Descripción |
+|---|---|
+| `/ts:create [nombre]` | Crea una búsqueda. |
+| `/ts:delete [nombre]` | Elimina una búsqueda. |
+| `/ts:edit [nombre]` | UI de edición (apariencia, **efecto 3D**, mensajes, recompensas, info). |
+| `/ts:set [nombre]` | Oculta una cabeza en el bloque que estás mirando. |
+| `/ts:rename [nombre] [nuevo]` | Renombra una búsqueda. |
+| `/ts:list` | Lista todas las búsquedas en el chat. |
+| `/ts:reset [jugador] [nombre]` | Reinicia progreso. Soporta **selectores**: `@p`, `@a`, `@r`, `@s`, `@e[...]`, nombre o `*`. |
+| `/ts:rewards [nombre]` | UI para configurar recompensas (comandos / items). |
+| `/ts:tp [nombre] [n]` | Te teletransporta a la cabeza nº `n`. |
+
+## Novedades v0.3
+- **Partícula-antorcha sobre cada cabeza** (`wings:torch`) como pista visual.
+  Solo se genera para cabezas con un jugador cerca (optimizado, con tope por tick).
+- **5 efectos 3D al encontrar una cabeza** (configurables por búsqueda en `/ts:edit`
+  → Apariencia → *Efecto 3D*; `0 = Aleatorio`):
+  1. **Murciélagos** que se dispersan en todas las direcciones.
+  2. **Volcán** a punto de estallar (erupción de lava + explosión final).
+  3. **Trineo de Santa** que vuela en diagonal desde el cielo hasta la cabeza (animado por script).
+  4. **Fuegos artificiales** tintados con el color de la cabeza.
+  5. **Espiral mágica** (doble hélice ascendente) del color de la cabeza.
+- **`/ts:reset` con selectores reales** (`@p`, `@a`, `@r`, `@s`, nombres, `*`), resueltos
+  con el motor de selectores de Minecraft.
+
+## Cómo jugar
+1. Admin: `/ts:create halloween` → `/ts:edit halloween` (cabeza/tamaño/efecto)
+   → mira un bloque y `/ts:set halloween` (repite para ocultar más cabezas).
+2. Opcional: `/ts:rewards halloween` para premios al completar.
+3. Jugadores: exploran (la **antorcha** flotante delata las cabezas cercanas) y
+   **tocan/interactúan** con ellas → **title dinámico**, **efecto 3D temático** y
+   **sonido custom**. Al completar: sonido épico + recompensas. Progreso **por jugador**.
+
+## Estructura del código (Behavior Pack)
+- `scripts/config.js` — constantes, catálogo de 16 cabezas, efectos, identificadores.
+- `scripts/data.js` — persistencia (Dynamic Properties): búsquedas + progreso.
+- `scripts/effects.js` — title/actionbar, sonidos, **antorcha** y los **5 efectos 3D**.
+- `scripts/ambient.js` — bucle de partículas-antorcha sobre las cabezas.
+- `scripts/interaction.js` — detección de hallazgo (componente de bloque + eventos) y recompensas.
+- `scripts/ui.js` — formularios `@minecraft/server-ui` 2.0 (con iconos custom).
+- `scripts/commands.js` — registro de los comandos `/ts:*` (Custom Commands API).
+- `scripts/main.js` — punto de entrada que conecta todo.
+
+## Assets custom (Resource Pack)
+- `particles/ts_found.particle.json` — destello 3D base tintado por cabeza.
+- `particles/ts_bats|ts_volcano|ts_sleigh|ts_fireworks|ts_magic.particle.json` — efectos 3D.
+- `sounds/sound_definitions.json` — sonidos `ts.found` y `ts.complete`.
+
+## Re-empaquetar
+```bash
+cd addon_src
+zip -r -X ../dist/The-search-v0.3-PE.mcaddon the_search_BP the_search_RP
+```
