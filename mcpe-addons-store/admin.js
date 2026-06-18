@@ -203,6 +203,7 @@ function switchPage(page, link) {
     dashboard: 'Dashboard',
     addons: 'Gestionar Add-ons',
     pending: 'Pendientes de aprobación',
+    codes: 'Cupones / Vouchers',
     orders: 'Pedidos / Ventas',
     users: 'Usuarios',
     settings: 'Configuración'
@@ -213,6 +214,7 @@ function switchPage(page, link) {
   if (page === 'dashboard') refreshDashboard();
   if (page === 'addons')    renderAddonsTable();
   if (page === 'pending')   renderPendingTable();
+  if (page === 'codes')     renderCodesTable();
   if (page === 'orders')    renderOrdersTable();
   if (page === 'users')     renderUsersTable();
 
@@ -361,6 +363,54 @@ function renderAddonsTable() {
 }
 
 function filterAdminAddons() { renderAddonsTable(); }
+
+/* ============================================================
+   CUPONES / VOUCHERS
+   ============================================================ */
+function renderCodesTable() {
+  const body = document.getElementById('codes-table-body');
+  if (!body) return;
+  const codes = DB.get(DB_KEYS.CODES);
+  if (!codes.length) {
+    body.innerHTML = '<tr><td colspan="4" class="empty-text">No hay cupones aún.</td></tr>';
+    return;
+  }
+  body.innerHTML = codes.map(c => `
+    <tr>
+      <td><strong style="color:var(--primary)">${escHtml(c.code)}</strong></td>
+      <td>${c.type === 'fixed' ? 'Monto fijo' : 'Porcentaje'}</td>
+      <td>${c.type === 'fixed' ? '$' + parseFloat(c.value).toFixed(2) : parseFloat(c.value) + '%'}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteCode('${escHtml(c.code)}')"><i class="fas fa-trash"></i></button></td>
+    </tr>`).join('');
+}
+
+function addCode() {
+  if (!isAdminAuthenticated) return;
+  const code  = (document.getElementById('code-code').value || '').trim();
+  const type  = document.getElementById('code-type').value;
+  const value = parseFloat(document.getElementById('code-value').value) || 0;
+  if (!code) { adminToast('Escribe un código.', 'error'); return; }
+  if (value <= 0) { adminToast('El valor debe ser mayor a 0.', 'error'); return; }
+  const codes = DB.get(DB_KEYS.CODES);
+  if (codes.some(c => String(c.code).toLowerCase() === code.toLowerCase())) {
+    adminToast('Ese código ya existe.', 'error'); return;
+  }
+  codes.push({ code, type, value, active: true, createdAt: new Date().toISOString() });
+  DB.set(DB_KEYS.CODES, codes);
+  document.getElementById('code-code').value = '';
+  renderCodesTable();
+  adminToast('Cupón creado.', 'success');
+}
+
+function deleteCode(code) {
+  if (!isAdminAuthenticated) return;
+  if (!confirm('¿Eliminar el cupón ' + code + '?')) return;
+  let codes = DB.get(DB_KEYS.CODES);
+  codes = codes.filter(c => String(c.code).toLowerCase() !== String(code).toLowerCase());
+  DB.set(DB_KEYS.CODES, codes);
+  renderCodesTable();
+  adminToast('Cupón eliminado.', 'warning');
+}
 
 /* ============================================================
    PENDING ADD-ONS (aprobación)
@@ -841,6 +891,9 @@ window.closeAddonForm    = closeAddonForm;
 window.renderPendingTable = renderPendingTable;
 window.approveAddon      = approveAddon;
 window.rejectAddon       = rejectAddon;
+window.renderCodesTable  = renderCodesTable;
+window.addCode           = addCode;
+window.deleteCode        = deleteCode;
 window.handleImageUpload = handleImageUpload;
 window.clearImageUpload  = clearImageUpload;
 window.handleDownloadUpload = handleDownloadUpload;

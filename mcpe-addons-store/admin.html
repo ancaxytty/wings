@@ -85,6 +85,9 @@
         <a href="#" class="sidebar-link" data-page="pending" onclick="switchPage('pending',this)">
           <i class="fas fa-clock"></i> Pendientes <span class="nav-badge" id="pending-badge" style="display:none">0</span>
         </a>
+        <a href="#" class="sidebar-link" data-page="codes" onclick="switchPage('codes',this)">
+          <i class="fas fa-ticket"></i> Cupones
+        </a>
         <a href="#" class="sidebar-link" data-page="orders" onclick="switchPage('orders',this)">
           <i class="fas fa-receipt"></i> Pedidos
         </a>
@@ -255,6 +258,33 @@
         </div>
         <div class="pending-list" id="pending-list">
           <p class="empty-text">No hay add-ons pendientes.</p>
+        </div>
+      </div>
+
+      <!-- ===== CODES PAGE ===== -->
+      <div class="page hidden" id="page-codes">
+        <div class="page-header"><h2>Cupones / Vouchers</h2></div>
+        <div class="setting-card" style="max-width:560px">
+          <h3><i class="fas fa-ticket"></i> Nuevo cupón</h3>
+          <div class="form-group"><label>Código</label><input id="code-code" class="form-input" placeholder="Ej: VZOM10" /></div>
+          <div class="form-row">
+            <div class="form-group"><label>Tipo</label>
+              <select id="code-type" class="form-input">
+                <option value="percent">Porcentaje (%)</option>
+                <option value="fixed">Monto fijo ($)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Valor</label><input id="code-value" type="number" class="form-input" min="0" step="0.01" value="10" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="addCode()"><i class="fas fa-plus"></i> Crear cupón</button>
+        </div>
+        <div class="table-container" style="margin-top:18px">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Código</th><th>Tipo</th><th>Valor</th><th>Acciones</th></tr></thead>
+              <tbody id="codes-table-body"><tr><td colspan="4" class="empty-text">No hay cupones aún.</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 

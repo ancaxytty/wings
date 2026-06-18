@@ -19,6 +19,8 @@ const State = {
   perPage:         10,
   currentAddon:    null,
   purchases:       [],
+  cart:            [],
+  coupon:          null,
 };
 
 // Subidas de usuario en memoria (data URLs)
@@ -52,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
   listenRealtime();
   renderPlans();
   populateUploadTypes();
+  loadCart();
+  renderRecent();
 });
 
 /* ============================================================
@@ -760,6 +764,8 @@ function listenRealtime() {
       State.addons = e.detail.data;
       applyFilters();
       updateStats();
+      renderRecent();
+      updateCartBadge();
     }
   });
   // Poll every 3s for cross-tab updates
@@ -769,6 +775,7 @@ function listenRealtime() {
       State.addons = fresh;
       applyFilters();
       updateStats();
+      renderRecent();
     }
   }, 3000);
 }
@@ -1012,8 +1019,8 @@ function buildAddonCard(addon, index) {
         ? `<button class="btn btn-success btn-sm" onclick="downloadAddon(event,'${addon.id}')">
              <i class="fas fa-download"></i> Descargar
            </button>`
-        : `<button class="btn btn-gold btn-sm" onclick="openAddonDetail('${addon.id}')">
-             <i class="fas fa-crown"></i> Comprar
+        : `<button class="btn btn-gold btn-sm" onclick="addToCart(event,'${addon.id}')">
+             <i class="fas fa-cart-plus"></i> Añadir
            </button>`
       }
     </div>
@@ -1714,8 +1721,157 @@ document.addEventListener('DOMContentLoaded', () => {
   if (regEmail) regEmail.addEventListener('input', checkRegEmail);
 });
 
+/* ============================================================
+   V13.0 — CARRITO + CUPONES/VOUCHERS + SLIDER NOVEDADES
+   ============================================================ */
+function loadCart(){
+  try { State.cart = JSON.parse(localStorage.getItem('mcpe_cart')) || []; } catch (e) { State.cart = []; }
+  updateCartBadge();
+}
+function saveCart(){ try { localStorage.setItem('mcpe_cart', JSON.stringify(State.cart)); } catch (e) {} updateCartBadge(); }
+function cartItems(){ return State.cart.map(id => State.addons.find(a => a.id === id)).filter(Boolean); }
+function updateCartBadge(){
+  const b = document.getElementById('cart-count');
+  if (!b) return;
+  const n = State.cart.length;
+  b.textContent = n; b.style.display = n > 0 ? 'flex' : 'none';
+}
+function addToCart(e, id){
+  if (e && e.stopPropagation) e.stopPropagation();
+  const a = State.addons.find(x => x.id === id);
+  if (!a) return;
+  if (!a.price || parseFloat(a.price) === 0){ downloadAddon(e, id); return; }
+  if (State.cart.includes(id)){ showToast('Ya está en tu carrito.', 'info'); openCartModal(); return; }
+  State.cart.push(id); saveCart();
+  showToast(`"${a.name}" añadido al carrito.`, 'success');
+}
+function removeFromCart(id){ State.cart = State.cart.filter(x => x !== id); saveCart(); renderCart(); }
+
+function cartSubtotal(){ return cartItems().reduce((s, a) => s + (parseFloat(a.price) || 0), 0); }
+function cartDiscount(){
+  const c = State.coupon; if (!c) return 0;
+  const sub = cartSubtotal();
+  const d = c.type === 'percent' ? sub * (c.value / 100) : Math.min(c.value, sub);
+  return Math.round(d * 100) / 100;
+}
+function cartTotal(){ return Math.max(0, Math.round((cartSubtotal() - cartDiscount()) * 100) / 100); }
+
+function openCartModal(){ renderCart(); openModal('cart-modal'); }
+
+function renderCart(){
+  const body = document.getElementById('cart-body');
+  if (!body) return;
+  const items = cartItems();
+  if (items.length !== State.cart.length){ State.cart = items.map(a => a.id); saveCart(); }
+  if (items.length === 0){
+    body.innerHTML = `<div class="empty-purchases"><i class="fas fa-cart-shopping"></i><p>Tu carrito está vacío</p></div>`;
+    return;
+  }
+  const sub = cartSubtotal(), disc = cartDiscount(), tot = cartTotal();
+  body.innerHTML = `
+    <div class="cart-items">
+      ${items.map(a => `
+        <div class="cart-item">
+          <div class="cart-item-ic">${a.image ? `<img src="${escHtml(a.image)}" alt="" onerror="this.outerHTML='&#9638;'">` : '<i class="fas fa-cube"></i>'}</div>
+          <div class="cart-item-info"><strong>${escHtml(a.name)}</strong><small>${escHtml(typeName(a.contentType || a.category) || '')}</small></div>
+          <span class="cart-item-price">$${parseFloat(a.price).toFixed(2)}</span>
+          <button class="cart-item-rm" onclick="removeFromCart('${a.id}')" aria-label="Quitar"><i class="fas fa-trash"></i></button>
+        </div>`).join('')}
+    </div>
+    <div class="cart-coupon">
+      <input type="text" id="coupon-input" placeholder="Código de cupón / voucher" value="${State.coupon ? escHtml(State.coupon.code) : ''}" />
+      <button type="button" class="btn btn-outline btn-sm" onclick="applyCoupon()">Aplicar</button>
+    </div>
+    ${State.coupon ? `<div class="cart-coupon-ok"><i class="fas fa-ticket"></i> Cupón "${escHtml(State.coupon.code)}" (${State.coupon.type === 'percent' ? State.coupon.value + '%' : '$' + State.coupon.value}) <button onclick="removeCoupon()">quitar</button></div>` : ''}
+    <div class="cart-totals">
+      <div class="cart-row"><span>Subtotal</span><span>$${sub.toFixed(2)}</span></div>
+      ${disc > 0 ? `<div class="cart-row cart-disc"><span>Descuento</span><span>-$${disc.toFixed(2)}</span></div>` : ''}
+      <div class="cart-row cart-total"><span>Total</span><span>$${tot.toFixed(2)}</span></div>
+    </div>
+    ${State.user ? `<div id="cart-paypal-container"></div>` : `<button class="btn btn-primary btn-full" onclick="closeModal('cart-modal');openAuthModal('login')"><i class="fab fa-google"></i> Inicia sesión para pagar</button>`}
+  `;
+  if (State.user && typeof renderCartPayPalButton === 'function') renderCartPayPalButton(tot);
+}
+
+function applyCoupon(){
+  const inp = document.getElementById('coupon-input');
+  const code = (inp && inp.value.trim()) || '';
+  if (!code){ showToast('Escribe un código.', 'error'); return; }
+  const codes = DB.get(DB_KEYS.CODES);
+  const found = codes.find(c => c.active !== false && String(c.code).toLowerCase() === code.toLowerCase());
+  if (!found){ showToast('Cupón inválido o expirado.', 'error'); return; }
+  State.coupon = { code: found.code, type: found.type || 'percent', value: parseFloat(found.value) || 0 };
+  showToast('Cupón aplicado.', 'success');
+  renderCart();
+}
+function removeCoupon(){ State.coupon = null; renderCart(); }
+
+function completeCartPurchase(details){
+  if (!State.user){ openAuthModal('login'); return; }
+  const items = cartItems();
+  const factor = cartSubtotal() > 0 ? (cartTotal() / cartSubtotal()) : 1;
+  const orders = DB.get(DB_KEYS.ORDERS);
+  items.forEach(a => {
+    orders.push({
+      id: 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      userId: State.user.id, addonId: a.id, addonName: a.name,
+      price: Math.round((parseFloat(a.price) || 0) * factor * 100) / 100,
+      currency: 'USD', coupon: State.coupon ? State.coupon.code : null,
+      paypalOrderId: details && details.id, status: 'completed', date: new Date().toISOString()
+    });
+  });
+  const addons = DB.get(DB_KEYS.ADDONS);
+  items.forEach(a => { const i = addons.findIndex(x => x.id === a.id); if (i !== -1) addons[i].purchases = (addons[i].purchases || 0) + 1; });
+  DB.set(DB_KEYS.ADDONS, addons);
+  DB.set(DB_KEYS.ORDERS, orders);
+  State.cart = []; State.coupon = null; saveCart();
+  loadPurchases();
+  closeModal('cart-modal');
+  showToast('¡Compra completada! Descarga tus add-ons en "Mis Compras".', 'success', 7000);
+}
+
+/* Slider de novedades (movimiento izquierda -> derecha) */
+function renderRecent(){
+  const container = document.getElementById('recent-slider');
+  if (!container) return;
+  const list = State.addons
+    .filter(a => a.status !== 'pending' && a.status !== 'rejected')
+    .slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, 10);
+  if (list.length === 0){
+    container.className = 'featured-slider';
+    container.innerHTML = `<div class="no-featured"><i class="fas fa-clock"></i><p>Aquí aparecerá lo más nuevo</p></div>`;
+    return;
+  }
+  const card = a => {
+    const isFree = !a.price || parseFloat(a.price) === 0;
+    return `<div class="featured-card" onclick="openAddonDetail('${a.id}')">
+      ${a.image ? `<img class="featured-card-img" src="${escHtml(a.image)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="featured-card-img" style="display:flex;align-items:center;justify-content:center;font-size:3.4rem;background:var(--bg-card2)">${a.emoji ? escHtml(a.emoji) : '<i class=\"fas fa-cube\"></i>'}</div>`}
+      <div class="featured-card-body">
+        <h3 class="featured-card-title">${escHtml(a.name)}</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+          <span class="featured-card-price">${isFree ? '<i class="fas fa-gift"></i> Gratis' : `$${parseFloat(a.price).toFixed(2)}`}</span>
+          <span class="badge badge-new"><i class="fas fa-certificate"></i> Nuevo</span>
+        </div>
+      </div>
+    </div>`;
+  };
+  const loop = list.concat(list).map(card).join('');
+  const duration = Math.max(18, list.length * 6);
+  container.className = 'featured-slider featured-marquee featured-marquee-rev';
+  container.innerHTML = `<div class="featured-track" style="animation-duration:${duration}s">${loop}</div>`;
+}
+
 // Expose globally
 window.toggleHamburger    = toggleHamburger;
+window.addToCart          = addToCart;
+window.removeFromCart     = removeFromCart;
+window.openCartModal      = openCartModal;
+window.applyCoupon        = applyCoupon;
+window.removeCoupon       = removeCoupon;
+window.completeCartPurchase = completeCartPurchase;
+window.renderRecent       = renderRecent;
+window.renderCart         = renderCart;
 window.closeHamburger     = closeHamburger;
 window.openSheet          = openSheet;
 window.closeSheet         = closeSheet;

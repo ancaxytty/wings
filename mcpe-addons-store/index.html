@@ -96,6 +96,11 @@
       </div>
     </div>
 
+    <button class="nav-cart" onclick="openCartModal()" aria-label="Carrito">
+      <i class="fas fa-shopping-cart"></i>
+      <span class="cart-count" id="cart-count" style="display:none">0</span>
+    </button>
+
     <button class="hamburger" id="hamburger-btn" onclick="openSheet()" aria-label="Menú">
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
@@ -235,6 +240,19 @@
     </div>
     <div class="featured-slider" id="featured-slider">
       <div class="no-featured"><i class="fas fa-star"></i><p>Los destacados aparecerán aquí</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== NOVEDADES (slider izquierda -> derecha) ===================== -->
+<section class="featured-section" id="recent">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><i class="fas fa-bolt"></i> Novedades</div>
+      <h2 class="section-title">Recién <span class="gradient-text">subidos</span></h2>
+    </div>
+    <div class="featured-slider" id="recent-slider">
+      <div class="no-featured"><i class="fas fa-clock"></i><p>Aquí aparecerá lo más nuevo</p></div>
     </div>
   </div>
 </section>
@@ -473,6 +491,15 @@
   <div class="modal plan-checkout-modal">
     <button class="modal-close" onclick="closeModal('plan-modal')"><i class="fas fa-times"></i></button>
     <div id="plan-modal-body"></div>
+  </div>
+</div>
+
+<!-- ===================== CART MODAL ===================== -->
+<div class="modal-overlay" id="cart-modal">
+  <div class="modal cart-modal">
+    <button class="modal-close" onclick="closeModal('cart-modal')"><i class="fas fa-times"></i></button>
+    <h2><i class="fas fa-shopping-cart"></i> Tu carrito</h2>
+    <div id="cart-body"></div>
   </div>
 </div>
 

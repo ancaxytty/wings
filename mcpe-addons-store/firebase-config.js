@@ -61,7 +61,8 @@ const DB_KEYS = {
   ADDONS:   'mcpe_addons',
   USERS:    'mcpe_users',
   ORDERS:   'mcpe_orders',
-  SETTINGS: 'mcpe_settings'
+  SETTINGS: 'mcpe_settings',
+  CODES:    'mcpe_codes'
 };
 
 // --- Default Store Settings ----------------------------------
@@ -170,6 +171,7 @@ try {
   _primeLocal(DB_KEYS.ADDONS, false);
   _primeLocal(DB_KEYS.USERS,  false);
   _primeLocal(DB_KEYS.ORDERS, false);
+  _primeLocal(DB_KEYS.CODES,  false);
   _primeLocal(DB_KEYS.SETTINGS, true);
   if (!_cache[DB_KEYS.SETTINGS] || !Object.keys(_cache[DB_KEYS.SETTINGS]).length) {
     _cache[DB_KEYS.SETTINGS] = { ...DEFAULT_SETTINGS };
@@ -207,6 +209,7 @@ if (FIREBASE_READY) {
       [DB_KEYS.ADDONS,   false],
       [DB_KEYS.USERS,    false],
       [DB_KEYS.ORDERS,   false],
+      [DB_KEYS.CODES,    false],
       [DB_KEYS.SETTINGS, true]
     ];
 
@@ -315,6 +318,11 @@ const PLANS = [
     id: 'pro', name: 'Pro', price: 14.99, color: '#f59e0b', icon: 'fa-crown',
     dailyUploads: 50,
     features: ['Todo lo de Creator', 'Sube 50 add-ons por día', 'Insignia Pro dorada', 'Todos los marcos', 'Destacado en la tienda', 'Soporte VIP']
+  },
+  {
+    id: 'studio', name: 'Studio', price: 24.99, color: '#ff5a6a', icon: 'fa-gem',
+    dailyUploads: 200,
+    features: ['Todo lo de Pro', 'Sube 200 add-ons por día', 'Insignia Studio', 'Cupones exclusivos', 'Prioridad máxima de aprobación', 'Soporte dedicado 24/7']
   }
 ];
 

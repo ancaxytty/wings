@@ -146,3 +146,42 @@ function renderPlanPayPalButton(plan) {
 }
 
 window.renderPlanPayPalButton = renderPlanPayPalButton;
+
+/* ============================================================
+   PAGO DEL CARRITO (total con cupón aplicado)
+   ============================================================ */
+function renderCartPayPalButton(total) {
+  const c = document.getElementById('cart-paypal-container');
+  if (!c) return;
+  c.innerHTML = '';
+  const value = (Math.round((total || 0) * 100) / 100).toFixed(2);
+  if (parseFloat(value) <= 0) {
+    c.innerHTML = '<button class="btn btn-success btn-full" onclick="completeCartPurchase({id:\'free\'})"><i class="fas fa-gift"></i> Obtener gratis</button>';
+    return;
+  }
+  if (typeof paypal === 'undefined') {
+    c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:14px"><i class="fab fa-paypal"></i> Cargando PayPal…</div>';
+    setTimeout(() => renderCartPayPalButton(total), 2000);
+    return;
+  }
+  paypal.Buttons({
+    style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'pay', height: 45 },
+    createOrder: function(data, actions) {
+      return actions.order.create({
+        purchase_units: [{
+          description: 'MCPE Addons Store - Carrito',
+          amount: { value: value, currency_code: 'USD' }
+        }],
+        application_context: { shipping_preference: 'NO_SHIPPING', brand_name: 'MCPE Addons Store' }
+      });
+    },
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        if (typeof completeCartPurchase === 'function') completeCartPurchase(details);
+      });
+    },
+    onCancel: function() { showToast('Pago cancelado. No se cobró nada.', 'warning'); },
+    onError:  function(err) { console.error('PayPal Cart Error:', err); showToast('Error en el pago. Intenta de nuevo.', 'error'); }
+  }).render('#cart-paypal-container');
+}
+window.renderCartPayPalButton = renderCartPayPalButton;
