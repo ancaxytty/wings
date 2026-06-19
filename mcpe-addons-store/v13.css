@@ -1,0 +1,236 @@
+/* ============================================================
+   MCPE ADDONS STORE — v13.0 FEATURE STYLES
+   Carrito · Vouchers · Cupones · Slider de juegos ·
+   Comentarios en tiempo real · Anuncios
+   (usa los mismos tokens de styles.css)
+   ============================================================ */
+
+/* ---------- Botón carrito en navbar ---------- */
+.cart-btn{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:42px;height:42px;border-radius:12px;cursor:pointer;
+  background:var(--bg-card2);border:1px solid var(--border);color:var(--text);
+  transition:var(--transition);font-size:1rem;
+}
+.cart-btn:hover{border-color:var(--border-hover);color:var(--primary);box-shadow:var(--shadow-glow)}
+.cart-count{
+  position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;
+  display:flex;align-items:center;justify-content:center;border-radius:999px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  color:#04101e;font-size:.7rem;font-weight:800;line-height:1;
+  box-shadow:0 4px 12px rgba(0,212,255,.4);transform:scale(0);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.cart-count.show{transform:scale(1)}
+.nav-cart-mobile{margin-left:auto}
+
+/* ---------- Drawer del carrito ---------- */
+.cart-drawer-backdrop{
+  position:fixed;inset:0;background:rgba(3,7,18,.6);backdrop-filter:blur(4px);
+  opacity:0;visibility:hidden;transition:.3s;z-index:1400}
+.cart-drawer-backdrop.open{opacity:1;visibility:visible}
+.cart-drawer{
+  position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;z-index:1401;
+  background:var(--bg-modal);border-left:1px solid var(--border);
+  box-shadow:-12px 0 40px rgba(0,0,0,.5);display:flex;flex-direction:column;
+  transform:translateX(105%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.cart-drawer.open{transform:translateX(0)}
+.cart-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px;border-bottom:1px solid var(--border)}
+.cart-head h3{font-family:var(--font-heading);font-size:1.3rem;display:flex;gap:10px;align-items:center}
+.cart-head h3 i{color:var(--primary)}
+.cart-close{background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;width:36px;height:36px;border-radius:10px;transition:var(--transition)}
+.cart-close:hover{background:var(--bg-card2);color:var(--red)}
+.cart-body{flex:1;overflow-y:auto;padding:16px 20px}
+.cart-empty{text-align:center;padding:50px 10px;color:var(--text-muted)}
+.cart-empty i{font-size:3rem;margin-bottom:14px;opacity:.5;display:block}
+.cart-item{
+  display:flex;gap:12px;align-items:center;padding:12px;margin-bottom:12px;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:14px}
+.cart-item-img{width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;
+  background:var(--bg-card2);display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.cart-item-img img{width:100%;height:100%;object-fit:cover}
+.cart-item-info{flex:1;min-width:0}
+.cart-item-name{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-item-sub{font-size:.74rem;color:var(--text-muted);margin-top:2px}
+.cart-item-price{color:var(--gold);font-weight:800;font-size:.95rem;margin-top:4px}
+.cart-qty{display:inline-flex;align-items:center;gap:8px;margin-top:6px}
+.cart-qty button{width:26px;height:26px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg-card2);color:var(--text);cursor:pointer;font-size:.8rem;transition:var(--transition)}
+.cart-qty button:hover{border-color:var(--border-hover);color:var(--primary)}
+.cart-qty span{min-width:20px;text-align:center;font-weight:700}
+.cart-item-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.95rem;padding:6px;border-radius:8px;transition:var(--transition)}
+.cart-item-del:hover{color:var(--red);background:rgba(255,90,106,.1)}
+.cart-foot{border-top:1px solid var(--border);padding:18px 20px;background:var(--bg-card)}
+.coupon-row{display:flex;gap:8px;margin-bottom:14px}
+.coupon-row input{
+  flex:1;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;
+  padding:11px 12px;color:var(--text);font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-main)}
+.coupon-row input:focus{outline:none;border-color:var(--border-hover)}
+.coupon-row button{padding:0 16px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg-card2);color:var(--text);font-weight:700;cursor:pointer;transition:var(--transition);white-space:nowrap}
+.coupon-row button:hover{border-color:var(--primary);color:var(--primary)}
+.coupon-msg{font-size:.78rem;margin-bottom:12px;display:none;align-items:center;gap:6px}
+.coupon-msg.ok{color:var(--green);display:flex}
+.coupon-msg.err{color:var(--red);display:flex}
+.coupon-applied{
+  display:none;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;
+  padding:8px 12px;border-radius:10px;background:rgba(25,211,154,.1);border:1px dashed rgba(25,211,154,.4);color:var(--green);font-size:.82rem;font-weight:700}
+.coupon-applied.show{display:flex}
+.coupon-applied button{background:none;border:none;color:var(--green);cursor:pointer;opacity:.8}
+.cart-totals{font-size:.9rem;margin-bottom:14px}
+.cart-totals .row{display:flex;justify-content:space-between;padding:4px 0;color:var(--text-light)}
+.cart-totals .row.disc{color:var(--green)}
+.cart-totals .row.total{border-top:1px solid var(--border);margin-top:6px;padding-top:10px;
+  font-size:1.15rem;font-weight:800;color:var(--text)}
+.cart-totals .row.total span:last-child{color:var(--gold)}
+#cart-paypal-container{margin-top:6px}
+.cart-login-note{text-align:center;color:var(--text-muted);font-size:.82rem;margin-bottom:10px}
+
+/* ---------- Voucher / comprobante ---------- */
+.voucher-modal{max-width:440px;width:100%}
+.voucher{
+  background:linear-gradient(160deg,#0e1729,#0a1120);border:1px solid var(--border);
+  border-radius:18px;overflow:hidden;position:relative}
+.voucher-top{
+  background:linear-gradient(135deg,var(--primary),var(--accent));padding:22px;text-align:center;color:#04101e}
+.voucher-top .v-check{
+  width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:0 auto 10px}
+.voucher-top h3{font-family:var(--font-heading);font-size:1.4rem;font-weight:800}
+.voucher-top p{font-size:.82rem;opacity:.85;margin-top:2px}
+.voucher-body{padding:20px}
+.voucher-row{display:flex;justify-content:space-between;font-size:.85rem;padding:7px 0;border-bottom:1px dashed var(--border);color:var(--text-light)}
+.voucher-row strong{color:var(--text)}
+.voucher-items{margin:12px 0;max-height:160px;overflow-y:auto}
+.voucher-line{display:flex;justify-content:space-between;font-size:.84rem;padding:5px 0;color:var(--text-light)}
+.voucher-total{display:flex;justify-content:space-between;font-size:1.15rem;font-weight:800;
+  margin-top:10px;padding-top:12px;border-top:2px solid var(--primary)}
+.voucher-total span:last-child{color:var(--gold)}
+.voucher-code-box{
+  margin:16px 0 4px;text-align:center;background:var(--bg-card2);border:1px dashed var(--border-hover);
+  border-radius:12px;padding:12px}
+.voucher-code-box small{display:block;color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:1px}
+.voucher-code-box strong{font-family:var(--font-heading);font-size:1.3rem;letter-spacing:2px;color:var(--primary)}
+.voucher-actions{display:flex;gap:10px;padding:0 20px 20px}
+
+/* ---------- Slider rotativo de juegos ---------- */
+.games-section{padding:46px 0 18px}
+.games-slider{position:relative;border-radius:var(--radius-lg);overflow:hidden;
+  border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow)}
+.games-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.game-slide{
+  min-width:100%;display:flex;align-items:center;gap:30px;padding:40px 46px;
+  position:relative;overflow:hidden}
+.game-slide::before{content:"";position:absolute;inset:0;opacity:.16;
+  background:radial-gradient(circle at 80% 20%,var(--g-color,#19c37d),transparent 60%);z-index:0}
+.game-slide-logo{flex-shrink:0;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;
+  width:150px;height:150px;border-radius:24px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);overflow:hidden;padding:14px}
+.game-slide-logo img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
+.game-slide-info{position:relative;z-index:1;flex:1;min-width:0}
+.game-slide-tag{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:1.5px;padding:5px 12px;border-radius:999px;
+  background:rgba(255,255,255,.08);color:var(--g-color,#19c37d);margin-bottom:12px}
+.game-slide-title{font-family:var(--font-heading);font-size:2.1rem;font-weight:800;line-height:1.05;margin-bottom:8px}
+.game-slide-desc{color:var(--text-light);font-size:.95rem;max-width:520px;margin-bottom:18px}
+.game-slide-cta{display:inline-flex;align-items:center;gap:8px;font-weight:700;padding:12px 22px;
+  border-radius:12px;border:none;cursor:pointer;color:#04101e;
+  background:var(--g-color,#19c37d);transition:var(--transition);text-decoration:none}
+.game-slide-cta:hover{filter:brightness(1.08);transform:translateY(-2px)}
+.games-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+  width:44px;height:44px;border-radius:50%;border:1px solid var(--border);
+  background:rgba(10,17,32,.7);backdrop-filter:blur(6px);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+.games-arrow:hover{background:var(--primary);color:#04101e}
+.games-arrow.prev{left:14px}.games-arrow.next{right:14px}
+.games-dots{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:3;display:flex;gap:8px}
+.games-dots button{width:9px;height:9px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(255,255,255,.3);transition:var(--transition);padding:0}
+.games-dots button.active{width:26px;border-radius:6px;background:var(--primary)}
+@media(max-width:680px){
+  .game-slide{flex-direction:column;text-align:center;padding:34px 22px 50px;gap:18px}
+  .game-slide-logo{width:104px;height:104px}
+  .game-slide-title{font-size:1.55rem}
+  .game-slide-desc{font-size:.86rem}
+  .games-arrow{display:none}
+}
+
+/* ---------- Anuncios / banners ---------- */
+.ads-section{padding:14px 0 30px}
+.ads-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.ad-card{
+  position:relative;border-radius:var(--radius);overflow:hidden;padding:22px;
+  border:1px solid var(--border);min-height:128px;display:flex;flex-direction:column;
+  justify-content:center;cursor:pointer;transition:var(--transition);
+  background:linear-gradient(135deg,var(--ad-c1,#142036),var(--ad-c2,#0d1626))}
+.ad-card:hover{transform:translateY(-4px);border-color:var(--border-hover);box-shadow:var(--shadow-glow)}
+.ad-card .ad-pill{align-self:flex-start;font-size:.64rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:1.2px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.14);margin-bottom:10px}
+.ad-card h4{font-family:var(--font-heading);font-size:1.25rem;margin-bottom:5px}
+.ad-card p{font-size:.85rem;color:var(--text-light)}
+.ad-card .ad-ic{position:absolute;right:-8px;bottom:-12px;font-size:5rem;opacity:.1}
+.ad-strip{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;
+  padding:14px 18px;border-radius:14px;margin-bottom:18px;
+  background:linear-gradient(90deg,rgba(0,212,255,.12),rgba(139,92,255,.12));
+  border:1px solid var(--border)}
+.ad-strip i{color:var(--gold)}
+.ad-strip strong{color:var(--text)}
+.ad-strip .ad-strip-cta{margin-left:auto;font-weight:700;color:var(--primary);text-decoration:none;white-space:nowrap}
+@media(max-width:560px){.ad-strip .ad-strip-cta{margin-left:0;width:100%;text-align:center}}
+
+/* ---------- Comentarios en tiempo real ---------- */
+.comments-block{margin-top:22px;border-top:1px solid var(--border);padding-top:18px}
+.comments-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.comments-head h3{font-family:var(--font-heading);font-size:1.15rem;display:flex;gap:8px;align-items:center}
+.comments-head h3 i{color:var(--primary)}
+.comments-live{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  color:var(--green);display:inline-flex;align-items:center;gap:6px}
+.comments-live .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livePulse 1.6s infinite}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(25,211,154,.6)}70%{box-shadow:0 0 0 7px rgba(25,211,154,0)}100%{box-shadow:0 0 0 0 rgba(25,211,154,0)}}
+.comment-form{display:flex;gap:10px;margin-bottom:18px}
+.comment-form .c-avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg-card2)}
+.comment-form .c-input-wrap{flex:1;display:flex;flex-direction:column;gap:8px}
+.comment-form textarea{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;color:var(--text);resize:vertical;min-height:42px;font-family:var(--font-main);font-size:.9rem}
+.comment-form textarea:focus{outline:none;border-color:var(--border-hover)}
+.comment-form .c-actions{display:flex;justify-content:space-between;align-items:center}
+.comment-form .c-count{font-size:.72rem;color:var(--text-muted)}
+.comment-login-note{background:var(--bg-card2);border:1px dashed var(--border);border-radius:12px;
+  padding:14px;text-align:center;color:var(--text-muted);font-size:.86rem;margin-bottom:16px}
+.comment-rating{display:flex;gap:3px;font-size:1rem;color:var(--text-muted);margin-bottom:4px;cursor:pointer}
+.comment-rating i{transition:var(--transition)}
+.comment-rating i.on,.comment-rating i:hover{color:var(--gold)}
+.comments-list{display:flex;flex-direction:column;gap:14px}
+.comment-empty{text-align:center;color:var(--text-muted);font-size:.86rem;padding:18px 0}
+.comment{display:flex;gap:10px;animation:cmtIn .35s ease}
+@keyframes cmtIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.comment .c-avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg-card2)}
+.comment-main{flex:1;min-width:0;background:var(--bg-card2);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.comment-top{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap}
+.comment-author{font-weight:700;font-size:.88rem}
+.comment-badge{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+  padding:1px 7px;border-radius:999px;background:rgba(0,212,255,.15);color:var(--primary)}
+.comment-badge.admin{background:rgba(255,176,32,.18);color:var(--gold)}
+.comment-time{font-size:.72rem;color:var(--text-muted);margin-left:auto}
+.comment-stars{color:var(--gold);font-size:.74rem;margin-bottom:3px}
+.comment-text{font-size:.88rem;color:var(--text-light);word-wrap:break-word;white-space:pre-wrap}
+.comment-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.78rem;padding:3px 6px;border-radius:6px;transition:var(--transition)}
+.comment-del:hover{color:var(--red);background:rgba(255,90,106,.1)}
+
+/* Botón añadir al carrito en tarjetas/detalle */
+.btn-cart{background:var(--bg-card2);border:1px solid var(--border-hover);color:var(--primary)}
+.btn-cart:hover{background:var(--primary);color:#04101e}
+
+
+/* ---------- Visibilidad responsive del botón carrito ---------- */
+.nav-cart-mobile{ display:inline-flex }
+@media (min-width:901px){
+  .nav-cart-mobile{ display:none !important }
+  .nav-desktop-user{ display:flex !important; align-items:center; gap:10px }
+}
+@media (max-width:900px){
+  #cart-btn{ display:none }
+}
+.cart-btn{vertical-align:middle}
