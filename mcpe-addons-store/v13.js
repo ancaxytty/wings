@@ -206,45 +206,99 @@ function renderCart() {
   const foot = document.getElementById('cart-foot');
   if (!body || !foot) return;
 
+  const headCount = document.getElementById('cart-head-count');
+  const n = Cart.count();
+  if (headCount) headCount.textContent = n ? n : '';
+
   if (!Cart.items.length) {
-    body.innerHTML = `<div class="cart-empty"><i class="fas fa-cart-shopping"></i><p>Tu carrito está vacío</p><small>Agrega add-ons premium para comprarlos juntos.</small></div>`;
+    body.innerHTML = `<div class="cart-empty">
+        <div class="cart-empty-ic"><i class="fas fa-bag-shopping"></i></div>
+        <p>Tu carrito está vacío</p>
+        <small>Explora el catálogo y agrega add-ons premium para comprarlos juntos.</small>
+        <button class="btn btn-primary cart-explore-btn" onclick="closeCart();document.getElementById('addons')&&document.getElementById('addons').scrollIntoView({behavior:'smooth'})"><i class="fas fa-store"></i> Explorar productos</button>
+      </div>`;
     foot.style.display = 'none';
     return;
   }
   foot.style.display = 'block';
-  body.innerHTML = Cart.items.map(i => `
-    <div class="cart-item">
-      <div class="cart-item-img">${i.image ? `<img src="${escHtml(i.image)}" alt="" onerror="this.parentNode.innerHTML='&#9638;'">` : '<i class="fas fa-cube"></i>'}</div>
-      <div class="cart-item-info">
-        <div class="cart-item-name">${escHtml(i.name)}</div>
-        <div class="cart-item-price">$${(parseFloat(i.price) * (i.qty || 1)).toFixed(2)}</div>
-        <div class="cart-qty">
-          <button onclick="Cart.setQty('${i.id}',${(i.qty || 1) - 1})" aria-label="Menos"><i class="fas fa-minus"></i></button>
-          <span>${i.qty || 1}</span>
-          <button onclick="Cart.setQty('${i.id}',${(i.qty || 1) + 1})" aria-label="Más"><i class="fas fa-plus"></i></button>
+
+  const lines = Cart.items.map(i => {
+    const a = (window.State && State.addons || []).find(x => x.id === i.id) || {};
+    const cat = (typeof typeName === 'function' && typeName(a.contentType || a.category)) || 'Add-on';
+    const plat = a.platform === 'java' ? 'Java' : (a.platform ? 'Bedrock' : '');
+    const unit = parseFloat(i.price) || 0;
+    const qty = i.qty || 1;
+    return `
+    <div class="cart-line">
+      <div class="cart-line-thumb">${i.image ? `<img src="${escHtml(i.image)}" alt="${escHtml(i.name)}" loading="lazy" onerror="this.parentNode.classList.add('noimg')">` : ''}</div>
+      <div class="cart-line-main">
+        <div class="cart-line-top">
+          <div class="cart-line-name">${escHtml(i.name)}</div>
+          <button class="cart-line-remove" onclick="Cart.remove('${i.id}')" title="Quitar"><i class="fas fa-trash-can"></i></button>
+        </div>
+        <div class="cart-line-meta">${escHtml(cat)}${plat ? ' · ' + plat : ''} <span class="cart-line-digital"><i class="fas fa-bolt"></i> Entrega digital</span></div>
+        <div class="cart-line-bottom">
+          <div class="qty-stepper">
+            <button onclick="Cart.setQty('${i.id}',${qty - 1})" aria-label="Menos" ${qty <= 1 ? 'disabled' : ''}><i class="fas fa-minus"></i></button>
+            <span>${qty}</span>
+            <button onclick="Cart.setQty('${i.id}',${qty + 1})" aria-label="Más"><i class="fas fa-plus"></i></button>
+          </div>
+          <div class="cart-line-price">
+            ${qty > 1 ? `<span class="unit">$${unit.toFixed(2)} c/u</span>` : ''}
+            <strong>$${(unit * qty).toFixed(2)}</strong>
+          </div>
         </div>
       </div>
-      <button class="cart-item-del" onclick="Cart.remove('${i.id}')" title="Quitar"><i class="fas fa-trash"></i></button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div class="cart-lines">${lines}</div>` + renderCartRecommendations();
 
   renderCartTotals();
   renderCartCheckout();
 }
+
+function renderCartRecommendations() {
+  if (!(window.State && State.addons)) return '';
+  const inCart = new Set(Cart.items.map(i => i.id));
+  const recs = State.addons
+    .filter(a => a.status !== 'pending' && a.status !== 'rejected' && parseFloat(a.price) > 0 && !inCart.has(a.id))
+    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
+    .slice(0, 3);
+  if (!recs.length) return '';
+  return `
+    <div class="cart-recs">
+      <div class="cart-recs-title"><i class="fas fa-wand-magic-sparkles"></i> También te puede gustar</div>
+      <div class="cart-recs-list">
+        ${recs.map(a => `
+          <div class="cart-rec">
+            <div class="cart-rec-thumb">${a.image ? `<img src="${escHtml(a.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg')">` : ''}</div>
+            <div class="cart-rec-info">
+              <div class="cart-rec-name">${escHtml(a.name)}</div>
+              <div class="cart-rec-price">$${parseFloat(a.price).toFixed(2)}</div>
+            </div>
+            <button class="cart-rec-add" onclick="cartAdd('${a.id}')" title="Agregar al carrito"><i class="fas fa-plus"></i></button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+window.renderCartRecommendations = renderCartRecommendations;
 
 function renderCartTotals() {
   const sub = Cart.subtotal(), disc = Cart.discount(), tot = Cart.total();
   const el = document.getElementById('cart-totals');
   if (el) {
     el.innerHTML = `
-      <div class="row"><span>Subtotal</span><span>$${sub.toFixed(2)}</span></div>
-      ${disc > 0 ? `<div class="row disc"><span>Descuento (${escHtml(Cart.coupon.code)})</span><span>-$${disc.toFixed(2)}</span></div>` : ''}
-      <div class="row total"><span>Total</span><span>$${tot.toFixed(2)} USD</span></div>`;
+      <div class="row"><span>Subtotal (${Cart.count()} art.)</span><span>$${sub.toFixed(2)}</span></div>
+      ${disc > 0 ? `<div class="row disc"><span><i class="fas fa-tag"></i> Descuento (${escHtml(Cart.coupon.code)})</span><span>-$${disc.toFixed(2)}</span></div>` : ''}
+      <div class="row"><span>Entrega digital</span><span class="free-txt">Gratis</span></div>
+      <div class="row total"><span>Total</span><span>$${tot.toFixed(2)} <em>USD</em></span></div>`;
   }
   const applied = document.getElementById('coupon-applied');
   if (applied) {
     if (Cart.coupon) {
       applied.classList.add('show');
-      applied.querySelector('.ca-text').innerHTML = `<i class="fas fa-ticket"></i> Cupón <strong>${escHtml(Cart.coupon.code)}</strong> aplicado`;
+      applied.querySelector('.ca-text').innerHTML = `<i class="fas fa-circle-check"></i> Cupón <strong>${escHtml(Cart.coupon.code)}</strong> aplicado`;
     } else { applied.classList.remove('show'); }
   }
 }
