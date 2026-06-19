@@ -996,6 +996,7 @@ function buildAddonCard(addon, index) {
         ${(addon.contentType || addon.category) ? `<span class="badge badge-category">${escHtml(typeName(addon.contentType || addon.category))}</span>` : ''}
         ${addon.isNew     ? '<span class="badge badge-new"><i class="fas fa-certificate"></i> Nuevo</span>' : ''}
         ${addon.isFeatured? '<span class="badge badge-hot"><i class="fas fa-fire"></i> Top</span>'  : ''}
+        ${addon.isDemo    ? '<span class="badge badge-demo"><i class="fas fa-vial"></i> Demo</span>'  : ''}
       </div>
       <h3 class="addon-card-title">${escHtml(addon.name)}</h3>
       <p class="addon-card-desc">${escHtml(addon.description || 'Sin descripción disponible.')}</p>

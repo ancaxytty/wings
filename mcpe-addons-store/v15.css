@@ -1,0 +1,72 @@
+/* ============================================================
+   MCPE ADDONS STORE — v15.0 TEXTURAS PNG PROFESIONALES
+   Reemplaza las texturas SVG de v14 por PNGs (más nítidas y
+   profesionales) y mejora la legibilidad de productos/carrito.
+   ============================================================ */
+
+/* ---- Textura de papel sutil en todo el fondo caricaturesco ---- */
+#v14-cartoon-bg::after{
+  background-image: url('assets/tex/paper.png');
+  background-repeat: repeat;
+  background-size: 220px 220px;
+  opacity: .6;
+  mix-blend-mode: normal;
+}
+
+/* ---- Relieve "weave" PNG en tarjetas, planes y slides ---- */
+.addon-card::after,
+.featured-card::after,
+.plan-card::after,
+.game-slide::after,
+.ad-card::after{
+  content: "";
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  border-radius: inherit;
+  background-image: url('assets/tex/weave.png');
+  background-repeat: repeat;
+  background-size: 24px 24px;
+  opacity: .35;
+  mix-blend-mode: soft-light;
+}
+.ad-card{ position: relative; }
+.ad-card > *{ position: relative; z-index: 1; }
+
+/* ---- Grano fino en navbar y footer para dar acabado pro ---- */
+.navbar::after,
+.footer::after{
+  content: "";
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url('assets/tex/grain.png');
+  background-repeat: repeat;
+  background-size: 160px 160px;
+  opacity: .5;
+}
+.navbar, .footer{ position: relative; }
+.navbar .nav-container, .footer .container{ position: relative; z-index: 1; }
+
+/* ============================================================
+   PRODUCTOS — que se vean nítidos y profesionales
+   ============================================================ */
+/* La imagen del producto SIEMPRE por encima de la textura */
+.addon-card-img,
+.addon-card-img-placeholder,
+.featured-card-img{
+  position: relative; z-index: 2;
+  background: var(--bg-card2);
+}
+.addon-card-img{ object-fit: cover; }
+
+/* Miniatura del producto dentro del carrito bien visible */
+.cart-item-img{ background: var(--bg-card2); }
+.cart-item-img img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Etiqueta "Demo" discreta para el catálogo de demostración */
+.badge-demo{
+  background: rgba(123,108,255,.16);
+  color: var(--accent-light);
+  border: 1px solid rgba(123,108,255,.4);
+}
+
+/* Botón explorar en carrito vacío */
+.cart-explore-btn{ display: inline-flex; align-items: center; gap: 8px; }
+.cart-empty small{ display:block; margin-top:6px; color: var(--text-muted); font-size:.8rem; }
