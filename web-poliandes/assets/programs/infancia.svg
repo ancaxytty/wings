@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Atencion a la Primera Infancia">
+  <defs>
+    <linearGradient id="in-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eaf6fc"/><stop offset="1" stop-color="#eafaef"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="260" fill="url(#in-bg)"/>
+  <!-- abc blocks -->
+  <g transform="translate(60,120)">
+    <rect width="70" height="70" rx="12" fill="#2E9BD6"/>
+    <text x="35" y="50" font-family="Poppins,Arial" font-size="42" font-weight="700" fill="#fff" text-anchor="middle">A</text>
+  </g>
+  <g transform="translate(138,120)">
+    <rect width="70" height="70" rx="12" fill="#5DAE3A"/>
+    <text x="35" y="50" font-family="Poppins,Arial" font-size="42" font-weight="700" fill="#fff" text-anchor="middle">B</text>
+  </g>
+  <g transform="translate(99,46)">
+    <rect width="70" height="70" rx="12" fill="#9BD45A"/>
+    <text x="35" y="50" font-family="Poppins,Arial" font-size="42" font-weight="700" fill="#fff" text-anchor="middle">C</text>
+  </g>
+  <!-- balloon -->
+  <g transform="translate(260,60)">
+    <ellipse cx="40" cy="44" rx="38" ry="46" fill="#5BC8E8"/>
+    <path d="M40 90 l-6 10 h12 Z" fill="#2E9BD6"/>
+    <path d="M40 100 q10 24 -4 50" fill="none" stroke="#8aa0ad" stroke-width="3"/>
+    <ellipse cx="28" cy="30" rx="10" ry="14" fill="#fff" opacity=".4"/>
+  </g>
+  <!-- sun -->
+  <g transform="translate(300,170)">
+    <circle cx="30" cy="30" r="22" fill="#9BD45A"/>
+    <g stroke="#5DAE3A" stroke-width="4" stroke-linecap="round">
+      <line x1="30" y1="-2" x2="30" y2="8"/>
+      <line x1="30" y1="52" x2="30" y2="62"/>
+      <line x1="-2" y1="30" x2="8" y2="30"/>
+      <line x1="52" y1="30" x2="62" y2="30"/>
+    </g>
+  </g>
+</svg>
