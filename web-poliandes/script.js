@@ -10,17 +10,23 @@ const scrim = document.createElement('div');
 scrim.className = 'nav-scrim';
 document.body.appendChild(scrim);
 
+const progDrop = document.getElementById('progDrop');
+const progBtn = document.getElementById('progBtn');
+
 function openMenu() {
   nav.classList.add('open');
   navToggle.classList.add('open');
+  navToggle.setAttribute('aria-expanded', 'true');
   scrim.classList.add('show');
   document.body.style.overflow = 'hidden';
 }
 function closeMenu() {
   nav.classList.remove('open');
   navToggle.classList.remove('open');
+  navToggle.setAttribute('aria-expanded', 'false');
   scrim.classList.remove('show');
   document.body.style.overflow = '';
+  if (window.innerWidth <= 900) closeDropdown();
 }
 
 navToggle.addEventListener('click', () => {
@@ -28,14 +34,26 @@ navToggle.addEventListener('click', () => {
 });
 scrim.addEventListener('click', closeMenu);
 
-// Cerrar menú al hacer clic en un enlace
-nav.querySelectorAll('a').forEach(link => {
-  link.addEventListener('click', closeMenu);
+// ===== Dropdown / acordeón de Programas =====
+function openDropdown()  { progDrop.classList.add('open');  progBtn.setAttribute('aria-expanded', 'true'); }
+function closeDropdown() { progDrop.classList.remove('open'); progBtn.setAttribute('aria-expanded', 'false'); }
+
+progBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  progDrop.classList.contains('open') ? closeDropdown() : openDropdown();
 });
 
+// Cerrar dropdown al hacer clic fuera (solo escritorio)
+document.addEventListener('click', (e) => {
+  if (window.innerWidth > 900 && !progDrop.contains(e.target)) closeDropdown();
+});
+
+// Cerrar el menú al hacer clic en cualquier enlace de navegación
+nav.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+
 // Cerrar con tecla Escape y al volver a escritorio
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-window.addEventListener('resize', () => { if (window.innerWidth > 760) closeMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMenu(); closeDropdown(); } });
+window.addEventListener('resize', () => { if (window.innerWidth > 900) { closeMenu(); } });
 
 // ===== Animación reveal al hacer scroll =====
 const revealEls = document.querySelectorAll('[data-reveal]');
@@ -87,7 +105,7 @@ window.addEventListener('scroll', () => {
 const sections = ['inicio', 'programas', 'ventajas', 'proceso', 'contacto']
   .map(id => document.getElementById(id))
   .filter(Boolean);
-const navLinks = Array.from(nav.querySelectorAll('a:not(.btn)'));
+const navLinks = Array.from(nav.querySelectorAll('.nav__link[href]'));
 
 const spy = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
