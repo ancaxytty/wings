@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="x-apple-disable-message-reformatting" />
+<title>Recupera tu cuenta - MCPE Addons Store</title>
+</head>
+<!--
+  Plantilla de correo PROFESIONAL para recuperación de contraseña.
+  Los clientes de correo (Gmail, Outlook) NO soportan CSS externo ni <style> de forma fiable,
+  por eso TODO el estilo va EN LÍNEA (inline) y con tablas. Esto se ve bien en Gmail.
+
+  Cómo usarla:
+  - Reemplaza el marcador %LINK% por el enlace real de recuperación.
+    * Con Firebase Admin / Cloud Functions: usa admin.auth().generatePasswordResetLink(email).
+    * Con EmailJS u otro servicio: pega tu enlace en la variable de la plantilla.
+  - %NAME% es opcional (nombre del usuario).
+-->
+<body style="margin:0;padding:0;background:#050b14;font-family:'Segoe UI',Arial,sans-serif;">
+  <!-- Preheader (texto de vista previa en la bandeja) -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    Restablece tu contraseña de MCPE Addons Store de forma segura.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050b14;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0d1a2a;border:1px solid rgba(0,212,255,0.18);border-radius:18px;overflow:hidden;">
+
+          <!-- Cabecera con degradado -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#00d4ff 0%,#7c3aed 100%);padding:30px 30px 26px;text-align:center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+                <tr>
+                  <td style="background:rgba(255,255,255,0.15);border-radius:14px;width:54px;height:54px;text-align:center;vertical-align:middle;font-size:26px;">
+                    &#128273;
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin:16px 0 2px;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:.3px;">MCPE Addons Store</h1>
+              <p style="margin:0;color:rgba(255,255,255,0.9);font-size:13px;">Recuperación de cuenta</p>
+            </td>
+          </tr>
+
+          <!-- Cuerpo -->
+          <tr>
+            <td style="padding:34px 34px 14px;">
+              <h2 style="margin:0 0 12px;color:#e2e8f0;font-size:20px;font-weight:700;">Hola %NAME%,</h2>
+              <p style="margin:0 0 18px;color:#94a3b8;font-size:15px;line-height:1.6;">
+                Recibimos una solicitud para restablecer la contraseña de tu cuenta.
+                Toca el botón de abajo para crear una nueva contraseña de forma segura.
+              </p>
+
+              <!-- Botón -->
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:8px auto 22px;">
+                <tr>
+                  <td style="border-radius:12px;background:linear-gradient(135deg,#00d4ff,#7c3aed);">
+                    <a href="%LINK%" target="_blank"
+                       style="display:inline-block;padding:15px 38px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;">
+                      Restablecer mi contraseña
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 8px;color:#64748b;font-size:13px;line-height:1.6;text-align:center;">
+                O copia y pega este enlace en tu navegador:
+              </p>
+              <p style="margin:0 0 22px;text-align:center;word-break:break-all;">
+                <a href="%LINK%" style="color:#00d4ff;font-size:13px;">%LINK%</a>
+              </p>
+
+              <!-- Aviso de seguridad -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#111f30;border:1px solid rgba(0,212,255,0.15);border-radius:12px;">
+                <tr>
+                  <td style="padding:14px 16px;color:#94a3b8;font-size:13px;line-height:1.55;">
+                    <strong style="color:#f59e0b;">&#9888; Importante:</strong>
+                    Este enlace caduca en 1 hora. Si tú no solicitaste el cambio, ignora este correo;
+                    tu contraseña seguirá siendo la misma.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Pie -->
+          <tr>
+            <td style="padding:22px 30px 28px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
+              <p style="margin:0 0 6px;color:#64748b;font-size:12px;">
+                &copy; 2026 MCPE Addons Store &middot; No afiliado con Mojang ni Microsoft.
+              </p>
+              <p style="margin:0;color:#475569;font-size:11px;">
+                Este es un correo automático, por favor no respondas a este mensaje.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
