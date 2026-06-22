@@ -5,18 +5,37 @@ document.getElementById('year').textContent = new Date().getFullYear();
 const navToggle = document.getElementById('navToggle');
 const nav = document.getElementById('nav');
 
+// Crear scrim (fondo oscuro) detrás del menú
+const scrim = document.createElement('div');
+scrim.className = 'nav-scrim';
+document.body.appendChild(scrim);
+
+function openMenu() {
+  nav.classList.add('open');
+  navToggle.classList.add('open');
+  scrim.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeMenu() {
+  nav.classList.remove('open');
+  navToggle.classList.remove('open');
+  scrim.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
 navToggle.addEventListener('click', () => {
-  nav.classList.toggle('open');
-  navToggle.classList.toggle('open');
+  nav.classList.contains('open') ? closeMenu() : openMenu();
 });
+scrim.addEventListener('click', closeMenu);
 
 // Cerrar menú al hacer clic en un enlace
 nav.querySelectorAll('a').forEach(link => {
-  link.addEventListener('click', () => {
-    nav.classList.remove('open');
-    navToggle.classList.remove('open');
-  });
+  link.addEventListener('click', closeMenu);
 });
+
+// Cerrar con tecla Escape y al volver a escritorio
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('resize', () => { if (window.innerWidth > 760) closeMenu(); });
 
 // ===== Animación reveal al hacer scroll =====
 const revealEls = document.querySelectorAll('[data-reveal]');
