@@ -92,11 +92,11 @@
             <div><strong id="dropdown-name"></strong><small id="dropdown-email"></small></div>
           </div>
           <hr />
-          <a href="#" onclick="openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir Add-on</a>
-          <a href="#" onclick="openProfileModal()"><i class="fas fa-id-badge"></i> Mi Perfil</a>
-          <a href="#" onclick="openPurchasesModal()"><i class="fas fa-box"></i> Mis Compras</a>
+          <button type="button" class="dropdown-item" onclick="openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir Add-on</button>
+          <button type="button" class="dropdown-item" onclick="openProfileModal()"><i class="fas fa-id-badge"></i> Mi Perfil</button>
+          <button type="button" class="dropdown-item" onclick="openPurchasesModal()"><i class="fas fa-box"></i> Mis Compras</button>
           <hr />
-          <a href="#" onclick="logout()" class="logout-link"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+          <button type="button" class="dropdown-item logout-link" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
         </div>
       </div>
     </div>
@@ -406,7 +406,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 MCPE Addons Store v14.0. Todos los derechos reservados.</p>
+      <p>© 2026 MCPE Addons Store v15.0. Todos los derechos reservados.</p>
       <p>No afiliado con Mojang Studios ni Microsoft.</p>
     </div>
   </div>
@@ -584,6 +584,32 @@
   <div class="msheet-body" id="msheet-body"></div>
 </div>
 
+<!-- ===================== ASISTENTE VIRTUAL (IA) ===================== -->
+<div class="ai-widget" id="ai-widget">
+  <div class="ai-panel" role="dialog" aria-label="Asistente virtual Nova">
+    <div class="ai-header">
+      <div class="ai-id">
+        <span class="ai-avatar"><i class="fas fa-robot"></i></span>
+        <div class="ai-id-text">
+          <strong>Nova <span class="ai-badge-ai">IA</span></strong>
+          <small><i class="fas fa-circle"></i> Asistente de la tienda</small>
+        </div>
+      </div>
+      <button class="ai-close" onclick="toggleAssistant(false)" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="ai-messages" id="ai-messages"></div>
+    <div class="ai-quick" id="ai-quick"></div>
+    <div class="ai-composer">
+      <input id="ai-input" type="text" placeholder="Escribe tu pregunta..." onkeydown="aiKey(event)" autocomplete="off" maxlength="200" />
+      <button class="ai-send" onclick="aiSend()" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+  <button class="ai-fab" onclick="toggleAssistant()" aria-label="Abrir asistente virtual">
+    <i class="fas fa-robot"></i>
+    <span class="ai-fab-label">Asistente IA</span>
+  </button>
+</div>
+
 <!-- ===================== CHAT DE COMUNIDAD ===================== -->
 <div class="chat-widget" id="chat-widget">
   <div class="chat-panel" role="dialog" aria-label="Chat de la comunidad">
@@ -623,5 +649,6 @@
 <script src="paypal.js"></script>
 <script src="app.js"></script>
 <script src="chat.js"></script>
+<script src="assistant.js"></script>
 </body>
 </html>

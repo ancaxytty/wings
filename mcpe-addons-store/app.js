@@ -1621,16 +1621,23 @@ function submitUserAddon(e){
    PERFIL (ver / editar / marcos / selección)
    ============================================================ */
 function openProfileModal(){
-  document.getElementById('user-dropdown')?.classList.remove('open');
-  if (!State.user){ openAuthModal('login'); showToast('Inicia sesión para ver tu perfil.', 'info'); return; }
-  renderProfile(false);
-  openModal('profile-modal');
+  try {
+    document.getElementById('user-dropdown')?.classList.remove('open');
+    document.querySelector('.user-avatar-btn')?.classList.remove('open');
+    if (!State.user){ openAuthModal('login'); showToast('Inicia sesión para ver tu perfil.', 'info'); return; }
+    openModal('profile-modal');
+    renderProfile(false);
+  } catch(err){
+    console.error('[Perfil] no se pudo abrir:', err);
+    showToast('No se pudo abrir el perfil: ' + (err && err.message ? err.message : err), 'error');
+  }
 }
 
 function renderProfile(editMode){
   const u = State.user;
   const view = document.getElementById('profile-view');
   if (!u || !view) return;
+  try {
   const plan = getPlanById(userPlanId(u));
   const myAddons = DB.get(DB_KEYS.ADDONS).filter(a => a.authorId === u.id);
   const totalDl = myAddons.reduce((s,a)=>s+(a.downloads||0),0);
@@ -1733,6 +1740,14 @@ function renderProfile(editMode){
     </div>
   `;
   pfBioCount();
+  } catch(err){
+    console.error('[Perfil] error al renderizar:', err);
+    view.innerHTML = '<div style="padding:28px 20px;text-align:center">'
+      + '<h2 class="profile-name" style="margin-bottom:8px">Mi Perfil</h2>'
+      + '<p class="muted" style="margin-bottom:14px">Ocurrio un problema al mostrar el perfil.</p>'
+      + '<button class="btn btn-primary" onclick="renderProfile(false)"><i class="fas fa-rotate-right"></i> Reintentar</button></div>';
+    if (window.showToast) showToast('No se pudo cargar el perfil completo.', 'warning');
+  }
 }
 
 function pfBioCount(){
