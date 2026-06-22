@@ -7,7 +7,7 @@
   <meta name="description" content="Descarga y sube add-ons, skins, mundos, texturas, mods y plugins para Minecraft PE (Bedrock) y Java. Gratis y premium." />
 
   <!-- Favicon (SVG) -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230b1020'/%3E%3Cpath%20d='M32%2011%20L51%2021.5%20L51%2042.5%20L32%2053%20L13%2042.5%20L13%2021.5%20Z'%20fill='none'%20stroke='%2300e0c6'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3Cpath%20d='M32%2011%20L32%2032%20L51%2021.5%20M32%2032%20L13%2021.5'%20fill='none'%20stroke='%237b6cff'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230f1b2d'/%3E%3Cpath%20d='M32%2011%20L51%2021.5%20L51%2042.5%20L32%2053%20L13%2042.5%20L13%2021.5%20Z'%20fill='none'%20stroke='%2310b981'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3Cpath%20d='M32%2011%20L32%2032%20L51%2021.5%20M32%2032%20L13%2021.5'%20fill='none'%20stroke='%236366f1'%20stroke-width='3.4'%20stroke-linejoin='round'/%3E%3C/svg%3E" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,8 +19,12 @@
 
   <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- PayPal SDK -->
-  <script src="https://www.paypal.com/sdk/js?client-id=AXNocpelnAuDkB3PfxMsD0q3ou7r0VJYQo1mk-1XmOEEDQE11HfiDdprWZpC3U3FTw1FGK1gS-eEeI-f&currency=USD" defer></script>
+  <!-- PayPal SDK (si un bloqueador lo impide, paypal.js muestra un aviso y permite reintentar) -->
+  <script
+    id="paypal-sdk"
+    src="https://www.paypal.com/sdk/js?client-id=AXNocpelnAuDkB3PfxMsD0q3ou7r0VJYQo1mk-1XmOEEDQE11HfiDdprWZpC3U3FTw1FGK1gS-eEeI-f&currency=USD"
+    defer
+    onerror="window.PAYPAL_LOAD_FAILED=true;"></script>
 
   <link rel="stylesheet" href="styles.css" />
 </head>

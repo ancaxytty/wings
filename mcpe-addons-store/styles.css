@@ -782,7 +782,18 @@ ul{ list-style:none; }
 .plan-checkout-modal{ max-width:440px; }
 .plan-checkout-head{ text-align:center; margin-bottom:.6rem; }
 .plan-checkout-head h2{ justify-content:center; }
-#plan-paypal-container,#paypal-button-container{ margin-top:.6rem; }
+#plan-paypal-container,#paypal-button-container{ margin-top:.6rem; min-height:48px; }
+
+/* PayPal: estados de carga / fallback */
+.paypal-loading{ text-align:center; padding:1.1rem; color:var(--text-muted); }
+.paypal-loading i{ font-size:1.9rem; color:#003087; display:block; margin-bottom:.4rem; animation:ppPulse 1.3s ease-in-out infinite; }
+.paypal-loading p{ font-size:.85rem; }
+@keyframes ppPulse{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+.paypal-fallback{ text-align:center; padding:1.2rem 1rem; background:var(--surface-soft);
+  border:1px dashed var(--border-2); border-radius:var(--r-lg); }
+.paypal-fallback>i{ font-size:2rem; color:#003087; display:block; margin-bottom:.5rem; }
+.paypal-fallback-title{ font-weight:800; color:var(--text); }
+.paypal-fallback-sub{ font-size:.8rem; color:var(--text-muted); margin:.35rem 0 .9rem; line-height:1.45; }
 
 /* ----------------------------- MOBILE SHEET ----------------------------- */
 .sheet-backdrop{ position:fixed; inset:0; z-index:900; background:rgba(15,27,45,.5); backdrop-filter:blur(4px);

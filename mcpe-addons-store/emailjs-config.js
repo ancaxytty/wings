@@ -51,7 +51,7 @@ if (EMAILJS_READY) {
     console.error('[MCPE Store] Error iniciando EmailJS:', e);
   }
 } else {
-  console.warn('%c[MCPE Store] EmailJS NO configurado: los correos de bienvenida/contacto están desactivados. Completa emailjs-config.js.', 'color:#f59e0b');
+  console.info('%c[MCPE Store] EmailJS opcional sin configurar: los correos de bienvenida/contacto están desactivados (no afecta al funcionamiento de la tienda).', 'color:#6b7892');
 }
 
 window.EMAILJS_CONFIG = EMAILJS_CONFIG;
