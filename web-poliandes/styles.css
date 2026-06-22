@@ -26,7 +26,9 @@ body{
   background:var(--bg);
   line-height:1.6;
   overflow-x:hidden;
+  width:100%;
 }
+html{overflow-x:hidden}
 h1,h2,h3,.brand__text strong{font-family:'Poppins',sans-serif;line-height:1.15;overflow-wrap:break-word}
 a{text-decoration:none;color:inherit}
 img,svg{max-width:100%}
@@ -77,9 +79,12 @@ img{display:block}
 .brand__text{display:flex;flex-direction:column;line-height:1}
 .brand__text strong{font-size:1.05rem;color:var(--ink)}
 .brand__text small{font-size:.62rem;letter-spacing:.32em;color:var(--green);font-weight:700}
-.nav{display:flex;align-items:center;gap:1.6rem}
-.nav a{font-weight:500;color:var(--muted);font-size:.95rem;transition:color .2s}
-.nav a:hover{color:var(--blue)}
+.nav{display:flex;align-items:center;gap:1.7rem}
+.nav>a:not(.btn){position:relative;font-weight:500;color:var(--muted);font-size:.95rem;padding:.35rem 0;transition:color .2s}
+.nav>a:not(.btn)::after{content:"";position:absolute;left:0;bottom:-3px;width:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .28s ease}
+.nav>a:not(.btn):hover{color:var(--ink)}
+.nav>a:not(.btn):hover::after,.nav>a.active::after{width:100%}
+.nav>a.active{color:var(--ink);font-weight:600}
 .nav .btn{color:#fff}
 .nav__toggle{display:none;flex-direction:column;gap:5px;background:none;border:0;cursor:pointer;padding:.3rem}
 .nav__toggle span{width:26px;height:3px;background:var(--ink);border-radius:3px;transition:.3s}
@@ -130,7 +135,7 @@ img{display:block}
 /* Program cards */
 .card-program{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .25s,box-shadow .25s;display:flex;flex-direction:column}
 .card-program:hover{transform:translateY(-8px);box-shadow:var(--shadow)}
-.card-program__media{position:relative;aspect-ratio:400/260;overflow:hidden;border-bottom:4px solid var(--c,var(--blue))}
+.card-program__media{position:relative;aspect-ratio:4/3;overflow:hidden;border-bottom:4px solid var(--c,var(--blue));background:#eef4f8}
 .card-program__media img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
 .card-program:hover .card-program__media img{transform:scale(1.05)}
 .card-program__body{padding:1.5rem 1.4rem 1.7rem;display:flex;flex-direction:column;flex:1}
@@ -196,7 +201,7 @@ img{display:block}
 [data-reveal].is-visible{opacity:1;transform:none}
 
 /* Scrim para menú móvil */
-.nav-scrim{position:fixed;inset:0;background:rgba(13,27,38,.45);opacity:0;visibility:hidden;transition:opacity .3s;z-index:54}
+.nav-scrim{position:fixed;inset:0;background:rgba(13,27,38,.45);opacity:0;visibility:hidden;transition:opacity .3s;z-index:49}
 .nav-scrim.show{opacity:1;visibility:visible}
 
 /* ===== Responsive ===== */
@@ -223,7 +228,8 @@ img{display:block}
 @media (max-width:760px){
   .nav{position:fixed;inset:0 0 0 auto;width:min(82%,320px);flex-direction:column;align-items:stretch;justify-content:flex-start;gap:.25rem;background:#fff;padding:5rem 1.5rem 2rem;box-shadow:-12px 0 40px -15px rgba(0,0,0,.35);transform:translateX(100%);transition:transform .3s ease;z-index:55;overflow-y:auto}
   .nav.open{transform:none}
-  .nav a{width:100%;padding:.85rem .25rem;border-bottom:1px solid var(--line);font-size:1rem}
+  .nav>a:not(.btn){width:100%;padding:.85rem .25rem;border-bottom:1px solid var(--line);font-size:1rem}
+  .nav>a:not(.btn)::after{display:none}
   .nav .btn{margin-top:.75rem;justify-content:center}
   .nav__toggle{display:flex;z-index:60}
   .nav__toggle.open span:nth-child(1){transform:translateY(8px) rotate(45deg)}

@@ -1,31 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Diseno y Artes Graficas">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Estudiante de Diseno y Artes Graficas">
   <defs>
     <linearGradient id="ds-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#eef0fc"/><stop offset="1" stop-color="#eaf6fc"/>
+      <stop offset="0" stop-color="#eef0fc"/><stop offset="1" stop-color="#e6f0fb"/>
     </linearGradient>
   </defs>
-  <rect width="400" height="260" fill="url(#ds-bg)"/>
-  <!-- artboard -->
-  <g transform="translate(70,52)">
-    <rect width="150" height="160" rx="12" fill="#fff" stroke="#d6dcef" stroke-width="2"/>
-    <circle cx="48" cy="48" r="22" fill="#5BC8E8"/>
-    <rect x="80" y="30" width="48" height="36" rx="6" fill="#9BD45A"/>
-    <polygon points="40,130 70,80 100,130" fill="#2E9BD6"/>
-    <polygon points="80,130 104,92 128,130" fill="#5DAE3A"/>
-    <rect x="22" y="138" width="106" height="8" rx="4" fill="#e4edf3"/>
+  <rect width="400" height="300" fill="url(#ds-bg)"/>
+  <rect y="240" width="400" height="60" fill="#dde2f3"/>
+  <!-- big art tablet -->
+  <g transform="translate(36,96)">
+    <rect width="150" height="150" rx="14" fill="#fff" stroke="#d3daf0" stroke-width="2"/>
+    <circle cx="44" cy="44" r="20" fill="#5BC8E8"/>
+    <rect x="74" y="28" width="50" height="34" rx="6" fill="#9BD45A"/>
+    <polygon points="36,120 64,74 92,120" fill="#2E9BD6"/>
+    <polygon points="74,120 96,84 118,120" fill="#5DAE3A"/>
+    <rect x="22" y="128" width="106" height="8" rx="4" fill="#eef0fc"/>
+  </g>
+  <!-- designer (woman) -->
+  <g transform="translate(214,84)">
+    <path d="M0 216 q50 -62 100 0 Z" fill="#8E5BD6"/>
+    <rect x="0" y="162" width="100" height="64" rx="32" fill="#8E5BD6"/>
+    <rect x="40" y="128" width="22" height="30" rx="9" fill="#d79a6e"/>
+    <circle cx="51" cy="100" r="32" fill="#e7ab78"/>
+    <path d="M16 102 a35 35 0 0 1 70 0 q8 -44 -35 -46 q-43 2 -35 46 Z" fill="#241a12"/>
+    <path d="M16 98 q-6 40 12 58 l6 -12 q-14 -20 -10 -44 Z" fill="#241a12"/>
+    <circle cx="40" cy="100" r="3.2" fill="#241a12"/>
+    <circle cx="62" cy="100" r="3.2" fill="#241a12"/>
+    <path d="M44 114 q7 7 16 0" fill="none" stroke="#b97a4f" stroke-width="3" stroke-linecap="round"/>
+    <!-- arm holding pen toward tablet -->
+    <path d="M2 182 q-40 6 -66 26" fill="none" stroke="#e7ab78" stroke-width="16" stroke-linecap="round"/>
   </g>
   <!-- color palette -->
-  <g transform="translate(244,70)">
-    <path d="M40 0 a56 56 0 1 0 12 111 c10 -1 8 -14 0 -20 c-8 -6 -2 -16 8 -16 h14 a40 40 0 0 0 6 -79 A56 56 0 0 0 40 0 Z" fill="#fff" stroke="#d6dcef" stroke-width="2"/>
-    <circle cx="30" cy="30" r="9" fill="#2E9BD6"/>
-    <circle cx="62" cy="26" r="9" fill="#5DAE3A"/>
-    <circle cx="80" cy="56" r="9" fill="#9BD45A"/>
-    <circle cx="28" cy="66" r="9" fill="#5BC8E8"/>
-  </g>
-  <!-- pencil -->
-  <g transform="translate(250,150) rotate(35)">
-    <rect width="14" height="80" rx="3" fill="#5DAE3A"/>
-    <polygon points="0,80 14,80 7,98" fill="#1d2733"/>
-    <rect width="14" height="10" rx="3" fill="#2E9BD6"/>
+  <g transform="translate(150,40)">
+    <circle cx="16" cy="16" r="9" fill="#2E9BD6"/>
+    <circle cx="42" cy="12" r="9" fill="#5DAE3A"/>
+    <circle cx="64" cy="28" r="9" fill="#9BD45A"/>
+    <circle cx="20" cy="40" r="9" fill="#8E5BD6"/>
   </g>
 </svg>

@@ -1,43 +1,53 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Sistemas y Hardware">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Estudiante de Sistemas y Hardware">
   <defs>
     <linearGradient id="sy-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#eafaef"/><stop offset="1" stop-color="#e0f4e4"/>
-    </linearGradient>
-    <linearGradient id="sy-green" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#9BD45A"/><stop offset="1" stop-color="#5DAE3A"/>
+      <stop offset="0" stop-color="#eafaef"/><stop offset="1" stop-color="#d8f1de"/>
     </linearGradient>
   </defs>
-  <rect width="400" height="260" fill="url(#sy-bg)"/>
-  <!-- monitor -->
-  <g transform="translate(96,54)">
-    <rect width="170" height="116" rx="12" fill="#1d2733"/>
-    <rect x="10" y="10" width="150" height="96" rx="6" fill="#0d1b26"/>
-    <!-- code lines -->
+  <rect width="400" height="300" fill="url(#sy-bg)"/>
+  <rect y="232" width="400" height="68" fill="#c8e7cf"/>
+  <!-- monitor on desk -->
+  <g transform="translate(40,70)">
+    <rect width="150" height="104" rx="10" fill="#1d2733"/>
+    <rect x="10" y="10" width="130" height="84" rx="5" fill="#0d1b26"/>
     <g stroke-linecap="round" stroke-width="5">
-      <line x1="24" y1="30" x2="64" y2="30" stroke="#5BC8E8"/>
-      <line x1="72" y1="30" x2="120" y2="30" stroke="#9BD45A"/>
-      <line x1="24" y1="48" x2="50" y2="48" stroke="#5DAE3A"/>
-      <line x1="58" y1="48" x2="140" y2="48" stroke="#3a5a6b"/>
-      <line x1="40" y1="66" x2="96" y2="66" stroke="#2E9BD6"/>
-      <line x1="24" y1="84" x2="70" y2="84" stroke="#9BD45A"/>
+      <line x1="22" y1="28" x2="58" y2="28" stroke="#5BC8E8"/>
+      <line x1="66" y1="28" x2="110" y2="28" stroke="#9BD45A"/>
+      <line x1="22" y1="46" x2="46" y2="46" stroke="#5DAE3A"/>
+      <line x1="54" y1="46" x2="124" y2="46" stroke="#34506a"/>
+      <line x1="36" y1="64" x2="92" y2="64" stroke="#2E9BD6"/>
+      <line x1="22" y1="80" x2="64" y2="80" stroke="#9BD45A"/>
     </g>
-    <rect x="62" y="116" width="46" height="16" fill="#1d2733"/>
-    <rect x="38" y="132" width="94" height="10" rx="5" fill="#1d2733"/>
+    <rect x="58" y="104" width="34" height="14" fill="#1d2733"/>
+    <rect x="40" y="118" width="70" height="8" rx="4" fill="#1d2733"/>
   </g>
-  <!-- gear / hardware chip -->
-  <g transform="translate(258,150)">
-    <circle cx="40" cy="40" r="38" fill="url(#sy-green)"/>
-    <circle cx="40" cy="40" r="16" fill="#eafaef"/>
+  <!-- desk -->
+  <rect x="24" y="222" width="352" height="16" rx="4" fill="#9c6b3f"/>
+  <rect x="40" y="238" width="14" height="52" fill="#80572f"/>
+  <rect x="346" y="238" width="14" height="52" fill="#80572f"/>
+  <!-- person (man with cap-like hair) -->
+  <g transform="translate(228,86)">
+    <rect x="-12" y="92" width="120" height="80" rx="20" fill="#5DAE3A" opacity=".18"/>
+    <path d="M0 206 q48 -58 96 0 Z" fill="#5DAE3A"/>
+    <rect x="0" y="158" width="96" height="60" rx="30" fill="#5DAE3A"/>
+    <rect x="38" y="126" width="20" height="28" rx="8" fill="#d79a6e"/>
+    <circle cx="48" cy="100" r="30" fill="#e7ab78"/>
+    <path d="M18 98 a30 30 0 0 1 60 0 q2 -34 -30 -34 q-32 0 -30 34 Z" fill="#2b2b2b"/>
+    <circle cx="38" cy="98" r="3" fill="#2a2a2a"/>
+    <circle cx="58" cy="98" r="3" fill="#2a2a2a"/>
+    <path d="M42 112 q6 5 12 0" fill="none" stroke="#b97a4f" stroke-width="3" stroke-linecap="round"/>
+    <!-- arm to keyboard -->
+    <path d="M6 178 q-44 8 -78 30" fill="none" stroke="#e7ab78" stroke-width="16" stroke-linecap="round"/>
+  </g>
+  <!-- gear -->
+  <g transform="translate(176,40)">
+    <circle cx="26" cy="26" r="24" fill="#2E9BD6"/>
+    <circle cx="26" cy="26" r="10" fill="#eafaef"/>
     <g fill="#fff">
-      <rect x="36" y="-2" width="8" height="14" rx="2"/>
-      <rect x="36" y="68" width="8" height="14" rx="2"/>
-      <rect x="-2" y="36" width="14" height="8" rx="2"/>
-      <rect x="68" y="36" width="14" height="8" rx="2"/>
+      <rect x="22" y="-2" width="8" height="12" rx="2"/>
+      <rect x="22" y="42" width="8" height="12" rx="2"/>
+      <rect x="-2" y="22" width="12" height="8" rx="2"/>
+      <rect x="42" y="22" width="12" height="8" rx="2"/>
     </g>
-  </g>
-  <!-- circuit dots -->
-  <g fill="#2E9BD6">
-    <circle cx="56" cy="60" r="5"/><circle cx="56" cy="110" r="5"/>
-    <line x1="56" y1="60" x2="56" y2="110" stroke="#2E9BD6" stroke-width="3"/>
   </g>
 </svg>

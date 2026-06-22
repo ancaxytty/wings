@@ -82,3 +82,22 @@ window.addEventListener('scroll', () => {
     ? '0 10px 30px -18px rgba(20,70,110,.5)'
     : 'none';
 });
+
+// ===== Scrollspy: resaltar la sección activa en el menú =====
+const sections = ['inicio', 'programas', 'ventajas', 'proceso', 'contacto']
+  .map(id => document.getElementById(id))
+  .filter(Boolean);
+const navLinks = Array.from(nav.querySelectorAll('a:not(.btn)'));
+
+const spy = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+      });
+    }
+  });
+}, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+
+sections.forEach(sec => spy.observe(sec));

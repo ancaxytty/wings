@@ -1,41 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" role="img" aria-label="Asistente Contable">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Estudiante de Asistente Contable">
   <defs>
     <linearGradient id="ct-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#eaf6fc"/><stop offset="1" stop-color="#dff0f8"/>
-    </linearGradient>
-    <linearGradient id="ct-blue" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5BC8E8"/><stop offset="1" stop-color="#2E9BD6"/>
+      <stop offset="0" stop-color="#e9f6fc"/><stop offset="1" stop-color="#d7eefa"/>
     </linearGradient>
   </defs>
-  <rect width="400" height="260" fill="url(#ct-bg)"/>
-  <!-- chart bars -->
-  <g>
-    <rect x="70" y="150" width="34" height="60" rx="6" fill="#9BD45A"/>
-    <rect x="116" y="120" width="34" height="90" rx="6" fill="#5DAE3A"/>
-    <rect x="162" y="92" width="34" height="118" rx="6" fill="url(#ct-blue)"/>
+  <rect width="400" height="300" fill="url(#ct-bg)"/>
+  <!-- floor -->
+  <rect y="232" width="400" height="68" fill="#cfe6f3"/>
+  <!-- wall chart -->
+  <g transform="translate(40,40)">
+    <rect width="120" height="86" rx="8" fill="#fff" stroke="#bcd9ea" stroke-width="2"/>
+    <rect x="16" y="50" width="14" height="24" rx="3" fill="#9BD45A"/>
+    <rect x="38" y="38" width="14" height="36" rx="3" fill="#5DAE3A"/>
+    <rect x="60" y="26" width="14" height="48" rx="3" fill="#2E9BD6"/>
+    <polyline points="16,46 45,34 70,22 100,16" fill="none" stroke="#2E9BD6" stroke-width="3" stroke-linecap="round"/>
   </g>
-  <!-- trend line -->
-  <polyline points="70,140 120,118 165,90 210,70" fill="none" stroke="#2E9BD6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="210" cy="70" r="6" fill="#2E9BD6"/>
-  <!-- calculator -->
-  <g transform="translate(232,96)">
-    <rect width="96" height="118" rx="12" fill="#fff" stroke="#cfe3ee" stroke-width="2"/>
-    <rect x="12" y="12" width="72" height="24" rx="5" fill="#1d2733"/>
-    <rect x="12" y="14" width="50" height="20" rx="3" fill="#5DAE3A" opacity=".25"/>
-    <g fill="#2E9BD6">
-      <rect x="12" y="48" width="20" height="16" rx="4"/>
-      <rect x="38" y="48" width="20" height="16" rx="4"/>
-      <rect x="64" y="48" width="20" height="16" rx="4"/>
-      <rect x="12" y="70" width="20" height="16" rx="4"/>
-      <rect x="38" y="70" width="20" height="16" rx="4"/>
-      <rect x="64" y="70" width="20" height="16" rx="4"/>
-      <rect x="12" y="92" width="46" height="16" rx="4"/>
-      <rect x="64" y="92" width="20" height="16" rx="4" fill="#5DAE3A"/>
-    </g>
+  <!-- desk -->
+  <rect x="30" y="226" width="340" height="16" rx="4" fill="#9c6b3f"/>
+  <rect x="46" y="242" width="14" height="48" fill="#80572f"/>
+  <rect x="340" y="242" width="14" height="48" fill="#80572f"/>
+  <!-- laptop on desk -->
+  <g transform="translate(232,176)">
+    <rect x="6" y="0" width="96" height="60" rx="6" fill="#1d2733"/>
+    <rect x="14" y="8" width="80" height="44" rx="3" fill="#2E9BD6" opacity=".85"/>
+    <rect x="-4" y="60" width="116" height="8" rx="4" fill="#34465a"/>
+  </g>
+  <!-- person (woman) -->
+  <g transform="translate(96,96)">
+    <!-- chair back -->
+    <rect x="-14" y="86" width="116" height="80" rx="20" fill="#2E9BD6" opacity=".18"/>
+    <!-- torso / blouse -->
+    <path d="M2 196 q42 -56 84 0 Z" fill="#2E9BD6"/>
+    <rect x="2" y="150" width="84" height="60" rx="30" fill="#2E9BD6"/>
+    <!-- neck -->
+    <rect x="34" y="120" width="20" height="26" rx="8" fill="#e8b48f"/>
+    <!-- head -->
+    <circle cx="44" cy="96" r="30" fill="#f3c19c"/>
+    <!-- hair -->
+    <path d="M12 96 a32 32 0 0 1 64 0 q4 -40 -32 -42 q-36 2 -32 42 Z" fill="#5b3a26"/>
+    <path d="M12 92 q-2 30 8 44 l6 -10 q-10 -16 -6 -34 Z" fill="#5b3a26"/>
+    <path d="M76 92 q2 30 -8 44 l-6 -10 q10 -16 6 -34 Z" fill="#5b3a26"/>
+    <!-- face -->
+    <circle cx="34" cy="94" r="3" fill="#3a2a1c"/>
+    <circle cx="56" cy="94" r="3" fill="#3a2a1c"/>
+    <path d="M38 108 q6 6 14 0" fill="none" stroke="#b9744f" stroke-width="3" stroke-linecap="round"/>
+    <!-- arm -->
+    <path d="M82 168 q40 6 70 22" fill="none" stroke="#f3c19c" stroke-width="16" stroke-linecap="round"/>
   </g>
   <!-- coins -->
-  <g transform="translate(70,214)">
-    <ellipse cx="20" cy="8" rx="20" ry="8" fill="#9BD45A"/>
-    <ellipse cx="20" cy="3" rx="20" ry="8" fill="#5DAE3A"/>
+  <g transform="translate(70,210)">
+    <ellipse cx="20" cy="14" rx="20" ry="7" fill="#7ec23a"/>
+    <ellipse cx="20" cy="8" rx="20" ry="7" fill="#9BD45A"/>
+    <ellipse cx="20" cy="2" rx="20" ry="7" fill="#b6e07e"/>
   </g>
 </svg>
