@@ -285,8 +285,8 @@ function initSheetDrag() {
 function toggleUserDropdown() {
   const dd  = document.getElementById('user-dropdown');
   const btn = document.querySelector('.user-avatar-btn');
-  dd.classList.toggle('open');
-  btn.classList.toggle('open');
+  dd?.classList.toggle('open');
+  btn?.classList.toggle('open');
 }
 
 document.addEventListener('click', e => {
