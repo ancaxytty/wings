@@ -56,6 +56,7 @@
         <a href="#addons" class="nav-link" onclick="closeHamburger()"><i class="fas fa-puzzle-piece"></i> Add-ons</a>
         <a href="#featured" class="nav-link" onclick="closeHamburger()"><i class="fas fa-fire"></i> Destacados</a>
         <a href="#pricing" class="nav-link" onclick="closeHamburger()"><i class="fas fa-crown"></i> Planes</a>
+        <a href="#community" class="nav-link" onclick="closeHamburger()"><i class="fas fa-comments"></i> Comunidad</a>
         <a href="#contact" class="nav-link" onclick="closeHamburger()"><i class="fas fa-envelope"></i> Contacto</a>
       </div>
       <!-- Estados de sesión (solo se usan/actualizan por JS) -->
@@ -243,6 +244,37 @@
   </div>
 </section>
 
+<!-- ===================== CÓMO FUNCIONA ===================== -->
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><i class="fas fa-circle-info"></i> Sencillo y rápido</div>
+      <h2 class="section-title">Cómo <span class="gradient-text">funciona</span></h2>
+      <p class="section-subtitle">Descarga o publica contenido en tres pasos</p>
+    </div>
+    <div class="how-grid">
+      <div class="how-step">
+        <span class="how-num">1</span>
+        <div class="how-ic"><i class="fas fa-magnifying-glass"></i></div>
+        <h4>Explora</h4>
+        <p>Busca entre add-ons, skins, mundos, texturas, mapas, mods y shaders para Bedrock y Java.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-num">2</span>
+        <div class="how-ic"><i class="fas fa-cloud-arrow-down"></i></div>
+        <h4>Descarga o compra</h4>
+        <p>El contenido gratis se descarga al instante. Lo premium se paga seguro con PayPal.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-num">3</span>
+        <div class="how-ic"><i class="fas fa-cloud-arrow-up"></i></div>
+        <h4>Publica lo tuyo</h4>
+        <p>Crea tu cuenta, personaliza tu perfil y comparte tu propio contenido con la comunidad.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ===================== PLANES ===================== -->
 <section class="pricing-section" id="pricing">
   <div class="container">
@@ -275,6 +307,65 @@
   </div>
 </section>
 
+<!-- ===================== COMUNIDAD ===================== -->
+<section class="community-section" id="community">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><i class="fas fa-comments"></i> Comunidad</div>
+      <h2 class="section-title">¿Qué te parece <span class="gradient-text">la página</span>?</h2>
+      <p class="section-subtitle">Valórala y charla con la comunidad en tiempo real</p>
+    </div>
+    <div class="community-grid">
+      <div class="community-card community-rating-card">
+        <div class="community-rating-summary" id="community-rating-summary"></div>
+        <div class="community-my-rating" id="community-my-rating"></div>
+        <button class="btn btn-primary btn-full" onclick="openCommunityChat()"><i class="fas fa-comments"></i> Abrir chat de la comunidad</button>
+      </div>
+      <div class="community-card community-feed-card">
+        <div class="community-feed-head"><i class="fas fa-bolt"></i> Últimos mensajes</div>
+        <div class="community-feed" id="community-feed"></div>
+        <button class="btn btn-outline btn-full" onclick="openCommunityChat()"><i class="fas fa-arrow-right"></i> Participar en el chat</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge"><i class="fas fa-circle-question"></i> Preguntas frecuentes</div>
+      <h2 class="section-title">Dudas <span class="gradient-text">comunes</span></h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>¿El contenido es gratis? <i class="fas fa-chevron-down"></i></summary>
+        <p>La mayoría del contenido es totalmente gratis y se descarga al instante. El contenido premium aparece con la etiqueta <strong>Premium</strong> y se paga de forma segura con PayPal.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cómo instalo un add-on? <i class="fas fa-chevron-down"></i></summary>
+        <p>En Minecraft PE (Bedrock) descarga el archivo <strong>.mcaddon</strong> o <strong>.mcpack</strong> y ábrelo: Minecraft lo importa automáticamente. En Java, coloca el archivo en la carpeta correspondiente (mods, resourcepacks, etc.) según el tipo.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Puedo subir mi propio contenido? <i class="fas fa-chevron-down"></i></summary>
+        <p>¡Claro! Crea una cuenta gratis, personaliza tu perfil y usa <strong>Subir Add-on</strong>. El equipo revisa cada envío antes de publicarlo para mantener la calidad.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Para qué sirven los planes? <i class="fas fa-chevron-down"></i></summary>
+        <p>Los planes aumentan tu límite de subidas diarias y desbloquean marcos de avatar e insignias exclusivas. Puedes mejorar, cambiar o cancelar tu plan cuando quieras desde tu perfil.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Los pagos son seguros? <i class="fas fa-chevron-down"></i></summary>
+        <p>Sí. Todos los pagos se procesan a través de PayPal y nunca almacenamos los datos de tu tarjeta.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Esta tienda es oficial de Mojang? <i class="fas fa-chevron-down"></i></summary>
+        <p>No. Es una tienda independiente de la comunidad y no está afiliada con Mojang Studios ni con Microsoft.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <!-- ===================== FOOTER ===================== -->
 <footer class="footer" id="contact">
   <div class="container">
@@ -297,12 +388,13 @@
         <a href="#addons">Catálogo</a>
         <a href="#featured">Destacados</a>
         <a href="#pricing">Planes</a>
+        <a href="#community">Comunidad</a>
       </div>
       <div class="footer-links">
         <h4>Soporte</h4>
-        <a href="#">FAQ</a>
-        <a href="#">Contacto</a>
-        <a href="#">Términos de uso</a>
+        <a href="#faq">Preguntas frecuentes</a>
+        <a href="#" onclick="openCommunityChat();return false;">Contacto / Chat</a>
+        <a href="#how">Cómo funciona</a>
       </div>
       <div class="footer-newsletter">
         <h4>Novedades</h4>
@@ -314,7 +406,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 MCPE Addons Store v13.0. Todos los derechos reservados.</p>
+      <p>© 2026 MCPE Addons Store v14.0. Todos los derechos reservados.</p>
       <p>No afiliado con Mojang Studios ni Microsoft.</p>
     </div>
   </div>
@@ -492,6 +584,23 @@
   <div class="msheet-body" id="msheet-body"></div>
 </div>
 
+<!-- ===================== CHAT DE COMUNIDAD ===================== -->
+<div class="chat-widget" id="chat-widget">
+  <div class="chat-panel" role="dialog" aria-label="Chat de la comunidad">
+    <div class="chat-header">
+      <div class="chat-header-title"><i class="fas fa-comments"></i> Comunidad <span class="chat-rating-mini" id="chat-rating-mini"></span></div>
+      <button class="chat-close" onclick="toggleChat(false)" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="chat-sub">Opina sobre la página web y charla con otros usuarios en tiempo real</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-composer" id="chat-composer"></div>
+  </div>
+  <button class="chat-fab" onclick="toggleChat()" aria-label="Abrir chat de la comunidad">
+    <i class="fas fa-comments"></i>
+    <span class="chat-badge" id="chat-badge" style="display:none">0</span>
+  </button>
+</div>
+
 <!-- ===================== TOASTS + LOADING ===================== -->
 <div class="toast-container" id="toast-container"></div>
 <div class="loading-screen" id="loading-screen">
@@ -513,5 +622,6 @@
 <script src="emailjs-config.js"></script>
 <script src="paypal.js"></script>
 <script src="app.js"></script>
+<script src="chat.js"></script>
 </body>
 </html>

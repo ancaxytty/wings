@@ -149,6 +149,7 @@ const DB = {
 window.DB = DB;
 window.DB_KEYS = DB_KEYS;
 window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+window.FIREBASE_READY = FIREBASE_READY;
 
 // Estado de la nube (para mostrar un indicador visible al usuario)
 window.CLOUD_STATUS = { ready: FIREBASE_READY, connected: false, error: null };
@@ -189,6 +190,8 @@ if (FIREBASE_READY) {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     _rtdb = firebase.database();
+    // Exponer la instancia de Realtime Database para módulos externos (p.ej. el chat de la comunidad)
+    window.fbDB = _rtdb;
 
     // Firebase Auth (login/registro/recuperación por correo)
     try {

@@ -177,6 +177,7 @@ function renderSheet() {
       <a href="#addons" onclick="closeSheet()"><i class="fas fa-puzzle-piece"></i> Add-ons</a>
       <a href="#featured" onclick="closeSheet()"><i class="fas fa-fire"></i> Destacados</a>
       <a href="#pricing" onclick="closeSheet()"><i class="fas fa-crown"></i> Planes</a>
+      <a href="#community" onclick="closeSheet()"><i class="fas fa-comments"></i> Comunidad</a>
       <a href="#contact" onclick="closeSheet()"><i class="fas fa-envelope"></i> Contacto</a>
       <a href="admin.html" class="msheet-admin"><i class="fas fa-user-shield"></i> Panel Admin</a>
     </nav>`;
@@ -412,6 +413,11 @@ function loginUser(user) {
   merged.frame       = existing.frame       || 'none';
   merged.country     = existing.country     || '';
   merged.bio         = existing.bio         || '';
+  merged.link        = existing.link        || '';
+  merged.joinedAt    = existing.joinedAt    || Date.now();
+  if (existing.planSince)   merged.planSince   = existing.planSince;
+  if (existing.planExpires) merged.planExpires = existing.planExpires;
+  if (existing.planPeriod)  merged.planPeriod  = existing.planPeriod;
   if (existing.displayName)  merged.displayName  = existing.displayName;
   if (existing.customAvatar) merged.customAvatar = existing.customAvatar;
 
@@ -427,6 +433,7 @@ function loginUser(user) {
   loadPurchases();
   updateStats();
   renderPlans();
+  window.dispatchEvent(new CustomEvent('auth-changed'));
 }
 
 function restoreSession() {
@@ -475,6 +482,7 @@ function logout() {
   if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
   showToast('Sesión cerrada correctamente', 'info');
   renderPlans();
+  window.dispatchEvent(new CustomEvent('auth-changed'));
 }
 
 /* ============================================================
@@ -1322,6 +1330,64 @@ function persistCurrentUser(){
 /* ============================================================
    PLANES
    ============================================================ */
+function fmtDate(ts){
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-ES', { year:'numeric', month:'short', day:'numeric' });
+}
+function planDaysLeft(u){
+  if (!u || !u.planExpires) return null;
+  const ms = new Date(u.planExpires).getTime() - Date.now();
+  if (isNaN(ms)) return null;
+  return Math.max(0, Math.ceil(ms / 86400000));
+}
+function goPricing(){
+  closeModal('profile-modal');
+  const el = document.getElementById('pricing');
+  if (el) el.scrollIntoView({ behavior:'smooth' });
+}
+function cancelPlan(){
+  if (!State.user) return;
+  if (userPlanId(State.user) === 'free'){ showToast('Ya estás en el plan Gratis.', 'info'); return; }
+  if (!confirm('¿Cancelar tu plan y volver a Gratis? Conservarás tu cuenta y todo tu contenido.')) return;
+  State.user.plan = 'free';
+  delete State.user.planExpires;
+  delete State.user.planPeriod;
+  State.user.planSince = null;
+  persistCurrentUser();
+  renderPlans();
+  renderProfile(false);
+  showToast('Tu plan se canceló. Vuelves al plan Gratis.', 'warning');
+}
+function planManageCardHTML(u, plan, uploadsToday){
+  const isFree = plan.id === 'free';
+  const limit  = plan.dailyUploads || 1;
+  const pct    = Math.min(100, Math.round((uploadsToday / limit) * 100));
+  const left   = planDaysLeft(u);
+  const since  = (!isFree && u.planSince)
+    ? `<div class="ppc-row"><span><i class="fas fa-clock"></i> Activo desde</span><strong>${fmtDate(u.planSince)}</strong></div>` : '';
+  const renew  = (!isFree && u.planExpires)
+    ? `<div class="ppc-row"><span><i class="fas fa-calendar-day"></i> Renueva</span><strong>${fmtDate(u.planExpires)}${left != null ? ` · ${left} día${left === 1 ? '' : 's'}` : ''}</strong></div>` : '';
+  return `
+    <div class="profile-plan-card plan-${plan.id}">
+      <div class="ppc-head">
+        <div class="ppc-icon" style="--plan-color:${plan.color}"><i class="fas ${plan.icon}"></i></div>
+        <div class="ppc-title"><small>Tu plan actual</small><strong>${plan.name}</strong></div>
+        ${isFree ? '<span class="ppc-status ppc-free"><i class="fas fa-seedling"></i> Gratis</span>' : '<span class="ppc-status"><i class="fas fa-circle-check"></i> Activo</span>'}
+      </div>
+      <div class="ppc-usage">
+        <div class="ppc-usage-top"><span><i class="fas fa-cloud-arrow-up"></i> Subidas hoy</span><strong>${uploadsToday}/${limit}</strong></div>
+        <div class="ppc-bar"><span style="width:${pct}%"></span></div>
+      </div>
+      ${since}${renew}
+      <div class="ppc-actions">
+        <button class="btn btn-primary btn-sm" onclick="goPricing()"><i class="fas fa-rocket"></i> ${isFree ? 'Mejorar plan' : 'Cambiar plan'}</button>
+        ${isFree ? '' : '<button class="btn btn-outline btn-sm" onclick="cancelPlan()"><i class="fas fa-xmark"></i> Cancelar</button>'}
+      </div>
+    </div>`;
+}
+
 function renderPlans(){
   const grid = document.getElementById('plans-grid');
   if (!grid || !window.PLANS) return;
@@ -1407,6 +1473,9 @@ function activatePlanAfterPayment(plan, details){
   if (!State.user) return;
   State.user.plan = plan.id;
   State.user.planSince = new Date().toISOString();
+  State.user.planPeriod = plan.period || State.billing || 'monthly';
+  const days = (State.user.planPeriod === 'annual') ? 365 : 30;
+  State.user.planExpires = new Date(Date.now() + days * 86400000).toISOString();
   persistCurrentUser();
   // Registrar la orden del plan
   try {
@@ -1568,8 +1637,10 @@ function renderProfile(editMode){
   const country = (window.COUNTRIES||[]).find(c=>c.code===u.country);
 
   if (!editMode){
+    const uploadsToday = countTodayUploads(u.id);
+    const link = (u.link || '').trim();
     view.innerHTML = `
-      <div class="profile-cover"></div>
+      <div class="profile-cover plan-cover-${plan.id}"></div>
       <div class="profile-head">
         <div class="profile-avatar-wrap ${frameClass(u.frame)}">
           ${u.frame === 'flags' ? `<div class="flag-ring">${flagRingHTML(52, 16)}</div>` : ''}
@@ -1579,12 +1650,17 @@ function renderProfile(editMode){
         <h2 class="profile-name">${escHtml(userDisplayName(u))}</h2>
         <span class="profile-plan-badge plan-${plan.id}"><i class="fas ${plan.icon}"></i> ${plan.name}</span>
         <p class="profile-bio ${u.bio?'':'muted'}">${u.bio ? escHtml(u.bio) : 'Sin biografía aún.'}</p>
+        <div class="profile-meta-row">
+          <span title="Miembro desde"><i class="fas fa-calendar-check"></i> Desde ${fmtDate(u.joinedAt)}</span>
+          ${link ? `<a href="${escHtml(link)}" target="_blank" rel="noopener nofollow"><i class="fas fa-link"></i> Mi enlace</a>` : ''}
+        </div>
       </div>
       <div class="profile-stats">
         <div><strong>${myAddons.length}</strong><span>Add-ons</span></div>
         <div><strong>${totalDl.toLocaleString()}</strong><span>Descargas</span></div>
         <div><strong>${plan.dailyUploads}</strong><span>Límite/día</span></div>
       </div>
+      ${planManageCardHTML(u, plan, uploadsToday)}
       <div class="profile-actions">
         <button class="btn btn-primary btn-full" onclick="renderProfile(true)"><i class="fas fa-pen"></i> Editar perfil</button>
         <button class="btn btn-outline btn-full" onclick="closeModal('profile-modal');openUploadModal()"><i class="fas fa-cloud-arrow-up"></i> Subir add-on</button>
@@ -1611,21 +1687,28 @@ function renderProfile(editMode){
   const isPremiumPlan = userPlanId(u) !== 'free';
   view.innerHTML = `
     <h2 class="profile-edit-title"><i class="fas fa-pen"></i> Editar perfil</h2>
+
+    <div class="pf-avatar-edit">
+      <div class="profile-avatar-wrap ${frameClass(_profFrame)}" id="pf-avatar-wrap">
+        ${_profFrame === 'flags' ? `<div class="flag-ring">${flagRingHTML(46, 14)}</div>` : ''}
+        <img class="pf-avatar-img" id="pf-avatar-prev" src="${escHtml(userAvatar(u))}" alt="" onerror="this.style.opacity=0" />
+      </div>
+      <input type="file" id="pf-avatar-file" accept="image/*" onchange="handleProfileAvatar(this)" hidden />
+      <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('pf-avatar-file').click()"><i class="fas fa-camera"></i> Cambiar foto</button>
+      <span class="file-pick-name" id="pf-avatar-name"></span>
+    </div>
+
     <div class="pf-group">
       <label>Nombre para mostrar</label>
-      <input type="text" id="pf-name" class="uinput" value="${escHtml(userDisplayName(u))}" maxlength="40" />
+      <input type="text" id="pf-name" class="uinput" value="${escHtml(userDisplayName(u))}" maxlength="40" placeholder="Tu nombre" />
     </div>
     <div class="pf-group">
-      <label>Foto de perfil</label>
-      <div class="file-pick">
-        <input type="file" id="pf-avatar-file" accept="image/*" onchange="handleProfileAvatar(this)" hidden />
-        <button type="button" class="file-pick-btn" onclick="document.getElementById('pf-avatar-file').click()"><i class="fas fa-image"></i> Subir foto</button>
-        <span class="file-pick-name" id="pf-avatar-name">Actual</span>
-      </div>
+      <label>Biografía <span class="pf-counter" id="pf-bio-count">0/160</span></label>
+      <textarea id="pf-bio" class="uinput utextarea" rows="2" maxlength="160" placeholder="Cuéntanos sobre ti, qué creas, tu canal..." oninput="pfBioCount()">${escHtml(u.bio||'')}</textarea>
     </div>
     <div class="pf-group">
-      <label>Biografía</label>
-      <textarea id="pf-bio" class="uinput utextarea" rows="2" maxlength="160" placeholder="Cuéntanos sobre ti...">${escHtml(u.bio||'')}</textarea>
+      <label>Enlace / red social <span class="pf-counter">opcional</span></label>
+      <input type="url" id="pf-link" class="uinput" value="${escHtml(u.link||'')}" placeholder="https://youtube.com/@tucanal" />
     </div>
     <div class="pf-group">
       <label>Selección (Mundial 2026)</label>
@@ -1635,7 +1718,7 @@ function renderProfile(editMode){
       </select>
     </div>
     <div class="pf-group">
-      <label>Marco del avatar</label>
+      <label>Marco del avatar ${isPremiumPlan ? '' : '<span class="pf-counter"><i class="fas fa-crown"></i> algunos son premium</span>'}</label>
       <div class="frames-grid" id="frames-grid">
         ${(window.FRAMES||[]).map(fr=>`
           <button type="button" class="frame-pick ${_profFrame===fr.id?'active':''} ${fr.premium && !isPremiumPlan ? 'locked':''}" data-frame="${fr.id}" onclick="pickFrame('${fr.id}', ${fr.premium})">
@@ -1646,9 +1729,16 @@ function renderProfile(editMode){
     </div>
     <div class="profile-actions">
       <button class="btn btn-secondary btn-full" onclick="renderProfile(false)">Cancelar</button>
-      <button class="btn btn-primary btn-full" onclick="saveProfile()"><i class="fas fa-save"></i> Guardar</button>
+      <button class="btn btn-primary btn-full" onclick="saveProfile()"><i class="fas fa-save"></i> Guardar cambios</button>
     </div>
   `;
+  pfBioCount();
+}
+
+function pfBioCount(){
+  const t = document.getElementById('pf-bio');
+  const c = document.getElementById('pf-bio-count');
+  if (t && c) c.textContent = t.value.length + '/160';
 }
 
 function pickFrame(frameId, premium){
@@ -1658,6 +1748,15 @@ function pickFrame(frameId, premium){
   }
   _profFrame = frameId;
   document.querySelectorAll('.frame-pick').forEach(b=>b.classList.toggle('active', b.dataset.frame===frameId));
+  const wrap = document.getElementById('pf-avatar-wrap');
+  if (wrap){
+    wrap.className = 'profile-avatar-wrap ' + frameClass(frameId);
+    const ring = wrap.querySelector('.flag-ring');
+    if (frameId === 'flags' && !ring){
+      const d = document.createElement('div'); d.className = 'flag-ring'; d.innerHTML = flagRingHTML(46, 14);
+      wrap.insertBefore(d, wrap.firstChild);
+    } else if (frameId !== 'flags' && ring){ ring.remove(); }
+  }
 }
 
 function handleProfileAvatar(input){
@@ -1674,6 +1773,8 @@ function handleProfileAvatar(input){
       const c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
       try{_profAvatar=c.toDataURL('image/jpeg',0.85);}catch(err){_profAvatar=e.target.result;}
+      const prev = document.getElementById('pf-avatar-prev');
+      if (prev){ prev.src = _profAvatar; prev.style.opacity = 1; }
     };
     img.src=e.target.result;
   };
@@ -1685,9 +1786,13 @@ function saveProfile(){
   const name = document.getElementById('pf-name').value.trim();
   const bio  = document.getElementById('pf-bio').value.trim();
   const country = document.getElementById('pf-country').value;
+  let link = (document.getElementById('pf-link') || {}).value || '';
+  link = link.trim();
+  if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
   State.user.displayName = name || State.user.name;
   State.user.bio = bio;
   State.user.country = country;
+  State.user.link = link;
   State.user.frame = _profFrame || 'none';
   if (_profAvatar) State.user.customAvatar = _profAvatar;
   persistCurrentUser();
@@ -1760,6 +1865,9 @@ window.renderPlans        = renderPlans;
 window.selectPlan         = selectPlan;
 window.openPlanCheckout   = openPlanCheckout;
 window.activatePlanAfterPayment = activatePlanAfterPayment;
+window.cancelPlan         = cancelPlan;
+window.goPricing          = goPricing;
+window.pfBioCount         = pfBioCount;
 window.openUploadModal    = openUploadModal;
 window.onUploadPlatformChange = onUploadPlatformChange;
 window.handleUploadImage  = handleUploadImage;
@@ -1772,3 +1880,6 @@ window.handleProfileAvatar= handleProfileAvatar;
 window.saveProfile        = saveProfile;
 window.deleteMyAddon      = deleteMyAddon;
 window.populateUploadTypes= populateUploadTypes;
+window.userDisplayName    = userDisplayName;
+window.userAvatar         = userAvatar;
+window.frameClass         = frameClass;
