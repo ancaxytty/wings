@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Politécnico de los Andes">
+  <defs>
+    <linearGradient id="g-green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9BD45A"/>
+      <stop offset="1" stop-color="#5DAE3A"/>
+    </linearGradient>
+    <linearGradient id="g-blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5BC8E8"/>
+      <stop offset="1" stop-color="#2E9BD6"/>
+    </linearGradient>
+  </defs>
+  <!-- soft green leaf behind -->
+  <path d="M20 70 C20 30 55 18 95 22 C90 70 60 96 30 96 C24 96 20 84 20 70 Z" fill="#CDE8B0" opacity="0.65"/>
+  <!-- letter P (blue) -->
+  <path d="M34 30 h22 a18 18 0 0 1 0 36 h-10 v24 h-12 Z M46 42 v12 h8 a6 6 0 0 0 0 -12 Z" fill="url(#g-blue)"/>
+  <!-- letter A (green) -->
+  <path d="M70 30 h12 l16 60 h-12 l-3 -12 h-14 l-3 12 h-12 Z M75 66 h10 l-5 -20 Z" fill="url(#g-green)"/>
+</svg>

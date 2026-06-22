@@ -1,0 +1,65 @@
+// ===== Año dinámico en el footer =====
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// ===== Menú móvil =====
+const navToggle = document.getElementById('navToggle');
+const nav = document.getElementById('nav');
+
+navToggle.addEventListener('click', () => {
+  nav.classList.toggle('open');
+  navToggle.classList.toggle('open');
+});
+
+// Cerrar menú al hacer clic en un enlace
+nav.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', () => {
+    nav.classList.remove('open');
+    navToggle.classList.remove('open');
+  });
+});
+
+// ===== Animación reveal al hacer scroll =====
+const revealEls = document.querySelectorAll('[data-reveal]');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('is-visible');
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+revealEls.forEach(el => io.observe(el));
+
+// ===== Envío de formularios por WhatsApp =====
+const WHATSAPP_NUMBER = '573203023272';
+
+function sendToWhatsApp(data) {
+  let msg = '¡Hola Politécnico de los Andes! Quiero más información.%0A%0A';
+  if (data.nombre)   msg += `*Nombre:* ${encodeURIComponent(data.nombre)}%0A`;
+  if (data.telefono) msg += `*Teléfono:* ${encodeURIComponent(data.telefono)}%0A`;
+  if (data.programa) msg += `*Programa:* ${encodeURIComponent(data.programa)}%0A`;
+  if (data.mensaje)  msg += `*Mensaje:* ${encodeURIComponent(data.mensaje)}%0A`;
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+}
+
+function handleForm(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    sendToWhatsApp(Object.fromEntries(fd.entries()));
+    form.reset();
+  });
+}
+
+handleForm('heroForm');
+handleForm('contactForm');
+
+// ===== Sombra dinámica del header al hacer scroll =====
+const header = document.querySelector('.header');
+window.addEventListener('scroll', () => {
+  header.style.boxShadow = window.scrollY > 10
+    ? '0 10px 30px -18px rgba(20,70,110,.5)'
+    : 'none';
+});

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Politécnico de los Andes Siglo XXI | Educación Técnica Laboral en Fusagasugá</title>
+  <meta name="description" content="Politécnico de los Andes Siglo XXI. Matrículas abiertas en programas técnicos laborales en Fusagasugá: Asistente Contable, Sistemas y Hardware, Atención Primera Infancia y Diseño y Artes Gráficas." />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===== Top bar ===== -->
+  <div class="topbar">
+    <div class="container topbar__inner">
+      <span class="topbar__item">📍 Fusagasugá · Transv. #12 16b - 75</span>
+      <div class="topbar__links">
+        <a href="tel:+573203023272" class="topbar__item">📞 320 302 3272</a>
+        <a href="https://www.facebook.com/Poliandes.fusa" target="_blank" rel="noopener" class="topbar__item">Poliandes.fusa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Header / Nav ===== -->
+  <header class="header" id="inicio">
+    <div class="container header__inner">
+      <a href="#inicio" class="brand">
+        <img src="assets/logo.svg" alt="Logo Politécnico de los Andes" class="brand__logo" />
+        <span class="brand__text">
+          <strong>Politécnico de los Andes</strong>
+          <small>SIGLO XXI</small>
+        </span>
+      </a>
+
+      <nav class="nav" id="nav">
+        <a href="#inicio">Inicio</a>
+        <a href="#programas">Programas</a>
+        <a href="#ventajas">¿Por qué nosotros?</a>
+        <a href="#proceso">Inscripción</a>
+        <a href="#contacto">Contacto</a>
+        <a href="#contacto" class="btn btn--small btn--primary">Inscríbete</a>
+      </nav>
+
+      <button class="nav__toggle" id="navToggle" aria-label="Abrir menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== Hero ===== -->
+  <section class="hero">
+    <div class="hero__blob hero__blob--green"></div>
+    <div class="hero__blob hero__blob--blue"></div>
+    <div class="container hero__inner">
+      <div class="hero__content" data-reveal>
+        <span class="badge badge--pulse">🎓 Matrículas Abiertas 2026</span>
+        <h1>Regálate la mejor inversión: <span class="grad-text">¡Estudiar!</span></h1>
+        <p class="hero__lead">
+          Formamos técnicos laborales con visión profesional y proyección al futuro.
+          Programas certificados, docentes expertos y prácticas reales en Fusagasugá.
+        </p>
+        <div class="hero__cta">
+          <a href="#programas" class="btn btn--primary btn--lg">Ver programas</a>
+          <a href="https://wa.me/573203023272" target="_blank" rel="noopener" class="btn btn--whatsapp btn--lg">
+            <span class="wa-icon">✆</span> Escríbenos
+          </a>
+        </div>
+        <ul class="hero__stats">
+          <li><strong>4</strong><span>Programas técnicos</span></li>
+          <li><strong>100%</strong><span>Práctica real</span></li>
+          <li><strong>+10</strong><span>Años de experiencia</span></li>
+        </ul>
+      </div>
+
+      <div class="hero__card" data-reveal>
+        <div class="enroll-card">
+          <img src="assets/logo.svg" alt="" class="enroll-card__logo" />
+          <h3>Inscripciones abiertas</h3>
+          <p>Déjanos tus datos y un asesor te contactará hoy mismo.</p>
+          <form class="mini-form" id="heroForm">
+            <input type="text" name="nombre" placeholder="Nombre completo" required />
+            <input type="tel" name="telefono" placeholder="Teléfono / WhatsApp" required />
+            <select name="programa" required>
+              <option value="" disabled selected>Programa de interés</option>
+              <option>Asistente Contable</option>
+              <option>Sistemas y Hardware</option>
+              <option>Atención a la Primera Infancia</option>
+              <option>Diseño y Artes Gráficas</option>
+            </select>
+            <button type="submit" class="btn btn--primary btn--block">Quiero más información</button>
+          </form>
+          <small class="enroll-card__note">Respuesta inmediata por WhatsApp 📲</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Programas ===== -->
+  <section class="section" id="programas">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <span class="eyebrow">Oferta académica</span>
+        <h2>Programas Técnicos Laborales</h2>
+        <p>Elige la carrera que impulsará tu futuro. Todos nuestros programas cuentan con certificación y enfoque práctico.</p>
+      </div>
+
+      <div class="grid grid--cards">
+        <article class="card-program" data-reveal>
+          <div class="card-program__icon" style="--c:#2E9BD6">🧮</div>
+          <h3>Asistente Contable</h3>
+          <p>Domina la contabilidad, nómina, facturación y manejo de software contable para empresas.</p>
+          <a href="#contacto" class="card-program__link">Más información →</a>
+        </article>
+
+        <article class="card-program" data-reveal>
+          <div class="card-program__icon" style="--c:#5DAE3A">💻</div>
+          <h3>Sistemas y Hardware</h3>
+          <p>Aprende mantenimiento de computadores, redes, soporte técnico y configuración de equipos.</p>
+          <a href="#contacto" class="card-program__link">Más información →</a>
+        </article>
+
+        <article class="card-program" data-reveal>
+          <div class="card-program__icon" style="--c:#F4A93B">🧸</div>
+          <h3>Atención a la Primera Infancia</h3>
+          <p>Fórmate en el cuidado, desarrollo y educación integral de niños y niñas.</p>
+          <a href="#contacto" class="card-program__link">Más información →</a>
+        </article>
+
+        <article class="card-program" data-reveal>
+          <div class="card-program__icon" style="--c:#8E5BD6">🎨</div>
+          <h3>Diseño y Artes Gráficas</h3>
+          <p>Desarrolla tu creatividad con diseño digital, branding, ilustración y herramientas profesionales.</p>
+          <a href="#contacto" class="card-program__link">Más información →</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Ventajas ===== -->
+  <section class="section section--alt" id="ventajas">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <span class="eyebrow">¿Por qué elegirnos?</span>
+        <h2>Educación que transforma vidas</h2>
+      </div>
+      <div class="grid grid--features">
+        <div class="feature" data-reveal>
+          <div class="feature__ico">🏅</div>
+          <h3>Certificación reconocida</h3>
+          <p>Títulos técnicos laborales con validez para el mundo laboral.</p>
+        </div>
+        <div class="feature" data-reveal>
+          <div class="feature__ico">👩‍🏫</div>
+          <h3>Docentes expertos</h3>
+          <p>Profesionales con experiencia real en cada área de formación.</p>
+        </div>
+        <div class="feature" data-reveal>
+          <div class="feature__ico">🛠️</div>
+          <h3>Aprendizaje práctico</h3>
+          <p>Más práctica que teoría para que aprendas haciendo.</p>
+        </div>
+        <div class="feature" data-reveal>
+          <div class="feature__ico">💰</div>
+          <h3>Precios accesibles</h3>
+          <p>Planes de pago flexibles pensados para tu economía.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Proceso de inscripción ===== -->
+  <section class="section" id="proceso">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <span class="eyebrow">Es muy fácil</span>
+        <h2>Cómo inscribirte</h2>
+      </div>
+      <div class="steps">
+        <div class="step" data-reveal>
+          <span class="step__num">1</span>
+          <h3>Contáctanos</h3>
+          <p>Escríbenos por WhatsApp o llámanos al 320 302 3272.</p>
+        </div>
+        <div class="step" data-reveal>
+          <span class="step__num">2</span>
+          <h3>Elige tu programa</h3>
+          <p>Un asesor te orienta sobre la carrera ideal para ti.</p>
+        </div>
+        <div class="step" data-reveal>
+          <span class="step__num">3</span>
+          <h3>Formaliza matrícula</h3>
+          <p>Entrega tus documentos y asegura tu cupo.</p>
+        </div>
+        <div class="step" data-reveal>
+          <span class="step__num">4</span>
+          <h3>¡A estudiar!</h3>
+          <p>Comienza tu camino hacia un mejor futuro.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA banner ===== -->
+  <section class="cta-band">
+    <div class="container cta-band__inner" data-reveal>
+      <h2>Este Amor y Amistad, regálate la mejor inversión</h2>
+      <p>Cupos limitados. Asegura el tuyo hoy.</p>
+      <a href="https://wa.me/573203023272" target="_blank" rel="noopener" class="btn btn--whatsapp btn--lg">
+        <span class="wa-icon">✆</span> 320 302 3272
+      </a>
+    </div>
+  </section>
+
+  <!-- ===== Contacto ===== -->
+  <section class="section" id="contacto">
+    <div class="container contact">
+      <div class="contact__info" data-reveal>
+        <span class="eyebrow">Contáctanos</span>
+        <h2>Estamos para ayudarte</h2>
+        <ul class="contact__list">
+          <li><span>📞</span><div><strong>Teléfono / WhatsApp</strong><a href="tel:+573203023272">320 302 3272</a></div></li>
+          <li><span>📍</span><div><strong>Dirección</strong><p>Fusagasugá · Transversal #12 16b - 75</p></div></li>
+          <li><span>📘</span><div><strong>Redes sociales</strong><a href="https://www.facebook.com/Poliandes.fusa" target="_blank" rel="noopener">Poliandes.fusa</a></div></li>
+        </ul>
+      </div>
+
+      <form class="contact__form card" id="contactForm" data-reveal>
+        <h3>Solicita información</h3>
+        <div class="field"><label>Nombre completo</label><input type="text" name="nombre" required /></div>
+        <div class="field"><label>Teléfono</label><input type="tel" name="telefono" required /></div>
+        <div class="field"><label>Programa de interés</label>
+          <select name="programa" required>
+            <option value="" disabled selected>Selecciona un programa</option>
+            <option>Asistente Contable</option>
+            <option>Sistemas y Hardware</option>
+            <option>Atención a la Primera Infancia</option>
+            <option>Diseño y Artes Gráficas</option>
+          </select>
+        </div>
+        <div class="field"><label>Mensaje (opcional)</label><textarea name="mensaje" rows="3"></textarea></div>
+        <button type="submit" class="btn btn--primary btn--block">Enviar por WhatsApp</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <img src="assets/logo.svg" alt="" class="footer__logo" />
+        <div>
+          <strong>Politécnico de los Andes</strong>
+          <small>SIGLO XXI</small>
+        </div>
+      </div>
+      <nav class="footer__nav">
+        <a href="#programas">Programas</a>
+        <a href="#ventajas">Ventajas</a>
+        <a href="#proceso">Inscripción</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <p class="footer__copy">© <span id="year"></span> Politécnico de los Andes Siglo XXI · Fusagasugá, Colombia</p>
+    </div>
+  </footer>
+
+  <!-- Floating WhatsApp -->
+  <a href="https://wa.me/573203023272" target="_blank" rel="noopener" class="wa-float" aria-label="WhatsApp">✆</a>
+
+  <script src="script.js"></script>
+</body>
+</html>
