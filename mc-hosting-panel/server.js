@@ -1,18 +1,18 @@
 /**
- * MC Hosting Panel - Backend (CERO dependencias)
+ * MC Hosting Panel v0.1 - Backend (CERO dependencias)
  * --------------------------------------------------------------
  * Servidor Node.js (solo modulos nativos) que gestiona de forma
  * REAL un servidor de Minecraft Java: descarga el .jar oficial
  * (Vanilla o Paper), acepta el EULA, edita server.properties,
- * arranca/detiene el proceso de Java y transmite la consola en
- * vivo mediante Server-Sent Events (SSE).
+ * detecta la version de Java instalada, arranca/detiene el
+ * proceso y transmite la consola en vivo mediante SSE.
  *
  * No requiere `npm install`. Solo Node.js 18+.
  * --------------------------------------------------------------
  */
 
 const http = require("http");
-const { spawn } = require("child_process");
+const { spawn, execFile } = require("child_process");
 const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
@@ -20,10 +20,13 @@ const os = require("os");
 const { Readable } = require("stream");
 const { pipeline } = require("stream/promises");
 
+const VERSION = "0.1";
 const PORT = process.env.PORT || 8080;
+const HOST = process.env.HOST || "0.0.0.0"; // escucha en todas las interfaces (localhost + IP de red)
 const ROOT = __dirname;
 const SERVER_DIR = path.join(ROOT, "server");
 const PUBLIC_DIR = path.join(ROOT, "public");
+const CONFIG_PATH = path.join(ROOT, "panel-config.json");
 
 const state = {
   process: null,
@@ -35,6 +38,17 @@ const state = {
   log: [],
 };
 const LOG_LIMIT = 1000;
+
+// Configuracion persistente del panel (ruta de Java, RAM)
+let config = { javaPath: "java", ram: 2048 };
+function loadConfig() {
+  try {
+    config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8")) };
+  } catch { /* usa valores por defecto */ }
+}
+async function saveConfig() {
+  await fsp.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
+}
 
 // ---------------------------------------------------------------------------
 // SSE: clientes conectados para recibir consola/estado en vivo
@@ -62,8 +76,18 @@ function setStatus(status) {
   broadcast({ type: "status", info: publicState() });
 }
 
+// IP local (LAN) para conexiones desde otros equipos
+function getLanIp() {
+  return (
+    Object.values(os.networkInterfaces())
+      .flat()
+      .find((i) => i && i.family === "IPv4" && !i.internal)?.address || null
+  );
+}
+
 function publicState() {
   return {
+    panelVersion: VERSION,
     status: state.status,
     type: state.type,
     version: state.version,
@@ -71,7 +95,55 @@ function publicState() {
     startedAt: state.startedAt,
     installed: !!state.jar,
     eula: isEulaAccepted(),
+    lanIp: getLanIp(),
+    javaPath: config.javaPath,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Deteccion de Java y compatibilidad con Minecraft
+// ---------------------------------------------------------------------------
+function detectJava(javaPath) {
+  const bin = javaPath || config.javaPath || "java";
+  return new Promise((resolve) => {
+    execFile(bin, ["-version"], (err, stdout, stderr) => {
+      const out = `${stderr || ""}${stdout || ""}`;
+      if (err && !out) {
+        return resolve({ ok: false, error: err.message, bin });
+      }
+      // Ejemplos:  java version "1.8.0_381"  |  openjdk version "17.0.10"  |  "21.0.2"
+      const m = out.match(/version "(\d+)(?:\.(\d+))?[^"]*"/);
+      let major = null;
+      if (m) {
+        major = parseInt(m[1], 10);
+        if (major === 1 && m[2]) major = parseInt(m[2], 10); // 1.8 -> 8
+      }
+      resolve({
+        ok: !!major,
+        major,
+        raw: out.split(/\r?\n/)[0].trim(),
+        bin,
+      });
+    });
+  });
+}
+
+// Minecraft (Java Edition) requiere distintas versiones de Java
+function requiredJavaFor(mcVersion) {
+  if (!mcVersion) return 17;
+  const parts = String(mcVersion).split(".").map((n) => parseInt(n, 10) || 0);
+  const minor = parts[1] || 0;
+  const patch = parts[2] || 0;
+  if (minor >= 21) return 21;
+  if (minor === 20) return patch >= 5 ? 21 : 17;
+  if (minor >= 18) return 17;
+  if (minor === 17) return 16;
+  return 8;
+}
+
+// Traduce "class file version 65.0" -> version de Java (65 -> 21)
+function classFileToJava(classMajor) {
+  return classMajor - 44;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +205,7 @@ function serializeProperties(obj) {
   return header + Object.entries(obj).map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
 }
 const DEFAULT_PROPERTIES = {
+  "server-ip": "",            // vacio = escucha en localhost Y en la IP de red
   "server-port": "25565",
   "motd": "Servidor creado con MC Hosting Panel",
   "gamemode": "survival",
@@ -219,27 +292,61 @@ async function installServer(type, version) {
   if (!fs.existsSync(PROPS_PATH())) {
     await fsp.writeFile(PROPS_PATH(), serializeProperties(DEFAULT_PROPERTIES));
   }
+
+  // Aviso de compatibilidad de Java
+  const need = requiredJavaFor(version);
+  const java = await detectJava();
+  if (java.ok && java.major < need) {
+    pushLog(
+      `AVISO: Minecraft ${version} necesita Java ${need}+, pero tienes Java ${java.major}. ` +
+      `Instala Java ${need}+ (https://adoptium.net) o elige una version de Minecraft compatible con Java ${java.major}.`,
+      "err"
+    );
+  } else if (java.ok) {
+    pushLog(`Java ${java.major} detectado: compatible con Minecraft ${version} (requiere ${need}+).`, "panel");
+  }
+
   pushLog(`Servidor instalado: ${jarName}`, "panel");
   broadcast({ type: "status", info: publicState() });
   return publicState();
 }
 
-function startServer(ram) {
+async function startServer(ram) {
   if (state.status === "running" || state.status === "starting") {
     throw new Error("El servidor ya esta en marcha.");
   }
   if (!state.jar) throw new Error("No hay servidor instalado. Instala una version primero.");
   if (!isEulaAccepted()) throw new Error("Debes aceptar el EULA de Minecraft antes de iniciar.");
 
-  ram = ram || 2048;
+  // Verificar Java y compatibilidad ANTES de arrancar (para dar un error claro)
+  const need = requiredJavaFor(state.version);
+  const java = await detectJava();
+  if (!java.ok) {
+    throw new Error(
+      `No se encontro Java ejecutable en "${config.javaPath}". Instala Java ${need}+ desde https://adoptium.net ` +
+      `o configura la ruta de Java en el panel.`
+    );
+  }
+  if (java.major < need) {
+    throw new Error(
+      `Tu Java es la version ${java.major}, pero Minecraft ${state.version} necesita Java ${need} o superior ` +
+      `(este es el error "class file version" que viste). Soluciones: 1) Instala Java ${need}+ desde ` +
+      `https://adoptium.net y reinicia. 2) Indica la ruta a un Java ${need}+ en el panel. ` +
+      `3) Instala una version de Minecraft compatible con Java ${java.major} (p. ej. 1.20.4 para Java 17).`
+    );
+  }
+
+  ram = ram || config.ram || 2048;
+  config.ram = ram;
+  await saveConfig();
   const xmx = `-Xmx${ram}M`;
   const xms = `-Xms${Math.min(ram, 1024)}M`;
 
   setStatus("starting");
-  pushLog(`Iniciando servidor (${xms} ${xmx})...`, "panel");
+  pushLog(`Iniciando con ${java.raw} (${xms} ${xmx})...`, "panel");
 
   const args = [xms, xmx, "-jar", state.jar, "nogui"];
-  const child = spawn("java", args, { cwd: SERVER_DIR });
+  const child = spawn(config.javaPath || "java", args, { cwd: SERVER_DIR });
   state.process = child;
   state.startedAt = Date.now();
 
@@ -252,7 +359,20 @@ function startServer(ram) {
     });
   });
   child.stderr.on("data", (d) => {
-    d.toString().split(/\r?\n/).forEach((l) => { if (l.trim()) pushLog(l, "err"); });
+    d.toString().split(/\r?\n/).forEach((l) => {
+      if (!l.trim()) return;
+      pushLog(l, "err");
+      // Detectar y explicar el error de version de Java
+      const cm = l.match(/class file version (\d+)\.\d+/);
+      if (cm) {
+        const neededJava = classFileToJava(parseInt(cm[1], 10));
+        pushLog(
+          `>> Este .jar necesita Java ${neededJava}+. Instala Java ${neededJava}+ desde https://adoptium.net ` +
+          `(o indica su ruta en el panel) y vuelve a iniciar.`,
+          "panel"
+        );
+      }
+    });
   });
   child.on("error", (err) => {
     pushLog(`No se pudo iniciar Java: ${err.message}. Esta Java instalado y en el PATH?`, "err");
@@ -350,6 +470,28 @@ const server = http.createServer(async (req, res) => {
     if (url === "/api/status" && req.method === "GET") {
       return sendJSON(res, 200, publicState());
     }
+    if (url === "/api/java" && req.method === "GET") {
+      const java = await detectJava();
+      return sendJSON(res, 200, {
+        ...java,
+        configuredPath: config.javaPath,
+        requiredFor: state.version ? requiredJavaFor(state.version) : null,
+        mcVersion: state.version,
+      });
+    }
+    if (url === "/api/java" && req.method === "POST") {
+      const b = await readBody(req);
+      const newPath = (b.javaPath || "").trim() || "java";
+      const java = await detectJava(newPath);
+      if (!java.ok) {
+        return sendJSON(res, 400, { error: `No se pudo ejecutar Java en "${newPath}".`, ...java });
+      }
+      config.javaPath = newPath;
+      await saveConfig();
+      pushLog(`Ruta de Java configurada: ${newPath} (Java ${java.major}).`, "panel");
+      broadcast({ type: "status", info: publicState() });
+      return sendJSON(res, 200, { ok: true, ...java });
+    }
     if (url === "/api/versions" && req.method === "GET") {
       return sendJSON(res, 200, await getVersions());
     }
@@ -386,7 +528,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (url === "/api/start" && req.method === "POST") {
       const b = await readBody(req);
-      startServer(parseInt(b.ram, 10) || 2048);
+      await startServer(parseInt(b.ram, 10) || config.ram || 2048);
       return sendJSON(res, 200, { ok: true });
     }
     if (url === "/api/stop" && req.method === "POST") {
@@ -413,16 +555,18 @@ const server = http.createServer(async (req, res) => {
 // Arranque
 // ---------------------------------------------------------------------------
 (async () => {
+  loadConfig();
   await ensureServerDir();
   await detectInstalledJar();
-  server.listen(PORT, () => {
-    const ip = Object.values(os.networkInterfaces())
-      .flat()
-      .find((i) => i && i.family === "IPv4" && !i.internal)?.address;
+  server.listen(PORT, HOST, async () => {
+    const ip = getLanIp();
+    const java = await detectJava();
     console.log("==================================================");
-    console.log("  MC Hosting Panel iniciado (cero dependencias)");
+    console.log(`  MC Hosting Panel v${VERSION} (cero dependencias)`);
     console.log(`  Local:   http://localhost:${PORT}`);
+    console.log(`  IP num.: http://127.0.0.1:${PORT}`);
     if (ip) console.log(`  Red:     http://${ip}:${PORT}`);
+    console.log(java.ok ? `  Java:    ${java.raw} (v${java.major})` : "  Java:    NO detectado (instala https://adoptium.net)");
     console.log("==================================================");
   });
 })();

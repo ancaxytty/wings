@@ -1,4 +1,4 @@
-/* MC Hosting Panel - Frontend */
+/* MC Hosting Panel v0.1 - Frontend */
 
 const $ = (id) => document.getElementById(id);
 const api = async (path, opts = {}) => {
@@ -11,6 +11,9 @@ const api = async (path, opts = {}) => {
   return data;
 };
 
+let lastInfo = {};       // ultimo estado del servidor
+let javaInfo = null;     // ultima deteccion de Java
+
 // ---- Toast --------------------------------------------------------------
 let toastTimer;
 function toast(msg, kind = "") {
@@ -18,7 +21,19 @@ function toast(msg, kind = "") {
   t.textContent = msg;
   t.className = `toast show ${kind}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.className = "toast"), 3200);
+  toastTimer = setTimeout(() => (t.className = "toast"), 4500);
+}
+
+// ---- Compatibilidad Java/Minecraft (igual que en el backend) ------------
+function requiredJavaFor(mcVersion) {
+  if (!mcVersion) return 17;
+  const p = String(mcVersion).split(".").map((n) => parseInt(n, 10) || 0);
+  const minor = p[1] || 0, patch = p[2] || 0;
+  if (minor >= 21) return 21;
+  if (minor === 20) return patch >= 5 ? 21 : 17;
+  if (minor >= 18) return 17;
+  if (minor === 17) return 16;
+  return 8;
 }
 
 // ---- Estado / status ----------------------------------------------------
@@ -30,26 +45,37 @@ const LABELS = {
 };
 
 function applyStatus(info) {
+  lastInfo = info || {};
   const s = info.status || "stopped";
   $("statusText").textContent = LABELS[s] || s;
   $("statusDot").className = "dot " + s;
+  if (info.panelVersion) $("panelVer").textContent = "v" + info.panelVersion;
 
   $("startBtn").disabled = s === "running" || s === "starting" || !info.installed;
   $("stopBtn").disabled = s === "stopped" || s === "stopping";
 
-  if (info.installed) {
-    $("installedInfo").textContent = `✓ Instalado: ${info.type} ${info.version}`;
-  } else {
-    $("installedInfo").textContent = "Aún no hay servidor instalado.";
-  }
+  $("installedInfo").textContent = info.installed
+    ? `✓ Instalado: ${info.type} ${info.version}`
+    : "Aún no hay servidor instalado.";
 
-  // Info de conexión
+  updateConnInfo();
+  updateJavaHint();
+}
+
+function updateConnInfo() {
+  const s = lastInfo.status || "stopped";
   const port = $("p_port").value || "25565";
-  $("connInfo").innerHTML =
-    s === "running"
-      ? `Conéctate en Minecraft a: <code>localhost:${port}</code><br>` +
-        `Otros en tu red local usan tu IP local. Para internet necesitas abrir el puerto ${port} en tu router.`
-      : "Inicia el servidor para poder conectarte.";
+  const ip = lastInfo.lanIp;
+  if (s === "running") {
+    $("connInfo").innerHTML =
+      `Conéctate en Minecraft a:<br>` +
+      `&nbsp;&nbsp;• <code>localhost:${port}</code> (en este PC)<br>` +
+      `&nbsp;&nbsp;• <code>127.0.0.1:${port}</code> (IP numérica local)<br>` +
+      (ip ? `&nbsp;&nbsp;• <code>${ip}:${port}</code> (otros en tu red / LAN)<br>` : "") +
+      `Para internet: abre el puerto ${port} en tu router o usa un túnel (playit.gg).`;
+  } else {
+    $("connInfo").innerHTML = "Inicia el servidor para poder conectarte.";
+  }
 }
 
 // ---- Consola ------------------------------------------------------------
@@ -79,7 +105,48 @@ function connectStream() {
       applyStatus(msg.info);
     }
   };
-  // EventSource se reconecta solo; no necesitamos onerror manual.
+}
+
+// ---- Java ---------------------------------------------------------------
+async function loadJava() {
+  try {
+    javaInfo = await api("/api/java");
+    const el = $("javaStatus");
+    if (javaInfo.ok) {
+      el.className = "java-status ok";
+      el.innerHTML = `✓ Java <b>${javaInfo.major}</b> detectado<br><code>${javaInfo.raw || javaInfo.bin}</code>`;
+      $("javaPath").value = javaInfo.configuredPath && javaInfo.configuredPath !== "java" ? javaInfo.configuredPath : "";
+    } else {
+      el.className = "java-status bad";
+      el.innerHTML = `✗ No se detectó Java en <code>${javaInfo.configuredPath || "java"}</code>.<br>` +
+        `Instálalo desde <a href="https://adoptium.net" target="_blank" rel="noopener">adoptium.net</a> o indica la ruta abajo.`;
+    }
+    updateJavaHint();
+  } catch (e) {
+    $("javaStatus").className = "java-status bad";
+    $("javaStatus").textContent = "No se pudo comprobar Java.";
+  }
+}
+
+function updateJavaHint() {
+  const hint = $("javaHint");
+  const version = $("serverVersion").value;
+  if (!version || version === "Cargando…" || version === "Sin datos") { hint.textContent = ""; return; }
+  const need = requiredJavaFor(version);
+  if (!javaInfo || !javaInfo.ok) {
+    hint.className = "hint warn";
+    hint.innerHTML = `Minecraft ${version} requiere <b>Java ${need}+</b>. (No se ha detectado Java aún.)`;
+    return;
+  }
+  if (javaInfo.major < need) {
+    hint.className = "hint warn";
+    hint.innerHTML =
+      `⚠ Minecraft ${version} requiere <b>Java ${need}+</b> y tienes <b>Java ${javaInfo.major}</b>.<br>` +
+      `Instala Java ${need}+ (adoptium.net) o elige una versión compatible con Java ${javaInfo.major}.`;
+  } else {
+    hint.className = "hint ok";
+    hint.innerHTML = `✓ Minecraft ${version} requiere Java ${need}+ · tienes Java ${javaInfo.major}. Compatible.`;
+  }
 }
 
 // ---- Versiones ----------------------------------------------------------
@@ -99,6 +166,7 @@ function fillVersions() {
   $("serverVersion").innerHTML = list.length
     ? list.map((v) => `<option value="${v}">${v}</option>`).join("")
     : "<option>Sin datos</option>";
+  updateJavaHint();
 }
 
 // ---- Propiedades --------------------------------------------------------
@@ -106,6 +174,7 @@ async function loadProperties() {
   try {
     const p = await api("/api/properties");
     $("p_motd").value = p["motd"] ?? "";
+    $("p_ip").value = p["server-ip"] ?? "";
     $("p_port").value = p["server-port"] ?? "25565";
     $("p_gamemode").value = p["gamemode"] ?? "survival";
     $("p_difficulty").value = p["difficulty"] ?? "easy";
@@ -117,6 +186,7 @@ async function loadProperties() {
     $("p_whitelist").checked = p["white-list"] === "true";
     $("p_flight").checked = p["allow-flight"] === "true";
     $("p_cmdblock").checked = p["enable-command-block"] === "true";
+    updateConnInfo();
   } catch (e) {
     toast("No se pudieron cargar las propiedades.", "err");
   }
@@ -125,6 +195,7 @@ async function loadProperties() {
 async function saveProperties() {
   const body = {
     "motd": $("p_motd").value,
+    "server-ip": $("p_ip").value.trim(),
     "server-port": $("p_port").value,
     "gamemode": $("p_gamemode").value,
     "difficulty": $("p_difficulty").value,
@@ -140,6 +211,7 @@ async function saveProperties() {
   try {
     await api("/api/properties", { method: "POST", body: JSON.stringify(body) });
     toast("Configuración guardada ✓", "ok");
+    updateConnInfo();
   } catch (e) {
     toast(e.message, "err");
   }
@@ -147,6 +219,7 @@ async function saveProperties() {
 
 // ---- Acciones -----------------------------------------------------------
 $("serverType").addEventListener("change", fillVersions);
+$("serverVersion").addEventListener("change", updateJavaHint);
 
 $("installBtn").addEventListener("click", async () => {
   const type = $("serverType").value;
@@ -175,10 +248,20 @@ $("eulaBtn").addEventListener("click", async () => {
   }
 });
 
+$("javaBtn").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/java", { method: "POST", body: JSON.stringify({ javaPath: $("javaPath").value.trim() }) });
+    toast(`Java ${r.major} configurado ✓`, "ok");
+    await loadJava();
+  } catch (e) {
+    toast(e.message, "err");
+    await loadJava();
+  }
+});
+
 $("saveBtn").addEventListener("click", saveProperties);
 
 $("startBtn").addEventListener("click", async () => {
-  // Guardamos la config antes de iniciar para aplicar cambios
   await saveProperties();
   const ram = parseInt($("p_ram").value, 10) || 2048;
   try {
@@ -220,5 +303,5 @@ async function refreshStatus() {
 // ---- Init ---------------------------------------------------------------
 (async function init() {
   connectStream();
-  await Promise.all([loadVersions(), loadProperties(), refreshStatus()]);
+  await Promise.all([loadVersions(), loadProperties(), refreshStatus(), loadJava()]);
 })();

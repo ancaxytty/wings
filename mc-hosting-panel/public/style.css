@@ -120,6 +120,24 @@ input:focus, select:focus { border-color: var(--blue); }
 .installed { margin-top: 12px; font-size: 13px; color: var(--accent); min-height: 18px; }
 .conn { margin-top: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }
 
+/* Version badge */
+.ver {
+  font-size: 11px; font-weight: 700; vertical-align: middle;
+  background: var(--blue); color: #fff; padding: 2px 7px; border-radius: 6px; margin-left: 6px;
+}
+
+/* Hints / Java */
+.hint { margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.hint.warn { color: #e2b53c; }
+.hint.ok { color: var(--accent); }
+.java-status {
+  font-size: 13.5px; padding: 10px 12px; border-radius: 8px;
+  background: var(--bg-card-2); border: 1px solid var(--border);
+}
+.java-status.ok { border-color: var(--green-d); }
+.java-status.bad { border-color: var(--red-d); color: #ff9b94; }
+.java-status code { background: #0a0d12; }
+
 /* Console */
 .console-card { display: flex; flex-direction: column; }
 .console {
