@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MC Hosting Panel</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🟩</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⛏️</span>
+      <div>
+        <h1>MC Hosting Panel</h1>
+        <small>Servidor de Minecraft en tu PC</small>
+      </div>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Cargando…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Columna izquierda: configuración -->
+    <section class="col">
+      <!-- Instalación -->
+      <div class="card">
+        <h2>1 · Instalar servidor</h2>
+        <p class="muted">Descarga el .jar oficial directamente desde Mojang o PaperMC.</p>
+        <div class="row">
+          <label>Tipo
+            <select id="serverType">
+              <option value="vanilla">Vanilla (oficial)</option>
+              <option value="paper">Paper (optimizado)</option>
+            </select>
+          </label>
+          <label>Versión
+            <select id="serverVersion"><option>Cargando…</option></select>
+          </label>
+        </div>
+        <button class="btn primary" id="installBtn">Descargar e instalar</button>
+        <div class="installed" id="installedInfo"></div>
+      </div>
+
+      <!-- EULA -->
+      <div class="card">
+        <h2>2 · Aceptar EULA</h2>
+        <p class="muted">
+          Para iniciar un servidor de Minecraft debes aceptar el
+          <a href="https://aka.ms/MinecraftEULA" target="_blank" rel="noopener">EULA de Minecraft</a>.
+        </p>
+        <label class="check">
+          <input type="checkbox" id="eulaCheck" />
+          He leído y acepto el EULA de Minecraft.
+        </label>
+        <button class="btn" id="eulaBtn">Guardar EULA</button>
+      </div>
+
+      <!-- Configuración -->
+      <div class="card">
+        <h2>3 · Configurar servidor</h2>
+        <p class="muted">Estos valores se guardan en <code>server.properties</code>.</p>
+        <div class="grid2">
+          <label>Nombre (MOTD)<input type="text" id="p_motd" /></label>
+          <label>Puerto<input type="number" id="p_port" /></label>
+          <label>Modo de juego
+            <select id="p_gamemode">
+              <option value="survival">Supervivencia</option>
+              <option value="creative">Creativo</option>
+              <option value="adventure">Aventura</option>
+              <option value="spectator">Espectador</option>
+            </select>
+          </label>
+          <label>Dificultad
+            <select id="p_difficulty">
+              <option value="peaceful">Pacífica</option>
+              <option value="easy">Fácil</option>
+              <option value="normal">Normal</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </label>
+          <label>Máx. jugadores<input type="number" id="p_maxplayers" /></label>
+          <label>Distancia de visión<input type="number" id="p_viewdistance" /></label>
+          <label>Semilla (seed)<input type="text" id="p_seed" placeholder="(aleatoria)" /></label>
+          <label>Memoria RAM (MB)<input type="number" id="p_ram" value="2048" step="512" /></label>
+        </div>
+        <div class="toggles">
+          <label class="check"><input type="checkbox" id="p_pvp" /> PvP</label>
+          <label class="check"><input type="checkbox" id="p_online" /> Modo online (premium)</label>
+          <label class="check"><input type="checkbox" id="p_whitelist" /> Lista blanca</label>
+          <label class="check"><input type="checkbox" id="p_flight" /> Permitir volar</label>
+          <label class="check"><input type="checkbox" id="p_cmdblock" /> Bloques de comandos</label>
+        </div>
+        <button class="btn" id="saveBtn">Guardar configuración</button>
+      </div>
+    </section>
+
+    <!-- Columna derecha: control + consola -->
+    <section class="col">
+      <div class="card">
+        <h2>4 · Control</h2>
+        <div class="controls">
+          <button class="btn success" id="startBtn">▶ Iniciar</button>
+          <button class="btn danger" id="stopBtn">■ Detener</button>
+        </div>
+        <div class="conn" id="connInfo"></div>
+      </div>
+
+      <div class="card console-card">
+        <h2>Consola en vivo</h2>
+        <div class="console" id="console"></div>
+        <form class="cmdbar" id="cmdForm">
+          <input type="text" id="cmdInput" placeholder="Escribe un comando (ej: say Hola, time set day, op TuNick)…" autocomplete="off" />
+          <button class="btn primary" type="submit">Enviar</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
