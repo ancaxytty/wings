@@ -58,6 +58,8 @@ function applyStatus(info) {
     ? `✓ Instalado: ${info.type} ${info.version}`
     : "Aún no hay servidor instalado.";
 
+  if (typeof info.autoJava === "boolean" && $("autoJava")) $("autoJava").checked = info.autoJava;
+
   updateConnInfo();
   updateJavaHint();
 }
@@ -133,16 +135,25 @@ function updateJavaHint() {
   const version = $("serverVersion").value;
   if (!version || version === "Cargando…" || version === "Sin datos") { hint.textContent = ""; return; }
   const need = requiredJavaFor(version);
+  const auto = $("autoJava") ? $("autoJava").checked : true;
   if (!javaInfo || !javaInfo.ok) {
     hint.className = "hint warn";
-    hint.innerHTML = `Minecraft ${version} requiere <b>Java ${need}+</b>. (No se ha detectado Java aún.)`;
+    hint.innerHTML = `Minecraft ${version} requiere <b>Java ${need}+</b>.` +
+      (auto ? ` El panel lo descargará automáticamente al iniciar.` : ` (No se ha detectado Java.)`);
     return;
   }
   if (javaInfo.major < need) {
-    hint.className = "hint warn";
-    hint.innerHTML =
-      `⚠ Minecraft ${version} requiere <b>Java ${need}+</b> y tienes <b>Java ${javaInfo.major}</b>.<br>` +
-      `Instala Java ${need}+ (adoptium.net) o elige una versión compatible con Java ${javaInfo.major}.`;
+    if (auto) {
+      hint.className = "hint ok";
+      hint.innerHTML =
+        `Minecraft ${version} requiere <b>Java ${need}+</b> y tienes Java ${javaInfo.major}.<br>` +
+        `✓ No te preocupes: el panel descargará Java ${need} automáticamente al pulsar Iniciar.`;
+    } else {
+      hint.className = "hint warn";
+      hint.innerHTML =
+        `⚠ Minecraft ${version} requiere <b>Java ${need}+</b> y tienes Java ${javaInfo.major}.<br>` +
+        `Activa la descarga automática de Java, o elige una versión compatible con Java ${javaInfo.major}.`;
+    }
   } else {
     hint.className = "hint ok";
     hint.innerHTML = `✓ Minecraft ${version} requiere Java ${need}+ · tienes Java ${javaInfo.major}. Compatible.`;
@@ -259,15 +270,46 @@ $("javaBtn").addEventListener("click", async () => {
   }
 });
 
+$("autoJava").addEventListener("change", async () => {
+  try {
+    await api("/api/java/auto", { method: "POST", body: JSON.stringify({ enabled: $("autoJava").checked }) });
+    updateJavaHint();
+  } catch (e) { toast(e.message, "err"); }
+});
+
+$("javaDownloadBtn").addEventListener("click", async () => {
+  const need = requiredJavaFor($("serverVersion").value) || 21;
+  const btn = $("javaDownloadBtn");
+  btn.disabled = true;
+  btn.textContent = `Descargando Java ${need}…`;
+  toast(`Descargando Java ${need}… puede tardar 1-3 min. Mira la consola.`, "");
+  try {
+    const r = await api("/api/java/download", { method: "POST", body: JSON.stringify({ major: need }) });
+    toast(`Java ${r.major} portable listo ✓`, "ok");
+    await loadJava();
+  } catch (e) {
+    toast(e.message, "err");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Descargar Java ahora";
+  }
+});
+
 $("saveBtn").addEventListener("click", saveProperties);
 
 $("startBtn").addEventListener("click", async () => {
   await saveProperties();
   const ram = parseInt($("p_ram").value, 10) || 2048;
+  const btn = $("startBtn");
+  btn.disabled = true;
+  btn.textContent = "Preparando…";
   try {
     await api("/api/start", { method: "POST", body: JSON.stringify({ ram }) });
   } catch (e) {
     toast(e.message, "err");
+  } finally {
+    btn.textContent = "▶ Iniciar";
+    // el estado real lo repone applyStatus via SSE
   }
 });
 

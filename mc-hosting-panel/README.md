@@ -20,24 +20,26 @@ desde tu navegador. Funciona de verdad: levanta un proceso real de Minecraft Jav
 ## 📋 Requisitos
 
 1. **Node.js 18 o superior** → https://nodejs.org
-2. **Java** (lo pide Minecraft para arrancar) → https://adoptium.net
-   - Minecraft **1.20.5 / 1.21+** → necesita **Java 21+**
-   - Minecraft **1.18 – 1.20.4** → necesita **Java 17+**
-   - Minecraft **1.17** → Java 16 · versiones antiguas → Java 8
-3. Conexión a internet la primera vez (para descargar el .jar).
+2. **Java** → el panel lo **descarga automáticamente** si no lo tienes (o lo tienes
+   desactualizado). Si prefieres instalarlo tú: https://adoptium.net
+   - Minecraft **1.20.5 / 1.21+** → Java 21+ · **1.18 – 1.20.4** → Java 17+ · **1.17** → 16 · antiguas → 8
+3. Conexión a internet la primera vez (para descargar el .jar y, si hace falta, Java).
 
 ## ⚠️ Error "UnsupportedClassVersionError / class file version"
 
-Si ves algo como `class file version 65.0 ... only recognizes ... up to 61.0`:
-- Significa que el servidor está compilado para una versión de Java **más nueva** que la
-  que tienes (clase 65 = Java 21, clase 61 = Java 17).
-- **Soluciones:**
-  1. Instala **Java 21+** desde [adoptium.net](https://adoptium.net) y reinicia el panel.
-  2. En el panel, escribe la **ruta de Java** a una instalación más nueva (tarjeta *Java*).
-  3. O instala una versión de Minecraft **compatible con tu Java** (p. ej. **1.20.4** con Java 17).
+Si ves algo como `class file version 65.0 ... only recognizes ... up to 61.0`, significa que el
+servidor está compilado para una versión de Java **más nueva** que la que tienes
+(clase 65 = Java 21, clase 61 = Java 17).
 
-El panel ahora **detecta tu versión de Java** y te avisa antes de iniciar, en vez de
-fallar de golpe.
+**Ya no tienes que hacer nada:** el panel trae **descarga automática de Java**. Al pulsar
+*Iniciar*, si tu Java no sirve para esa versión de Minecraft, el panel descarga un **Java
+portable** (Adoptium Temurin) de la versión correcta y arranca el servidor con él, sin tocar
+tu sistema ni el PATH. Lo guarda en la carpeta `runtime/`.
+
+Si prefieres gestionarlo tú, en la tarjeta *Java* puedes:
+- Desactivar la descarga automática.
+- Indicar la ruta a un Java concreto.
+- Pulsar *Descargar Java ahora* para bajarlo por adelantado.
 
 ## 🚀 Cómo usarlo
 

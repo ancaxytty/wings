@@ -137,6 +137,8 @@ input:focus, select:focus { border-color: var(--blue); }
 .java-status.ok { border-color: var(--green-d); }
 .java-status.bad { border-color: var(--red-d); color: #ff9b94; }
 .java-status code { background: #0a0d12; }
+.summary { cursor: pointer; color: var(--blue); font-size: 13px; user-select: none; }
+.summary:hover { filter: brightness(1.2); }
 
 /* Console */
 .console-card { display: flex; flex-direction: column; }

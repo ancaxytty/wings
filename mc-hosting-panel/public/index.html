@@ -103,12 +103,22 @@
     <section class="col">
       <div class="card">
         <h2>Java</h2>
-        <p class="muted">Minecraft necesita Java para ejecutarse. Aquí ves la versión detectada.</p>
+        <p class="muted">Minecraft necesita Java. El panel puede descargar la versión correcta por ti.</p>
         <div class="java-status" id="javaStatus">Detectando Java…</div>
-        <label style="margin-top:12px">Ruta de Java (opcional, si tienes varias versiones)
-          <input type="text" id="javaPath" placeholder="java  ó  C:\Program Files\Java\jdk-21\bin\java.exe" />
+        <label class="check" style="margin-top:14px">
+          <input type="checkbox" id="autoJava" checked />
+          Descargar Java automáticamente cuando haga falta (recomendado)
         </label>
-        <button class="btn" id="javaBtn">Usar esta ruta de Java</button>
+        <details style="margin-top:10px">
+          <summary class="summary">Opciones avanzadas de Java</summary>
+          <label style="margin-top:10px">Ruta de Java (si tienes una instalación concreta)
+            <input type="text" id="javaPath" placeholder="java  ó  C:\Program Files\Java\jdk-21\bin\java.exe" />
+          </label>
+          <div class="controls" style="margin-top:10px">
+            <button class="btn" id="javaBtn">Usar esta ruta</button>
+            <button class="btn" id="javaDownloadBtn">Descargar Java ahora</button>
+          </div>
+        </details>
       </div>
 
       <div class="card">

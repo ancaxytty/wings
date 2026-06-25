@@ -27,6 +27,7 @@ const ROOT = __dirname;
 const SERVER_DIR = path.join(ROOT, "server");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const CONFIG_PATH = path.join(ROOT, "panel-config.json");
+const RUNTIME_DIR = path.join(ROOT, "runtime"); // Java portable descargado automaticamente
 
 const state = {
   process: null,
@@ -39,8 +40,8 @@ const state = {
 };
 const LOG_LIMIT = 1000;
 
-// Configuracion persistente del panel (ruta de Java, RAM)
-let config = { javaPath: "java", ram: 2048 };
+// Configuracion persistente del panel (ruta de Java, RAM, auto-Java)
+let config = { javaPath: "java", ram: 2048, autoJava: true };
 function loadConfig() {
   try {
     config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8")) };
@@ -97,6 +98,7 @@ function publicState() {
     eula: isEulaAccepted(),
     lanIp: getLanIp(),
     javaPath: config.javaPath,
+    autoJava: config.autoJava !== false,
   };
 }
 
@@ -144,6 +146,116 @@ function requiredJavaFor(mcVersion) {
 // Traduce "class file version 65.0" -> version de Java (65 -> 21)
 function classFileToJava(classMajor) {
   return classMajor - 44;
+}
+
+// --- Descarga automatica de un Java portable (Adoptium Temurin) ---
+function execFileP(cmd, args) {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, { maxBuffer: 1024 * 1024 * 20 }, (err, stdout, stderr) => {
+      if (err) reject(new Error(stderr || err.message));
+      else resolve(stdout);
+    });
+  });
+}
+
+function adoptiumParams() {
+  const platform = os.platform();
+  const aos = platform === "win32" ? "windows" : platform === "darwin" ? "mac" : "linux";
+  let arch = os.arch();
+  if (arch === "arm64") arch = "aarch64";
+  else if (arch === "ia32") arch = "x86";
+  // x64 se queda igual
+  return {
+    aos,
+    arch,
+    ext: aos === "windows" ? "zip" : "tar.gz",
+    exe: aos === "windows" ? "java.exe" : "java",
+  };
+}
+
+// Busca recursivamente el ejecutable de Java dentro de una carpeta
+async function findJavaBinary(dir, exe) {
+  let entries;
+  try { entries = await fsp.readdir(dir, { withFileTypes: true }); }
+  catch { return null; }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      if (e.name === "bin") {
+        const cand = path.join(full, exe);
+        if (fs.existsSync(cand)) return cand;
+      }
+      const found = await findJavaBinary(full, exe);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+async function extractArchive(file, destDir, aos) {
+  await fsp.mkdir(destDir, { recursive: true });
+  if (aos === "windows") {
+    // PowerShell Expand-Archive (disponible en Windows 10/11)
+    await execFileP("powershell", [
+      "-NoProfile", "-NonInteractive", "-Command",
+      `Expand-Archive -LiteralPath "${file}" -DestinationPath "${destDir}" -Force`,
+    ]);
+  } else {
+    await execFileP("tar", ["-xzf", file, "-C", destDir]);
+  }
+}
+
+// Garantiza un Java de la version pedida; lo descarga si hace falta. Devuelve la ruta del binario.
+async function ensureBundledJava(major) {
+  const { aos, arch, ext, exe } = adoptiumParams();
+  const jreDir = path.join(RUNTIME_DIR, `jre-${major}`);
+
+  // Si ya lo descargamos antes, reutilizar
+  let bin = await findJavaBinary(jreDir, exe);
+  if (bin) {
+    const det = await detectJava(bin);
+    if (det.ok && det.major >= major) return bin;
+  }
+
+  await fsp.mkdir(RUNTIME_DIR, { recursive: true });
+  const url = `https://api.adoptium.net/v3/binary/latest/${major}/ga/${aos}/${arch}/jre/hotspot/normal/eclipse`;
+  const archive = path.join(RUNTIME_DIR, `jre-${major}.${ext}`);
+
+  pushLog(`Descargando Java ${major} portable para ${aos}/${arch}... (puede tardar 1-3 min)`, "panel");
+  await downloadFile(url, archive);
+
+  pushLog(`Extrayendo Java ${major}...`, "panel");
+  await fsp.rm(jreDir, { recursive: true, force: true });
+  await extractArchive(archive, jreDir, aos);
+  await fsp.unlink(archive).catch(() => {});
+
+  bin = await findJavaBinary(jreDir, exe);
+  if (!bin) throw new Error("No se encontro el ejecutable de Java tras la extraccion.");
+  if (aos !== "windows") { try { await fsp.chmod(bin, 0o755); } catch {} }
+
+  const det = await detectJava(bin);
+  pushLog(`Java ${det.major} portable listo y verificado.`, "panel");
+  return bin;
+}
+
+// Resuelve que Java usar para una version de Minecraft (sistema o portable)
+async function resolveJava(requiredMajor) {
+  // 1) Java del sistema / configurado
+  const sys = await detectJava(config.javaPath);
+  if (sys.ok && sys.major >= requiredMajor) {
+    return { path: config.javaPath, major: sys.major, raw: sys.raw, bundled: false };
+  }
+  // 2) Descarga automatica (si esta activada)
+  if (config.autoJava !== false) {
+    const bin = await ensureBundledJava(requiredMajor);
+    const det = await detectJava(bin);
+    return { path: bin, major: det.major, raw: det.raw, bundled: true };
+  }
+  // 3) Sin opciones
+  throw new Error(
+    `Minecraft necesita Java ${requiredMajor}+ y no esta disponible. Activa la descarga automatica ` +
+    `de Java o instala Java ${requiredMajor}+ desde https://adoptium.net.`
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -293,14 +405,14 @@ async function installServer(type, version) {
     await fsp.writeFile(PROPS_PATH(), serializeProperties(DEFAULT_PROPERTIES));
   }
 
-  // Aviso de compatibilidad de Java
+  // Aviso de compatibilidad de Java (informativo, no bloquea)
   const need = requiredJavaFor(version);
   const java = await detectJava();
   if (java.ok && java.major < need) {
     pushLog(
-      `AVISO: Minecraft ${version} necesita Java ${need}+, pero tienes Java ${java.major}. ` +
-      `Instala Java ${need}+ (https://adoptium.net) o elige una version de Minecraft compatible con Java ${java.major}.`,
-      "err"
+      `Nota: Minecraft ${version} requiere Java ${need}+ y tu sistema tiene Java ${java.major}. ` +
+      `No pasa nada: al iniciar, el panel descargara Java ${need} automaticamente.`,
+      "panel"
     );
   } else if (java.ok) {
     pushLog(`Java ${java.major} detectado: compatible con Minecraft ${version} (requiere ${need}+).`, "panel");
@@ -318,23 +430,19 @@ async function startServer(ram) {
   if (!state.jar) throw new Error("No hay servidor instalado. Instala una version primero.");
   if (!isEulaAccepted()) throw new Error("Debes aceptar el EULA de Minecraft antes de iniciar.");
 
-  // Verificar Java y compatibilidad ANTES de arrancar (para dar un error claro)
+  // Resolver que Java usar (sistema o portable descargado automaticamente)
   const need = requiredJavaFor(state.version);
-  const java = await detectJava();
-  if (!java.ok) {
-    throw new Error(
-      `No se encontro Java ejecutable en "${config.javaPath}". Instala Java ${need}+ desde https://adoptium.net ` +
-      `o configura la ruta de Java en el panel.`
-    );
+  let java;
+  try {
+    setStatus("starting");
+    pushLog(`Comprobando Java (Minecraft ${state.version} requiere Java ${need}+)...`, "panel");
+    java = await resolveJava(need);
+  } catch (e) {
+    setStatus("stopped");
+    throw e;
   }
-  if (java.major < need) {
-    throw new Error(
-      `Tu Java es la version ${java.major}, pero Minecraft ${state.version} necesita Java ${need} o superior ` +
-      `(este es el error "class file version" que viste). Soluciones: 1) Instala Java ${need}+ desde ` +
-      `https://adoptium.net y reinicia. 2) Indica la ruta a un Java ${need}+ en el panel. ` +
-      `3) Instala una version de Minecraft compatible con Java ${java.major} (p. ej. 1.20.4 para Java 17).`
-    );
-  }
+  const javaBin = java.path;
+  if (java.bundled) pushLog(`Usando Java portable v${java.major} (no se modifico tu sistema).`, "panel");
 
   ram = ram || config.ram || 2048;
   config.ram = ram;
@@ -342,11 +450,10 @@ async function startServer(ram) {
   const xmx = `-Xmx${ram}M`;
   const xms = `-Xms${Math.min(ram, 1024)}M`;
 
-  setStatus("starting");
-  pushLog(`Iniciando con ${java.raw} (${xms} ${xmx})...`, "panel");
+  pushLog(`Iniciando con ${java.raw || ("Java " + java.major)} (${xms} ${xmx})...`, "panel");
 
   const args = [xms, xmx, "-jar", state.jar, "nogui"];
-  const child = spawn(config.javaPath || "java", args, { cwd: SERVER_DIR });
+  const child = spawn(javaBin, args, { cwd: SERVER_DIR });
   state.process = child;
   state.startedAt = Date.now();
 
@@ -491,6 +598,21 @@ const server = http.createServer(async (req, res) => {
       pushLog(`Ruta de Java configurada: ${newPath} (Java ${java.major}).`, "panel");
       broadcast({ type: "status", info: publicState() });
       return sendJSON(res, 200, { ok: true, ...java });
+    }
+    if (url === "/api/java/auto" && req.method === "POST") {
+      const b = await readBody(req);
+      config.autoJava = b.enabled !== false;
+      await saveConfig();
+      pushLog(`Descarga automatica de Java ${config.autoJava ? "ACTIVADA" : "DESACTIVADA"}.`, "panel");
+      broadcast({ type: "status", info: publicState() });
+      return sendJSON(res, 200, { ok: true, autoJava: config.autoJava });
+    }
+    if (url === "/api/java/download" && req.method === "POST") {
+      const b = await readBody(req);
+      const major = parseInt(b.major, 10) || (state.version ? requiredJavaFor(state.version) : 21);
+      const bin = await ensureBundledJava(major);
+      const det = await detectJava(bin);
+      return sendJSON(res, 200, { ok: true, path: bin, major: det.major, raw: det.raw });
     }
     if (url === "/api/versions" && req.method === "GET") {
       return sendJSON(res, 200, await getVersions());
