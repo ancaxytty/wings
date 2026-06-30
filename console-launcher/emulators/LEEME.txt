@@ -1,0 +1,30 @@
+========================================================================
+  CARPETA DE EMULADORES  -  Nexus Game Center
+========================================================================
+
+La app NO incluye los emuladores (son programas grandes y de terceros),
+pero los DETECTA AUTOMATICAMENTE si los dejas aqui. Asi no tienes que
+configurar ninguna ruta a mano.
+
+QUE HACER (solo una vez):
+
+  1) Descarga la version PORTABLE de cada emulador que quieras usar:
+       - PS1  -> DuckStation     (https://www.duckstation.org)
+       - PS2  -> PCSX2           (https://pcsx2.net)
+       - PSP  -> PPSSPP          (https://www.ppsspp.org)
+
+  2) Descomprime cada uno dentro de su subcarpeta correspondiente:
+
+       emulators/
+       ├── duckstation/   <- aqui el .exe de DuckStation (PS1)
+       ├── pcsx2/         <- aqui el .exe de PCSX2 (PS2)
+       └── ppsspp/        <- aqui el .exe de PPSSPP (PSP)
+
+  3) Abre Nexus Game Center y juega. La app encuentra el .exe sola.
+
+CONSEJO: el script "setup_emulators.bat" (en la carpeta principal) crea
+estas subcarpetas y abre las paginas oficiales de descarga por ti.
+
+NOTA LEGAL: usa solo emuladores oficiales y juegos (ROMs) de los que
+poseas una copia original.
+========================================================================

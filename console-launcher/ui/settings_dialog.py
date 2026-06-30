@@ -16,6 +16,7 @@ from typing import Callable
 import customtkinter as ctk
 
 from core.config import Config, CONSOLES
+from core import emulator_finder
 from . import theme
 
 
@@ -91,8 +92,9 @@ class SettingsDialog(ctk.CTkToplevel):
     def _build_emulators(self, parent):
         ctk.CTkLabel(
             parent,
-            text="Indica la ruta del ejecutable de cada emulador. El punto verde\n"
-                 "✓ confirma que el archivo existe.",
+            text="No necesitas configurar nada si dejas los emuladores en la\n"
+                 "carpeta «emulators». Si los encuentra solo, verás «Auto ✓».\n"
+                 "Solo rellena la ruta si quieres forzar un .exe concreto.",
             font=theme.FONT_SMALL, text_color=theme.TEXT_MUTED, justify="left",
         ).pack(anchor="w", pady=(6, 4))
 
@@ -106,9 +108,25 @@ class SettingsDialog(ctk.CTkToplevel):
             seen.add(key)
 
             self._section(parent, f"{meta['name']}  ·  {key}")
+
+            # Estado de detección automática
+            auto = emulator_finder.detect(key)
+            if auto:
+                ctk.CTkLabel(
+                    parent, text=f"Auto ✓  detectado: {auto}",
+                    font=theme.FONT_SMALL, text_color=theme.OK, justify="left",
+                    wraplength=600,
+                ).pack(anchor="w", pady=(0, 2))
+            else:
+                ctk.CTkLabel(
+                    parent,
+                    text=f"No detectado · déjalo en  emulators/{key}",
+                    font=theme.FONT_SMALL, text_color=theme.TEXT_MUTED,
+                ).pack(anchor="w", pady=(0, 2))
+
             var = ctk.StringVar(value=self.config_obj.emulators.get(key, ""))
             self.emu_vars[key] = var
-            self._path_row(parent, "Ejecutable (.exe)", var,
+            self._path_row(parent, "Ruta manual (opcional)", var,
                            pick_dir=False, validate=True, is_dir=False)
 
             arg = ctk.StringVar(value=self.config_obj.emulator_args.get(key, ""))

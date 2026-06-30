@@ -76,12 +76,31 @@ pip install -r requirements.txt
 python main.py
 ```
 
-La primera vez abre **⚙ Ajustes** y configura:
+La primera vez:
 
-- **Carpeta de ROMS** (ej. `D:\ROMS`)
-- Ruta de **DuckStation** (`duckstation-qt-x64-ReleaseLTCG.exe`)
-- Ruta de **PCSX2** (`pcsx2-qt.exe`)
-- Ruta de **PPSSPP** (`PPSSPPWindows64.exe`)
+1. Deja los emuladores **portables** dentro de la carpeta `emulators/`
+   (`emulators/duckstation`, `emulators/pcsx2`, `emulators/ppsspp`) — o ejecuta
+   **`setup_emulators.bat`**, que crea las carpetas y abre las descargas oficiales.
+   La app los **detecta automáticamente**, no hace falta configurar rutas.
+2. Abre **⚙ Ajustes** y elige tu **carpeta de ROMS** (ej. `D:\ROMS`).
+
+> Solo necesitas escribir una ruta de emulador a mano si quieres forzar un
+> `.exe` concreto; en la pestaña **Emuladores** verás «Auto ✓» cuando lo detecta.
+
+---
+
+## 🎮 Sobre los emuladores (importante)
+
+Una ROM es solo los datos del juego: **no puede ejecutarse sola**, necesita un
+emulador que imite el hardware de la consola. Por eso la app **no incluye** los
+emuladores (son programas grandes de terceros), pero:
+
+- Los **detecta automáticamente** si los dejas en la carpeta `emulators/`,
+  si están en el `PATH` o instalados en rutas comunes.
+- Así, una vez colocados, **juegas sin configurar nada**.
+
+> Si generas el `.exe`, mantén la carpeta `emulators/` (y tu `ROMS/`) **junto a**
+> `NexusGameCenter.exe`.
 
 ---
 

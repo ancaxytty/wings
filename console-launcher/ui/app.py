@@ -8,6 +8,7 @@ import customtkinter as ctk
 
 from core.config import Config, CONSOLES, resource_path
 from core.launcher import launch, LaunchError
+from core import emulator_finder
 from core.scanner import scan, flatten, Game
 from . import theme
 from .game_card import GameCard
@@ -125,6 +126,7 @@ class LauncherApp(ctk.CTk):
     #  Data
     # ----------------------------------------------------------------- #
     def reload_library(self):
+        emulator_finder.clear_cache()  # re-detect emulators dropped into emulators/
         self.library = scan(self.config_obj.roms_folder)
         counts = {cid: len(games) for cid, games in self.library.items()}
         self.sidebar.set_counts(counts)
