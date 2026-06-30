@@ -49,18 +49,23 @@ console-launcher/
 
 ## 🚀 Instalación y ejecución
 
+### Opción A — Windows, sin tocar la terminal (recomendado)
+1. **Descomprime** el `.zip` (clic derecho → *Extraer todo*). ⚠️ No ejecutes nada desde dentro del zip.
+2. Entra en la carpeta `console-launcher` extraída.
+3. Para **probar la app**: doble clic en **`RUN.bat`**.
+4. Para **generar el `.exe`**: doble clic en **`build_exe.bat`** → el ejecutable queda en `dist\NexusGameCenter.exe`.
+
+> Necesitas [Python 3.10+](https://www.python.org/downloads/) instalado con la
+> casilla **"Add python.exe to PATH"** marcada. Los scripts detectan Python
+> automáticamente, crean el entorno, instalan todo y registran cualquier error
+> en `build_log.txt`.
+
+### Opción B — Manual (cualquier sistema)
 ```bash
-# 1. (Opcional) crea un entorno virtual
 python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# 2. Instala dependencias
+# Windows:  .venv\Scripts\activate
+# macOS/Linux:  source .venv/bin/activate
 pip install -r requirements.txt
-
-# 3. Ejecuta
 python main.py
 ```
 
@@ -111,25 +116,19 @@ Si no hay imagen, el programa genera una carátula con degradado y el título.
 
 ## 📦 Cómo convertirlo en un `.exe` con PyInstaller
 
-CustomTkinter incluye archivos de datos (temas) que **deben empaquetarse**,
-así que no basta con `--onefile` a secas. Usa el script incluido:
+La forma más fácil en Windows es hacer **doble clic en `build_exe.bat`** (ver
+arriba). Si prefieres hacerlo a mano:
 
 ```bash
 pip install pyinstaller
 python build_exe.py
 ```
 
-O ejecuta el comando manualmente (Windows, una sola línea):
+O el comando completo (Windows, una sola línea):
 
 ```bash
-pyinstaller --noconsole --onefile --name "NexusGameCenter" ^
-  --collect-all customtkinter ^
-  --collect-all PIL ^
-  main.py
+pyinstaller --noconsole --onefile --name "NexusGameCenter" --icon app.ico --add-data "app.ico;." --collect-all customtkinter --collect-all PIL main.py
 ```
-
-> En macOS/Linux usa `\` en lugar de `^` para los saltos de línea, o ponlo todo
-> en una sola línea.
 
 El ejecutable quedará en la carpeta **`dist/`**.
 

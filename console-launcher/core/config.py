@@ -48,6 +48,19 @@ CONSOLES: dict[str, dict] = {
 }
 
 
+def resource_path(name: str) -> Path:
+    """
+    Locate a bundled resource (e.g. app.ico) whether running from source or
+    from a PyInstaller --onefile build (which extracts data to sys._MEIPASS).
+    """
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidate = Path(base) / name
+        if candidate.exists():
+            return candidate
+    return app_dir() / name
+
+
 def app_dir() -> Path:
     """
     Directory where the app lives. When frozen by PyInstaller (--onefile)

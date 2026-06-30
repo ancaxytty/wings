@@ -6,7 +6,7 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 
-from core.config import Config, CONSOLES
+from core.config import Config, CONSOLES, resource_path
 from core.launcher import launch, LaunchError
 from core.scanner import scan, flatten, Game
 from . import theme
@@ -24,6 +24,7 @@ class LauncherApp(ctk.CTk):
         self.geometry("1180x720")
         self.minsize(880, 560)
         self.configure(fg_color=theme.BG_DEEP)
+        self._apply_icon()
 
         self.config_obj = Config.load()
         self.library: dict[str, list[Game]] = {cid: [] for cid in CONSOLES}
@@ -34,6 +35,15 @@ class LauncherApp(ctk.CTk):
 
         self._build_layout()
         self.reload_library()
+
+    def _apply_icon(self):
+        """Set the window/taskbar icon (app.ico). Safe no-op if unavailable."""
+        try:
+            ico = resource_path("app.ico")
+            if ico.exists():
+                self.iconbitmap(default=str(ico))
+        except Exception:
+            pass  # icon is cosmetic; never crash over it
 
     # ----------------------------------------------------------------- #
     #  Layout
@@ -62,10 +72,16 @@ class LauncherApp(ctk.CTk):
         topbar.grid(row=0, column=0, sticky="ew", padx=24, pady=(20, 10))
         topbar.grid_columnconfigure(1, weight=1)
 
+        title_box = ctk.CTkFrame(topbar, fg_color="transparent")
+        title_box.grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
-            topbar, text="CENTRAL DE JUEGOS",
+            title_box, text="CENTRAL DE JUEGOS",
             font=theme.FONT_TITLE, text_color=theme.TEXT,
-        ).grid(row=0, column=0, sticky="w")
+        ).pack(anchor="w")
+        ctk.CTkLabel(
+            title_box, text="Tu biblioteca de PS1 · PS2 · PSP",
+            font=theme.FONT_SMALL, text_color=theme.TEXT_MUTED,
+        ).pack(anchor="w")
 
         self.search_var = ctk.StringVar()
         self.search_var.trace_add("write", lambda *_: self._on_search())
@@ -79,8 +95,18 @@ class LauncherApp(ctk.CTk):
         self.grid_frame = ctk.CTkScrollableFrame(
             content, fg_color="transparent", corner_radius=0
         )
-        self.grid_frame.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 16))
+        self.grid_frame.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 8))
         self.grid_frame.bind("<Configure>", self._on_grid_resize)
+
+        # Status bar (bottom)
+        statusbar = ctk.CTkFrame(content, fg_color=theme.BG_PANEL, height=30,
+                                 corner_radius=0)
+        statusbar.grid(row=2, column=0, sticky="ew")
+        self.status_bar_label = ctk.CTkLabel(
+            statusbar, text="", font=theme.FONT_SMALL,
+            text_color=theme.TEXT_MUTED, anchor="w",
+        )
+        self.status_bar_label.pack(side="left", padx=16, pady=4)
 
         # Empty-state / status label (shown when there are no games).
         self.status_label = ctk.CTkLabel(
@@ -95,7 +121,15 @@ class LauncherApp(ctk.CTk):
         self.library = scan(self.config_obj.roms_folder)
         counts = {cid: len(games) for cid, games in self.library.items()}
         self.sidebar.set_counts(counts)
+        self._update_status_bar(counts)
         self._render_grid(force=True)
+
+    def _update_status_bar(self, counts: dict[str, int]):
+        total = sum(counts.values())
+        folder = self.config_obj.roms_folder or "(sin configurar)"
+        self.status_bar_label.configure(
+            text=f"📁 ROMS: {folder}    •    {total} juego(s) en la biblioteca"
+        )
 
     def _visible_games(self) -> list[Game]:
         if self.current_filter == ALL:

@@ -13,12 +13,14 @@ detecta solo, por eso usamos --collect-all para incluirlos.
 
 import subprocess
 import sys
+import os
 
 APP_NAME = "NexusGameCenter"
 ENTRY = "main.py"
 
 
 def main() -> int:
+    sep = ";" if sys.platform.startswith("win") else ":"
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconsole",
@@ -28,8 +30,10 @@ def main() -> int:
         "--collect-all", "PIL",
         "--clean",
         "--noconfirm",
-        ENTRY,
     ]
+    if os.path.exists("app.ico"):
+        cmd += ["--icon", "app.ico", "--add-data", f"app.ico{sep}."]
+    cmd.append(ENTRY)
     print("Ejecutando:\n  " + " ".join(cmd) + "\n")
     try:
         subprocess.run(cmd, check=True)
