@@ -16,12 +16,19 @@ externo correspondiente (**DuckStation**, **PCSX2**, **PPSSPP**) con un clic.
 ## ✨ Características
 
 - Interfaz fluida y oscura (CustomTkinter) estilo consola moderna.
+- **Tarjetas animadas**: elevación suave, borde de acento y botón ▶ Jugar al pasar el ratón.
 - **Lanzador** que ejecuta emuladores externos vía `subprocess`.
 - **Cuadrícula responsiva** de carátulas que se reajusta al tamaño de la ventana.
 - **Escáner automático** de la carpeta `ROMS` que clasifica los juegos por consola.
 - Generación de **carátulas placeholder** (degradado + título) cuando no hay imagen.
 - Barra lateral con filtros por consola + contador de juegos y buscador en vivo.
-- Diálogo de **Ajustes** para configurar rutas (se guardan en `launcher_config.json`).
+- **Ajustes con pestañas** (General · Emuladores · Apariencia):
+  - Validación de rutas en vivo (✓/✗) de cada emulador.
+  - 7 **temas de color** seleccionables con muestras.
+  - **Tamaño de carátulas** (Pequeña / Mediana / Grande) y modo de apariencia.
+  - Lanzar en **pantalla completa**, **minimizar al jugar** y **confirmar antes de lanzar**.
+  - Argumentos de línea de comandos extra por emulador (avanzado).
+- Icono personalizado e instalador `.bat` a prueba de fallos para generar el `.exe`.
 
 ---
 

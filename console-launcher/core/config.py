@@ -75,6 +75,14 @@ def app_dir() -> Path:
 CONFIG_PATH = app_dir() / "launcher_config.json"
 
 
+# Per-emulator flag that forces fullscreen on launch.
+FULLSCREEN_FLAGS: dict[str, str] = {
+    "duckstation": "-fullscreen",
+    "pcsx2": "-fullscreen",
+    "ppsspp": "--fullscreen",
+}
+
+
 @dataclass
 class Config:
     """User-editable settings."""
@@ -90,6 +98,13 @@ class Config:
     # Optional extra CLI flags per emulator, e.g. {"pcsx2": "-fullscreen -nogui"}
     emulator_args: dict[str, str] = field(default_factory=dict)
 
+    # --- Apariencia / comportamiento -------------------------------------
+    color_theme: str = "Azul PlayStation"   # nombre en theme.COLOR_THEMES
+    card_size: str = "Mediana"              # Pequeña / Mediana / Grande
+    launch_fullscreen: bool = False         # añade el flag de pantalla completa
+    close_on_launch: bool = False           # minimiza el launcher al jugar
+    confirm_launch: bool = False            # pide confirmación antes de jugar
+
     # ----------------------------------------------------------------- #
     @classmethod
     def load(cls) -> "Config":
@@ -101,6 +116,11 @@ class Config:
                 # Merge so newly added emulator keys are preserved.
                 cfg.emulators.update(data.get("emulators", {}))
                 cfg.emulator_args = data.get("emulator_args", {})
+                cfg.color_theme = data.get("color_theme", cfg.color_theme)
+                cfg.card_size = data.get("card_size", cfg.card_size)
+                cfg.launch_fullscreen = data.get("launch_fullscreen", cfg.launch_fullscreen)
+                cfg.close_on_launch = data.get("close_on_launch", cfg.close_on_launch)
+                cfg.confirm_launch = data.get("confirm_launch", cfg.confirm_launch)
                 return cfg
             except (json.JSONDecodeError, OSError):
                 # Corrupt config -> fall back to defaults rather than crashing.
@@ -123,4 +143,9 @@ class Config:
         """Return extra CLI args for a console's emulator as a token list."""
         key = CONSOLES[console_id]["emulator_key"]
         raw = self.emulator_args.get(key, "")
-        return raw.split() if raw else []
+        tokens = raw.split() if raw else []
+        if self.launch_fullscreen:
+            flag = FULLSCREEN_FLAGS.get(key)
+            if flag and flag not in tokens:
+                tokens.append(flag)
+        return tokens

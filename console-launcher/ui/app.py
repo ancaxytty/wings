@@ -20,13 +20,15 @@ class LauncherApp(ctk.CTk):
         super().__init__()
         ctk.set_appearance_mode("dark")
 
+        self.config_obj = Config.load()
+        self._apply_theme_from_config()
+
         self.title("Nexus Game Center")
         self.geometry("1180x720")
         self.minsize(880, 560)
         self.configure(fg_color=theme.BG_DEEP)
         self._apply_icon()
 
-        self.config_obj = Config.load()
         self.library: dict[str, list[Game]] = {cid: [] for cid in CONSOLES}
         self.current_filter = ALL
         self.search_text = ""
@@ -35,6 +37,11 @@ class LauncherApp(ctk.CTk):
 
         self._build_layout()
         self.reload_library()
+
+    def _apply_theme_from_config(self):
+        """Apply the saved color theme and card size to the theme module."""
+        theme.set_accent(self.config_obj.color_theme)
+        theme.set_card_size(self.config_obj.card_size)
 
     def _apply_icon(self):
         """Set the window/taskbar icon (app.ico). Safe no-op if unavailable."""
@@ -207,13 +214,30 @@ class LauncherApp(ctk.CTk):
         self._render_grid(force=True)
 
     def _open_settings(self):
-        SettingsDialog(self, self.config_obj, on_saved=self.reload_library)
+        SettingsDialog(self, self.config_obj, on_saved=self._on_settings_saved)
+
+    def _on_settings_saved(self):
+        """Re-apply theme/size (rebuilding the UI) then rescan the library."""
+        self._apply_theme_from_config()
+        # Rebuild the whole layout so the new accent/card size take effect.
+        for w in self.winfo_children():
+            w.destroy()
+        self._cards.clear()
+        self._last_cols = 0
+        self._build_layout()
+        self.reload_library()
 
     def _play(self, game: Game):
+        if self.config_obj.confirm_launch:
+            if not messagebox.askyesno("Confirmar", f"¿Iniciar «{game.title}»?"):
+                return
         try:
             launch(game, self.config_obj)
         except LaunchError as exc:
             messagebox.showerror("No se pudo iniciar", str(exc))
+            return
+        if self.config_obj.close_on_launch:
+            self.iconify()
 
 
 def run():
