@@ -6,6 +6,23 @@ REM  Crea el entorno, instala dependencias y construye el .exe.
 REM  El resultado queda en la carpeta  dist\NexusGameCenter.exe
 REM ===================================================================
 
+REM Trabajar SIEMPRE en la carpeta donde esta este .bat
+REM (evita el error "No such file or directory: requirements.txt")
+cd /d "%~dp0"
+
+REM Verificar que estamos en la carpeta correcta del proyecto
+if not exist "requirements.txt" (
+    echo [ERROR] No se encuentra requirements.txt en:
+    echo    %cd%
+    echo.
+    echo Asegurate de DESCOMPRIMIR el zip y de que este .bat este
+    echo dentro de la carpeta "console-launcher" junto a main.py y
+    echo requirements.txt. No lo ejecutes desde dentro del .zip.
+    echo.
+    pause
+    exit /b 1
+)
+
 echo.
 echo ============================================
 echo   Nexus Game Center - Construyendo el .EXE
